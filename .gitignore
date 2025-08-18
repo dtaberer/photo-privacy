@@ -1,0 +1,19 @@
+# Node / React
+node_modules/
+dist/
+build/
+.cache/
+.vite/
+.next/
+*.log
+.env*
+.DS_Store
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# Editor
+.vscode/
+.idea/
+# App artifacts
+scrubbed*.jpg
