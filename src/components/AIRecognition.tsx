@@ -1,6 +1,7 @@
 // src/components/AIRecognition.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Form, Card, Spinner, Tabs, Tab } from "react-bootstrap";
+import ModelsBadge from "./ModelsBadge"; // or "@/Components/ModelsBadge" if your folder is capitalized
 import { CheckboxOption } from "./CheckboxOption";
 import SliderControl from "./SliderControl";
 import { Title } from "./Title";
@@ -444,6 +445,17 @@ export default function AIRecognition() {
 
   return (
     <>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <h1 className="h3 m-0">Photo Privacy Scrubber</h1>
+        <ModelsBadge />
+      </header>
       <Title action={() => {}} />
 
       <Card className="pps-tabs position-relative">

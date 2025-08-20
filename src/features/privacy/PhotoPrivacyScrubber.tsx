@@ -1,109 +1,3 @@
-// File: scripts/fetch-face-models.mjs
-import fs from "node:fs";
-import fsp from "node:fs/promises";
-import path from "node:path";
-import https from "node:https";
-const VERSION = process.env.FACE_API_MODEL_VERSION || "1.7.15";
-const CDN_ROOT = `https://cdn.jsdelivr.net/npm/@vladmandic/face-api@${VERSION}/model`;
-const FILES = [
-  "tiny_face_detector_model-weights_manifest.json",
-  "tiny_face_detector_model.bin",
-];
-const DEST_DIR = path.join(process.cwd(), "public", "models");
-const FORCE = process.env.FORCE_DOWNLOAD === "1";
-async function ensureDir(p) {
-  await fsp.mkdir(p, { recursive: true });
-}
-function download(url, dest) {
-  return new Promise((res, rej) => {
-    https
-      .get(url, (r) => {
-        if (
-          r.statusCode &&
-          r.statusCode >= 300 &&
-          r.statusCode < 400 &&
-          r.headers.location
-        ) {
-          return res(download(r.headers.location, dest));
-        }
-        if (r.statusCode !== 200) {
-          return rej(new Error(`HTTP ${r.statusCode} for ${url}`));
-        }
-        const f = fs.createWriteStream(dest);
-        r.pipe(f);
-        f.on("finish", () => f.close(res));
-        f.on("error", rej);
-      })
-      .on("error", rej);
-  });
-}
-async function main() {
-  await ensureDir(DEST_DIR);
-  for (const name of FILES) {
-    const dest = path.join(DEST_DIR, name);
-    const url = `${CDN_ROOT}/${name}`;
-    let needs = FORCE;
-    try {
-      if (!needs) await fsp.access(dest);
-    } catch {
-      needs = true;
-    }
-    if (!needs) {
-      console.log(`[models] exists: ${path.relative(process.cwd(), dest)}`);
-      continue;
-    }
-    console.log(`[models] downloading: ${url}`);
-    await download(url, dest);
-    console.log(`[models] saved: ${path.relative(process.cwd(), dest)}`);
-  }
-  console.log(`[models] done.`);
-}
-main().catch((e) => {
-  console.error(`[models] failed:`, e);
-  process.exitCode = 1;
-});
-
-// File: src/workers/ocr.worker.ts
-export {};
-// @ts-ignore
-import Tesseract from "tesseract.js";
-self.onmessage = async (e: MessageEvent) => {
-  const {
-    bitmap,
-    lang = "eng",
-    confidence = 0.6,
-  } = (e.data || {}) as {
-    bitmap: ImageBitmap;
-    lang?: string;
-    confidence?: number;
-  };
-  try {
-    if (!bitmap) throw new Error("no bitmap");
-    const off = new OffscreenCanvas(bitmap.width, bitmap.height);
-    const ctx = off.getContext("2d");
-    if (!ctx) throw new Error("no 2d ctx");
-    ctx.drawImage(bitmap, 0, 0);
-    if (typeof (bitmap as any).close === "function") (bitmap as any).close();
-    const { data } = await Tesseract.recognize(off as any, lang, {
-      logger: () => {},
-    });
-    const cutoff = Math.max(0, Math.min(1, confidence)) * 100;
-    const words = (data.words || [])
-      .filter((w: any) => w.confidence >= cutoff)
-      .map((w: any) => ({
-        x: w.bbox.x0,
-        y: w.bbox.y0,
-        w: w.bbox.x1 - w.bbox.x0,
-        h: w.bbox.y1 - w.bbox.y0,
-        score: w.confidence / 100,
-        label: "text",
-      }));
-    (self as any).postMessage({ ok: true, words });
-  } catch (err) {
-    (self as any).postMessage({ ok: false, error: String(err) });
-  }
-};
-
 // File: src/features/privacy/PhotoPrivacyScrubber.tsx
 import React, {
   useCallback,
@@ -112,8 +6,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-let faceapi: any = null;
-let exifr: any = null;
+
+type FaceAPINamespace = typeof import("@vladmandic/face-api");
+type ExifrNamespace = typeof import("exifr");
 
 type RedactionMode = "fill" | "blur" | "pixelate";
 
@@ -132,6 +27,7 @@ type ProcessOptions = {
   pixelSize: number;
   textConfidence: number;
   faceScore: number;
+  ocrMaxDim: number;
 };
 
 const DEFAULTS: ProcessOptions = {
@@ -140,6 +36,7 @@ const DEFAULTS: ProcessOptions = {
   pixelSize: 18,
   textConfidence: 0.6,
   faceScore: 0.5,
+  ocrMaxDim: 1600,
 };
 
 const MODEL_RELATIVE_URL = `${import.meta.env.BASE_URL || "/"}models`;
@@ -150,6 +47,9 @@ const FACE_MODELS = [
 const CDN_FACE_API_MODEL_ROOT =
   "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model";
 let FACE_MODEL_ROOT_CACHE: string | null = null;
+
+let faceapiNS: FaceAPINamespace | null = null;
+let exifrNS: ExifrNamespace | null = null;
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -169,9 +69,14 @@ function useObjectUrl(file: File | null) {
   return url;
 }
 
-async function ensureDeps() {
-  if (!faceapi) faceapi = await import("@vladmandic/face-api");
-  if (!exifr) exifr = await import("exifr");
+async function ensureFace(): Promise<FaceAPINamespace> {
+  if (!faceapiNS)
+    faceapiNS = (await import("@vladmandic/face-api")) as FaceAPINamespace;
+  return faceapiNS;
+}
+async function ensureExifr(): Promise<ExifrNamespace> {
+  if (!exifrNS) exifrNS = (await import("exifr")) as ExifrNamespace;
+  return exifrNS;
 }
 
 async function headOk(url: string) {
@@ -208,7 +113,7 @@ async function checkModelAvailability(baseUrl: string = MODEL_RELATIVE_URL) {
 }
 
 async function loadFaceModels() {
-  await ensureDeps();
+  const faceapi = await ensureFace();
   const root = await resolveFaceModelRoot();
   await faceapi.nets.tinyFaceDetector.loadFromUri(root);
 }
@@ -218,12 +123,16 @@ async function detectFacesOnCanvas(
   minScore: number
 ): Promise<DetectedBox[]> {
   await loadFaceModels();
+  const faceapi = await ensureFace();
   const options = new faceapi.TinyFaceDetectorOptions({
     inputSize: 416,
     scoreThreshold: clamp(minScore, 0.1, 0.9),
   });
-  const results = await faceapi.detectAllFaces(canvas, options);
-  return results.map((r: any) => ({
+  const results = (await faceapi.detectAllFaces(canvas, options)) as Array<{
+    box: { x: number; y: number; width: number; height: number };
+    score: number;
+  }>;
+  return results.map((r) => ({
     x: r.box.x,
     y: r.box.y,
     w: r.box.width,
@@ -231,6 +140,24 @@ async function detectFacesOnCanvas(
     score: r.score,
     label: "face",
   }));
+}
+
+function scaledCanvas(
+  src: HTMLCanvasElement,
+  maxDim: number
+): HTMLCanvasElement {
+  const w = src.width;
+  const h = src.height;
+  const max = Math.max(w, h);
+  if (!maxDim || maxDim <= 0 || max <= maxDim) return src;
+  const ratio = maxDim / max;
+  const out = document.createElement("canvas");
+  out.width = Math.max(1, Math.round(w * ratio));
+  out.height = Math.max(1, Math.round(h * ratio));
+  const ctx = out.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return src;
+  ctx.drawImage(src, 0, 0, out.width, out.height);
+  return out;
 }
 
 function redactBoxes(
@@ -243,10 +170,10 @@ function redactBoxes(
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return;
   for (const b of boxes) {
-    const x = Math.max(0, b.x);
-    const y = Math.max(0, b.y);
-    const w = Math.min(canvas.width - x, b.w);
-    const h = Math.min(canvas.height - y, b.h);
+    const x = Math.max(0, Math.floor(b.x));
+    const y = Math.max(0, Math.floor(b.y));
+    const w = Math.min(canvas.width - x, Math.floor(b.w));
+    const h = Math.min(canvas.height - y, Math.floor(b.h));
     if (w <= 0 || h <= 0) continue;
     if (mode === "fill") {
       const prev = ctx.fillStyle;
@@ -310,15 +237,19 @@ export default function PhotoPrivacyScrubber() {
   const boxes = useMemo(() => [...faces, ...words], [faces, words]);
 
   useEffect(() => {
-    const w = new Worker(
-      new URL("../../workers/ocr.worker.ts", import.meta.url),
-      { type: "module" }
-    );
-    ocrWorkerRef.current = w;
-    return () => {
-      w.terminate();
+    try {
+      const w = new Worker(
+        new URL("../../workers/ocr.worker.ts", import.meta.url),
+        { type: "module" }
+      );
+      ocrWorkerRef.current = w;
+      return () => {
+        w.terminate();
+        ocrWorkerRef.current = null;
+      };
+    } catch {
       ocrWorkerRef.current = null;
-    };
+    }
   }, []);
 
   useEffect(() => {
@@ -360,21 +291,34 @@ export default function PhotoPrivacyScrubber() {
   const detectTextViaWorker = useCallback(
     async (
       canvas: HTMLCanvasElement,
-      threshold01: number
+      threshold01: number,
+      ocrMaxDim: number
     ): Promise<DetectedBox[]> => {
       const worker = ocrWorkerRef.current;
+      const src = scaledCanvas(canvas, Math.floor(ocrMaxDim || 0));
       if (!worker || typeof createImageBitmap !== "function") {
-        // @ts-ignore
-        const Tesseract =
-          (await import("tesseract.js")).default ||
-          (await import("tesseract.js"));
-        const { data } = await Tesseract.recognize(canvas, "eng", {
+        type OCRWord = {
+          confidence: number;
+          bbox: { x0: number; y0: number; x1: number; y1: number };
+        };
+        type RecognizeData = { words?: OCRWord[] };
+        type RecognizeResult = { data: RecognizeData };
+        const { default: Tesseract } = (await import("tesseract.js")) as {
+          default: {
+            recognize: (
+              img: any,
+              lang: string,
+              opts?: { logger?: (m: unknown) => void }
+            ) => Promise<RecognizeResult>;
+          };
+        };
+        const { data } = await Tesseract.recognize(src, "eng", {
           logger: () => {},
         });
         const cutoff = clamp(threshold01, 0, 1) * 100;
         return (data.words || [])
-          .filter((w: any) => w.confidence >= cutoff)
-          .map((w: any) => ({
+          .filter((w) => w.confidence >= cutoff)
+          .map((w) => ({
             x: w.bbox.x0,
             y: w.bbox.y0,
             w: w.bbox.x1 - w.bbox.x0,
@@ -383,13 +327,18 @@ export default function PhotoPrivacyScrubber() {
             label: "text",
           }));
       }
-      const bitmap = await createImageBitmap(canvas);
+      const bitmap = await createImageBitmap(src);
       return new Promise<DetectedBox[]>((resolve, reject) => {
         const onMsg = (ev: MessageEvent) => {
-          const d: any = ev.data || {};
-          worker.removeEventListener("message", onMsg);
-          if (d.ok) resolve(d.words as DetectedBox[]);
-          else reject(new Error(d.error || "ocr failed"));
+          const d: unknown = ev.data;
+          (worker as Worker).removeEventListener("message", onMsg);
+          const payload = d as {
+            ok?: boolean;
+            words?: DetectedBox[];
+            error?: string;
+          };
+          if (payload && payload.ok) resolve(payload.words || []);
+          else reject(new Error((payload && payload.error) || "ocr failed"));
         };
         worker.addEventListener("message", onMsg);
         worker.postMessage({ bitmap, lang: "eng", confidence: threshold01 }, [
@@ -423,8 +372,8 @@ export default function PhotoPrivacyScrubber() {
       })(),
       (async () => {
         try {
-          await ensureDeps();
-          const o = await (await import("exifr")).orientation(file);
+          const exifr = await ensureExifr();
+          const o = await (exifr as any).orientation(file);
           return typeof o === "number" ? o : null;
         } catch {
           return null;
@@ -458,12 +407,20 @@ export default function PhotoPrivacyScrubber() {
     let facesFound: DetectedBox[] = [];
     try {
       facesFound = await detectFacesOnCanvas(canvas, opts.faceScore);
-    } catch {}
+    } catch {
+      console.log("Detect Faces on Canvas failed!");
+    }
     setStatus("Detecting text… (non-blocking)");
     let wordsFound: DetectedBox[] = [];
     try {
-      wordsFound = await detectTextViaWorker(canvas, opts.textConfidence);
-    } catch {}
+      wordsFound = await detectTextViaWorker(
+        canvas,
+        opts.textConfidence,
+        opts.ocrMaxDim
+      );
+    } catch {
+      console.log("detectTextViaWorker failed!");
+    }
     setFaces(facesFound);
     setWords(wordsFound);
     setStatus("Applying redactions…");
@@ -488,6 +445,7 @@ export default function PhotoPrivacyScrubber() {
     opts.mode,
     opts.blurRadius,
     opts.pixelSize,
+    opts.ocrMaxDim,
     resultUrl,
     detectTextViaWorker,
   ]);
@@ -560,16 +518,23 @@ export default function PhotoPrivacyScrubber() {
                 >
                   Download
                 </button>
-                {modelInfo && (
-                  <span
-                    className="ml-auto text-xs px-2 py-1 rounded-full border"
-                    title={`Checked ${new Date(
-                      modelInfo.checkedAt
-                    ).toLocaleTimeString()}`}
-                  >
-                    Models: {modelInfo.source === "local" ? "Local" : "CDN"}
-                  </span>
-                )}
+                <span
+                  className="ml-auto text-xs px-2 py-1 rounded-full border"
+                  title={
+                    modelInfo
+                      ? `Checked ${new Date(
+                          modelInfo.checkedAt
+                        ).toLocaleTimeString()}`
+                      : "Checking…"
+                  }
+                >
+                  Models:{" "}
+                  {modelInfo
+                    ? modelInfo.source === "local"
+                      ? "Local"
+                      : "CDN"
+                    : "Checking…"}
+                </span>
               </div>
               <p className="text-xs text-gray-500 mt-2 min-h-5">{status}</p>
             </div>
@@ -647,6 +612,23 @@ export default function PhotoPrivacyScrubber() {
                   className="w-20 border rounded px-2 py-1"
                 />
               </label>
+              <label className="flex items-center gap-2 text-sm">
+                <span>OCR max size</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={4000}
+                  value={opts.ocrMaxDim}
+                  onChange={(e) =>
+                    setOpts((o) => ({
+                      ...o,
+                      ocrMaxDim: Math.max(0, Number(e.target.value)),
+                    }))
+                  }
+                  className="w-24 border rounded px-2 py-1"
+                />
+                <span className="text-xs text-gray-500">px (0=off)</span>
+              </label>
             </div>
           </div>
           {boxes.length > 0 && (
@@ -723,23 +705,9 @@ export default function PhotoPrivacyScrubber() {
               {modelInfo && (
                 <div className="text-xs mt-2">
                   <div>
-                    Source: // replace the conditional render with this:
-                    <span
-                      className="ml-auto text-xs px-2 py-1 rounded-full border"
-                      title={
-                        modelInfo
-                          ? `Checked ${new Date(
-                              modelInfo.checkedAt
-                            ).toLocaleTimeString()}`
-                          : "Checking…"
-                      }
-                    >
-                      Models:{" "}
-                      {modelInfo
-                        ? modelInfo.source === "local"
-                          ? "Local"
-                          : "CDN"
-                        : "Checking…"}
+                    Source:{" "}
+                    <span className="font-medium">
+                      {modelInfo.source === "local" ? "Local" : "CDN"}
                     </span>
                   </div>
                   <div className="truncate" title={modelInfo.root}>
@@ -780,13 +748,3 @@ export default function PhotoPrivacyScrubber() {
     </div>
   );
 }
-
-// File: package.json (merge these keys)
-/*
-{
-  "scripts": {
-    "models:fetch": "node scripts/fetch-face-models.mjs",
-    "postinstall": "node scripts/fetch-face-models.mjs"
-  }
-}
-*/

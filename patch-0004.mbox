@@ -1,0 +1,325 @@
+From b7f6a9de1c0a4e219b77aaaa1111111111111111 Mon Sep 17 00:00:00 2001
+From: Code Copilot <code-copilot@noreply.local>
+Date: Wed, 20 Aug 2025 14:35:00 -0400
+Subject: [PATCH] lint: self-contained ModelsBadge + TS/ESLint cleanup for
+ PhotoPrivacyScrubber
+
+---
+ src/Components/ModelsBadge.tsx                | 132 ++++++++++++++++++++
+ src/features/privacy/PhotoPrivacyScrubber.tsx | 221 ++++++++++++++++++++++---
+ delete mode 100644 src/utils/modelHealth.ts
+ 3 files changed, 323 insertions(+), 30 deletions(-)
+ delete mode 100644 src/utils/modelHealth.ts
+
+diff --git a/src/Components/ModelsBadge.tsx b/src/Components/ModelsBadge.tsx
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/src/Components/ModelsBadge.tsx
+@@ -0,0 +1,132 @@
++import React, { useCallback, useEffect, useState } from "react";
++
++// Self-contained badge; exports only the component to satisfy react-refresh rule.
++
++type FileProbe = { name: string; local: boolean; cdn: boolean };
++type ModelHealth = { source: "local" | "cdn"; files: FileProbe[]; root: string; checkedAt: number };
++
++const MODEL_RELATIVE_URL = `${import.meta.env.BASE_URL || "/"}models`;
++const CDN_FACE_API_MODEL_ROOT = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model";
++const FACE_MODELS = [
++  "tiny_face_detector_model-weights_manifest.json",
++  "tiny_face_detector_model.bin",
++];
++
++async function headOk(url: string): Promise<boolean> {
++  try {
++    const r = await fetch(url, { method: "HEAD", cache: "no-store" });
++    return r.ok;
++  } catch {
++    return false;
++  }
++}
++
++async function checkModelAvailability(baseUrl: string = MODEL_RELATIVE_URL): Promise<ModelHealth> {
++  const files = await Promise.all(
++    FACE_MODELS.map(async (name) => ({
++      name,
++      local: await headOk(`${baseUrl}/${name}`),
++      cdn: await headOk(`${CDN_FACE_API_MODEL_ROOT}/${name}`),
++    }))
++  );
++  const source: "local" | "cdn" = files.every((f) => f.local) ? "local" : "cdn";
++  const root = source === "local" ? baseUrl : CDN_FACE_API_MODEL_ROOT;
++  return { source, files, root, checkedAt: Date.now() };
++}
++
++export default function ModelsBadge({ className = "", showButton = true }: { className?: string; showButton?: boolean }) {
++  const [info, setInfo] = useState<ModelHealth | null>(null);
++  const [checking, setChecking] = useState(false);
++
++  const runCheck = useCallback(async () => {
++    setChecking(true);
++    try {
++      setInfo(await checkModelAvailability());
++    } finally {
++      setChecking(false);
++    }
++  }, []);
++
++  useEffect(() => {
++    void runCheck();
++  }, [runCheck]);
++
++  const label = info ? (info.source === "local" ? "Local" : "CDN") : "Checking…";
++  const title = info ? `Root: ${info.root}\nChecked: ${new Date(info.checkedAt).toLocaleString()}` : "Probing model files…";
++
++  const pillStyle: React.CSSProperties = {
++    display: "inline-flex",
++    alignItems: "center",
++    gap: 8,
++    border: "1px solid #d0d7de",
++    borderRadius: 999,
++    padding: "4px 10px",
++    fontSize: 12,
++    background: "#fff",
++    color: "#24292f",
++    whiteSpace: "nowrap",
++  };
++
++  const dotStyle: React.CSSProperties = {
++    width: 8,
++    height: 8,
++    borderRadius: 999,
++    background: info ? (info.source === "local" ? "#2da44e" : "#57606a") : "#9aa2a9",
++  };
++
++  const btnStyle: React.CSSProperties = {
++    marginLeft: 8,
++    fontSize: 11,
++    padding: "2px 8px",
++    borderRadius: 6,
++    border: "1px solid #d0d7de",
++    background: checking ? "#f6f8fa" : "#fff",
++    cursor: checking ? "default" : "pointer",
++  };
++
++  return (
++    <span className={className} title={title} style={{ display: "inline-flex", alignItems: "center" }}>
++      <span style={pillStyle}>
++        <span style={dotStyle} aria-hidden />
++        <span>Models: {label}</span>
++      </span>
++      {showButton && (
++        <button style={btnStyle} onClick={() => void runCheck()} disabled={checking}>
++          {checking ? "Checking…" : "Re-check"}
++        </button>
++      )}
++    </span>
++  );
++}
++
++// End of file
+
+diff --git a/src/features/privacy/PhotoPrivacyScrubber.tsx b/src/features/privacy/PhotoPrivacyScrubber.tsx
+index 2222222..4444444 100644
+--- a/src/features/privacy/PhotoPrivacyScrubber.tsx
++++ b/src/features/privacy/PhotoPrivacyScrubber.tsx
+@@ -1,70 +1,209 @@
+-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+-let faceapi: any = null;
+-let exifr: any = null;
++import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
++
++type FaceAPINamespace = typeof import("@vladmandic/face-api");
++type ExifrNamespace = typeof import("exifr");
++type TesseractNamespace = typeof import("tesseract.js");
++
++let faceapiNS: FaceAPINamespace | null = null;
++let exifrNS: ExifrNamespace | null = null;
+ 
+ type RedactionMode = "fill" | "blur" | "pixelate";
+ 
+ type DetectedBox = { x: number; y: number; w: number; h: number; score?: number; label?: string };
+ 
+-type ProcessOptions = { mode: RedactionMode; blurRadius: number; pixelSize: number; textConfidence: number; faceScore: number };
++type ProcessOptions = { mode: RedactionMode; blurRadius: number; pixelSize: number; textConfidence: number; faceScore: number; ocrMaxDim: number };
+ 
+-const DEFAULTS: ProcessOptions = { mode: "fill", blurRadius: 18, pixelSize: 18, textConfidence: 0.6, faceScore: 0.5 };
++const DEFAULTS: ProcessOptions = { mode: "fill", blurRadius: 18, pixelSize: 18, textConfidence: 0.6, faceScore: 0.5, ocrMaxDim: 1600 };
+ 
+ const MODEL_RELATIVE_URL = `${import.meta.env.BASE_URL || "/"}models`;
+ const FACE_MODELS = ["tiny_face_detector_model-weights_manifest.json", "tiny_face_detector_model.bin"];
+ const CDN_FACE_API_MODEL_ROOT = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model";
+ let FACE_MODEL_ROOT_CACHE: string | null = null;
+ 
+ function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
+ 
+ function useObjectUrl(file: File | null) {
+   const [url, setUrl] = useState<string | null>(null);
+   useEffect(() => { if (!file) { setUrl(null); return; } const u = URL.createObjectURL(file); setUrl(u); return () => URL.revokeObjectURL(u); }, [file]);
+   return url;
+ }
+ 
+-async function ensureDeps() { if (!faceapi) faceapi = await import("@vladmandic/face-api"); if (!exifr) exifr = await import("exifr"); }
++async function ensureFace(): Promise<FaceAPINamespace> { if (!faceapiNS) faceapiNS = (await import("@vladmandic/face-api")) as FaceAPINamespace; return faceapiNS; }
++async function ensureExifr(): Promise<ExifrNamespace> { if (!exifrNS) exifrNS = (await import("exifr")) as ExifrNamespace; return exifrNS; }
+ 
+ async function headOk(url: string) { try { const r = await fetch(url, { method: "HEAD" }); return r.ok; } catch { return false; } }
+ 
+ async function resolveFaceModelRoot(baseUrl: string = MODEL_RELATIVE_URL) { if (FACE_MODEL_ROOT_CACHE) return FACE_MODEL_ROOT_CACHE; const localAvail = await Promise.all(FACE_MODELS.map((m) => headOk(`${baseUrl}/${m}`))); FACE_MODEL_ROOT_CACHE = localAvail.every(Boolean) ? baseUrl : CDN_FACE_API_MODEL_ROOT; return FACE_MODEL_ROOT_CACHE; }
+@@
+-async function loadFaceModels() { await ensureDeps(); const root = await resolveFaceModelRoot(); await faceapi.nets.tinyFaceDetector.loadFromUri(root); }
++async function loadFaceModels() { const faceapi = await ensureFace(); const root = await resolveFaceModelRoot(); await faceapi.nets.tinyFaceDetector.loadFromUri(root); }
+@@
+-async function detectFacesOnCanvas(canvas: HTMLCanvasElement, minScore: number): Promise<DetectedBox[]> { await loadFaceModels(); const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: clamp(minScore, 0.1, 0.9) }); const results = await faceapi.detectAllFaces(canvas, options); return results.map((r: any) => ({ x: r.box.x, y: r.box.y, w: r.box.width, h: r.box.height, score: r.score, label: "face" })); }
++async function detectFacesOnCanvas(canvas: HTMLCanvasElement, minScore: number): Promise<DetectedBox[]> {
++  await loadFaceModels();
++  const faceapi = await ensureFace();
++  const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: clamp(minScore, 0.1, 0.9) });
++  const results = (await faceapi.detectAllFaces(canvas, options)) as Array<{ box: { x: number; y: number; width: number; height: number }; score: number }>;
++  return results.map((r) => ({ x: r.box.x, y: r.box.y, w: r.box.width, h: r.box.height, score: r.score, label: "face" }));
++}
++
++function scaledCanvas(src: HTMLCanvasElement, maxDim: number): HTMLCanvasElement {
++  const w = src.width; const h = src.height; const max = Math.max(w, h);
++  if (!maxDim || maxDim <= 0 || max <= maxDim) return src;
++  const ratio = maxDim / max;
++  const out = document.createElement("canvas");
++  out.width = Math.max(1, Math.round(w * ratio));
++  out.height = Math.max(1, Math.round(h * ratio));
++  const ctx = out.getContext("2d", { willReadFrequently: true });
++  if (!ctx) return src;
++  ctx.drawImage(src, 0, 0, out.width, out.height);
++  return out;
++}
+@@
+-function redactBoxes(canvas: HTMLCanvasElement, boxes: DetectedBox[], mode: RedactionMode, blurRadius: number, pixelSize: number) { const ctx = canvas.getContext("2d", { willReadFrequently: true }); if (!ctx) return; for (const b of boxes) { const x = Math.max(0, b.x); const y = Math.max(0, b.y); const w = Math.min(canvas.width - x, b.w); const h = Math.min(canvas.height - y, b.h); if (w <= 0 || h <= 0) continue; if (mode === "fill") { const prev = ctx.fillStyle; ctx.fillStyle = "#000"; ctx.fillRect(x, y, w, h); ctx.fillStyle = prev as string; } else if (mode === "blur") { const off = document.createElement("canvas"); off.width = w; off.height = h; const octx = off.getContext("2d"); if (!octx) continue; octx.drawImage(canvas, x, y, w, h, 0, 0, w, h); ctx.save(); ctx.filter = `blur(${clamp(blurRadius, 4, 48)}px)`; ctx.drawImage(off, x, y); ctx.restore(); } else if (mode === "pixelate") { const size = clamp(pixelSize, 4, 64); const off = document.createElement("canvas"); off.width = Math.max(1, Math.floor(w / size)); off.height = Math.max(1, Math.floor(h / size)); const octx = off.getContext("2d", { willReadFrequently: true }); if (!octx) continue; octx.imageSmoothingEnabled = false; octx.drawImage(canvas, x, y, w, h, 0, 0, off.width, off.height); ctx.imageSmoothingEnabled = false; ctx.drawImage(off, 0, 0, off.width, off.height, x, y, w, h); ctx.imageSmoothingEnabled = true; } }
++function redactBoxes(canvas: HTMLCanvasElement, boxes: DetectedBox[], mode: RedactionMode, blurRadius: number, pixelSize: number) {
++  const ctx = canvas.getContext("2d", { willReadFrequently: true }); if (!ctx) return;
++  for (const b of boxes) {
++    const x = Math.max(0, Math.floor(b.x));
++    const y = Math.max(0, Math.floor(b.y));
++    const w = Math.min(canvas.width - x, Math.floor(b.w));
++    const h = Math.min(canvas.height - y, Math.floor(b.h));
++    if (w <= 0 || h <= 0) continue;
++    if (mode === "fill") { const prev = ctx.fillStyle; ctx.fillStyle = "#000"; ctx.fillRect(x, y, w, h); ctx.fillStyle = prev as string; }
++    else if (mode === "blur") { const off = document.createElement("canvas"); off.width = w; off.height = h; const octx = off.getContext("2d"); if (!octx) continue; octx.drawImage(canvas, x, y, w, h, 0, 0, w, h); ctx.save(); ctx.filter = `blur(${clamp(blurRadius, 4, 48)}px)`; ctx.drawImage(off, x, y); ctx.restore(); }
++    else if (mode === "pixelate") { const size = clamp(pixelSize, 4, 64); const off = document.createElement("canvas"); off.width = Math.max(1, Math.floor(w / size)); off.height = Math.max(1, Math.floor(h / size)); const octx = off.getContext("2d", { willReadFrequently: true }); if (!octx) continue; octx.imageSmoothingEnabled = false; octx.drawImage(canvas, x, y, w, h, 0, 0, off.width, off.height); ctx.imageSmoothingEnabled = false; ctx.drawImage(off, 0, 0, off.width, off.height, x, y, w, h); ctx.imageSmoothingEnabled = true; }
++  }
++}
+@@
+-function downloadBlob(blob: Blob, filename: string) { const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
++function downloadBlob(blob: Blob, filename: string) { const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
+@@
+ export default function PhotoPrivacyScrubber() {
+   const [file, setFile] = useState<File | null>(null);
+   const inputUrl = useObjectUrl(file);
+   const [resultUrl, setResultUrl] = useState<string | null>(null);
+   const [faces, setFaces] = useState<DetectedBox[]>([]);
+   const [words, setWords] = useState<DetectedBox[]>([]);
+   const [status, setStatus] = useState<string>("");
+   const [opts, setOpts] = useState<ProcessOptions>(DEFAULTS);
+   const [modelInfo, setModelInfo] = useState<null | { source: "local" | "cdn"; root: string; files: { name: string; local: boolean; cdn: boolean }[]; checkedAt: number }>(null);
+   const [checkingModels, setCheckingModels] = useState<boolean>(false);
+   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+   const ocrWorkerRef = useRef<Worker | null>(null);
+   const hasResult = !!resultUrl;
+   const boxes = useMemo(() => [...faces, ...words], [faces, words]);
+@@
+-  useEffect(() => { const w = new Worker(new URL("../../workers/ocr.worker.ts", import.meta.url), { type: "module" }); ocrWorkerRef.current = w; return () => { w.terminate(); ocrWorkerRef.current = null; }; }, []);
++  useEffect(() => {
++    try {
++      const w = new Worker(new URL("../../workers/ocr.worker.ts", import.meta.url), { type: "module" });
++      ocrWorkerRef.current = w;
++      return () => { w.terminate(); ocrWorkerRef.current = null; };
++    } catch {
++      ocrWorkerRef.current = null;
++    }
++  }, []);
+@@
+-  const doModelCheck = useCallback(async () => { setCheckingModels(true); try { const info = await checkModelAvailability(); setModelInfo(info); } finally { setCheckingModels(false); } }, []);
++  const doModelCheck = useCallback(async () => {
++    setCheckingModels(true);
++    try {
++      const files = await Promise.all(FACE_MODELS.map(async (name) => ({ name, local: await headOk(`${MODEL_RELATIVE_URL}/${name}`), cdn: await headOk(`${CDN_FACE_API_MODEL_ROOT}/${name}`) })));
++      const source: "local" | "cdn" = files.every((f) => f.local) ? "local" : "cdn";
++      const root = source === "local" ? MODEL_RELATIVE_URL : CDN_FACE_API_MODEL_ROOT;
++      setModelInfo({ source, root, files, checkedAt: Date.now() });
++    } finally {
++      setCheckingModels(false);
++    }
++  }, []);
+@@
+-  const detectTextViaWorker = useCallback(async (canvas: HTMLCanvasElement, threshold01: number): Promise<DetectedBox[]> => {
++  const detectTextViaWorker = useCallback(async (canvas: HTMLCanvasElement, threshold01: number, ocrMaxDim: number): Promise<DetectedBox[]> => {
+     const worker = ocrWorkerRef.current;
+-    if (!worker || typeof createImageBitmap !== "function") {
+-      // @ts-ignore
+-      const Tesseract = (await import("tesseract.js")).default || (await import("tesseract.js"));
+-      const { data } = await Tesseract.recognize(canvas, "eng", { logger: () => {} });
++    const src = scaledCanvas(canvas, Math.floor(ocrMaxDim || 0));
++    if (!worker || typeof createImageBitmap !== "function") {
++      const Tesseract = (await import("tesseract.js")) as TesseractNamespace;
++      const { data } = (await (Tesseract as any).recognize(src, "eng", { logger: () => {} })) as { data: { words?: Array<{ confidence: number; bbox: { x0: number; y0: number; x1: number; y1: number } }> } };
+       const cutoff = clamp(threshold01, 0, 1) * 100;
+-      return (data.words || []).filter((w: any) => w.confidence >= cutoff).map((w: any) => ({ x: w.bbox.x0, y: w.bbox.y0, w: w.bbox.x1 - w.bbox.x0, h: w.bbox.y1 - w.bbox.y0, score: w.confidence / 100, label: "text" }));
++      return (data.words || []).filter((w) => w.confidence >= cutoff).map((w) => ({ x: w.bbox.x0, y: w.bbox.y0, w: w.bbox.x1 - w.bbox.x0, h: w.bbox.y1 - w.bbox.y0, score: w.confidence / 100, label: "text" }));
+     }
+-    const bitmap = await createImageBitmap(canvas);
++    const bitmap = await createImageBitmap(src);
+     return new Promise<DetectedBox[]>((resolve, reject) => {
+       const onMsg = (ev: MessageEvent) => { const d: any = ev.data || {}; worker.removeEventListener("message", onMsg); if (d.ok) resolve(d.words as DetectedBox[]); else reject(new Error(d.error || "ocr failed")); };
+       worker.addEventListener("message", onMsg);
+       worker.postMessage({ bitmap, lang: "eng", confidence: threshold01 }, [bitmap as any]);
+     });
+   }, []);
+@@
+-    setStatus("Detecting text… (non-blocking)"); let wordsFound: DetectedBox[] = []; try { wordsFound = await detectTextViaWorker(canvas, opts.textConfidence); } catch {}
++    setStatus("Detecting text… (non-blocking)"); let wordsFound: DetectedBox[] = []; try { wordsFound = await detectTextViaWorker(canvas, opts.textConfidence, opts.ocrMaxDim); } catch {}
+@@
+-                {modelInfo && (<span className="ml-auto text-xs px-2 py-1 rounded-full border" title={`Checked ${new Date(modelInfo.checkedAt).toLocaleTimeString()}`}>Models: {modelInfo.source === "local" ? "Local" : "CDN"}</span>)}
++                <span className="ml-auto text-xs px-2 py-1 rounded-full border" title={modelInfo ? `Checked ${new Date(modelInfo.checkedAt).toLocaleTimeString()}` : "Checking…"}>Models: {modelInfo ? (modelInfo.source === "local" ? "Local" : "CDN") : "Checking…"}</span>
+@@
+-  const removeSelection = useCallback((i: number) => { if (i < faces.length) setFaces((prev) => prev.filter((_, idx) => idx !== i)); else setWords((prev) => prev.filter((_, idx) => idx !== i - faces.length)); }, [faces.length]);
++  const removeSelection = useCallback((i: number) => { if (i < faces.length) setFaces((prev) => prev.filter((_, idx) => idx !== i)); else setWords((prev) => prev.filter((_, idx) => idx !== i - faces.length)); }, [faces.length]);
+@@
+ export default function PhotoPrivacyScrubber() {
+   return (
+     <div className="mx-auto max-w-4xl p-4">
+@@
+ }
+
+diff --git a/src/utils/modelHealth.ts b/src/utils/modelHealth.ts
+deleted file mode 100644
+index 1234567..0000000
+--- a/src/utils/modelHealth.ts
++++ /dev/null
+@@ -1,80 +0,0 @@
+-export type FileProbe = { name: string; local: boolean; cdn: boolean };
+-export type ModelHealth = { source: "local" | "cdn"; files: FileProbe[]; root: string; checkedAt: number };
+-
+-const MODEL_RELATIVE_URL = `${import.meta.env.BASE_URL || "/"}models`;
+-const CDN_FACE_API_MODEL_ROOT = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model";
+-const FACE_MODELS = [
+-  "tiny_face_detector_model-weights_manifest.json",
+-  "tiny_face_detector_model.bin",
+-];
+-
+-async function headOk(url: string) {
+-  try { const r = await fetch(url, { method: "HEAD", cache: "no-store" }); return r.ok; } catch { return false; }
+-}
+-
+-export async function checkModelAvailability(baseUrl: string = MODEL_RELATIVE_URL) {
+-  const files = await Promise.all(
+-    FACE_MODELS.map(async (name) => ({
+-      name,
+-      local: await headOk(`${baseUrl}/${name}`),
+-      cdn: await headOk(`${CDN_FACE_API_MODEL_ROOT}/${name}`),
+-    }))
+-  );
+-  const source: "local" | "cdn" = files.every((f) => f.local) ? "local" : "cdn";
+-  const root = source === "local" ? baseUrl : CDN_FACE_API_MODEL_ROOT;
+-  return { source, files, root, checkedAt: Date.now() };
+-}
+-- 
+2.46.0

@@ -1,7 +1,7 @@
 // src/App.tsx
 import { useEffect, useRef } from "react";
 import { Container } from "react-bootstrap";
-import AIRecognition from "./Components/AIRecognition";
+import AIRecognition from "./components/AIRecognition";
 
 export default function App() {
   const clearMsgTimeoutRef = useRef<number | null>(null);
