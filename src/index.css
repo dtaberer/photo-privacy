@@ -24,12 +24,8 @@ a:hover {
 
 body {
   margin: 0;
-  display: inline-flex;
-  place-items: center;
-  margin: 50px 0 50px 250px;
-  max-width: 80%;
-  min-width: 80%;
-  display: inline-flex;
+  display: block;
+  width: 100%;
 }
 
 h1 {
