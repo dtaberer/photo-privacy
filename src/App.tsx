@@ -1,9 +1,11 @@
 // src/App.tsx
 import { useEffect, useRef } from "react";
 import { Container } from "react-bootstrap";
-import AIRecognition from "./components/AIRecognition";
+import { Title } from "./components/Title";
+import { FaceBlur } from "./components/FaceBlur";
+import { LicensePlateBlur } from "./components/LicensePlateBlur";
 
-export default function App() {
+export function App() {
   const clearMsgTimeoutRef = useRef<number | null>(null);
   const timeoutRef = clearMsgTimeoutRef.current;
 
@@ -15,22 +17,18 @@ export default function App() {
 
   return (
     <Container className="py-3">
-      <AIRecognition />
-
-      {/* App-wide style overrides. Why: brand color on active tabs & form labels styling per request. */}
-      <style>{`
-        .pps-tabs .nav-tabs .nav-link.active,
-        .nav-tabs .nav-link.active {
-          color: #072a57;
-          font-weight: 600;
-        }
-        .form-check-label,
-        .form-label {
-          font-weight: 600;
-          font-size: 11pt;
-          color: #2e4f6ccc;
-        }
-      `}</style>
+      <main style={{ padding: 16, maxWidth: 900, margin: "0 auto" }}>
+        <Title />
+        <LicensePlateBlur
+          modelUrl="/models/license-plate-finetune-v1n.onnx"
+          modelSize={640}
+          confThresh={0.35}
+          iouThresh={0.45}
+          padRatio={0.2}
+          blurRadius={14}
+        />
+        <FaceBlur />
+      </main>
     </Container>
   );
 }
