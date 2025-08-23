@@ -22,9 +22,12 @@ export function Title() {
   return (
     <div className="pps-hero my-3" style={heroStyle}>
       <h1 className="pps-heading">Photo Privacy Scrubber</h1>
-      <p className="pps-subtitle">
-        Blur or pixelate faces and text locally. No uploads.
-      </p>
+      <div>
+        <p className="pps-subtitle">
+          Blur faces * Obscure License Plates * Remove Embedded Metadata
+        </p>
+        <p className="pps-subtitle">No Uploads! * Fast!</p>
+      </div>
     </div>
   );
 }

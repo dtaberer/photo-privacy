@@ -233,7 +233,6 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
 
   return (
     <div className="container my-4">
-      <h2 className="mb-3">Face Blur Demo (Feathered Edge)</h2>
       <div className="mb-3">
         <label htmlFor="face-image-upload" className="form-label">
           Select image:
@@ -247,64 +246,72 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
           className="form-control"
         />
       </div>
-      <div className="mb-3">
-        <label htmlFor="face-blur-slider" className="form-label">
-          Blur Strength:
-        </label>
-        <input
-          id="face-blur-slider"
-          type="range"
-          min={4}
-          max={64}
-          step={2}
-          value={blurStrength}
-          onChange={handleBlurChange}
-          className="form-range"
-        />
-        <span className="ms-2">{blurStrength}px</span>
-      </div>
-      <div className="mb-3">
-        <label htmlFor="face-fade-slider" className="form-label">
-          Edge Fade:
-        </label>
-        <input
-          id="face-fade-slider"
-          type="range"
-          min={0}
-          max={60}
-          step={2}
-          value={fadeEdge}
-          onChange={handleFadeChange}
-          className="form-range"
-        />
-        <span className="ms-2">{fadeEdge}px</span>
-      </div>
+      {imageRef ? (
+        <>
+          <p>Img Source {imageSrc}</p>
+          <div className="mb-3">
+            <label htmlFor="face-blur-slider" className="form-label">
+              Blur Strength:
+            </label>
+            <input
+              id="face-blur-slider"
+              type="range"
+              min={4}
+              max={64}
+              step={2}
+              value={blurStrength}
+              onChange={handleBlurChange}
+              className="form-range"
+            />
+            <span className="ms-2">{blurStrength}px</span>
+          </div>
+          <div className="mb-3">
+            <label htmlFor="face-fade-slider" className="form-label">
+              Edge Fade:
+            </label>
+            <input
+              id="face-fade-slider"
+              type="range"
+              min={0}
+              max={60}
+              step={2}
+              value={fadeEdge}
+              onChange={handleFadeChange}
+              className="form-range"
+            />
+            <span className="ms-2">{fadeEdge}px</span>
+          </div>
+        </>
+      ) : null}
       <div className="mb-3">
         {loading && <span className="text-danger">{loading}</span>}
         {resultText && <span>{resultText}</span>}
       </div>
       {/* Hidden image element for face-api.js */}
       {imageSrc ? (
-        <img
-          ref={effectiveImageRef}
-          src={imageSrc}
-          alt="image-topic"
-          style={{ display: "none" }}
-          crossOrigin="anonymous"
-        />
+        <>
+          <img
+            ref={effectiveImageRef}
+            src={imageSrc}
+            alt="image-topic"
+            style={{ display: "none" }}
+            crossOrigin="anonymous"
+          />
+
+          <div className="mb-3">
+            <canvas
+              ref={effectiveCanvasRef}
+              className="border border-dark w-100"
+              style={{
+                maxWidth: "100%",
+                background: "#40484fff",
+                borderRadius: "8px",
+              }}
+              aria-label="Processed image with blurred license plate"
+            />
+          </div>
+        </>
       ) : null}
-      <div className="mb-3">
-        <canvas
-          ref={effectiveCanvasRef}
-          className="border border-dark w-100"
-          style={{
-            maxWidth: "100%",
-            background: "#40484fff",
-            borderRadius: "8px",
-          }}
-          aria-label="Processed image with blurred license plate"
-        />
-      </div>
     </div>
   );
 };

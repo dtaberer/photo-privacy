@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Badge, Button, Card, Form, Spinner, Stack } from "react-bootstrap";
+import { Button, Card, Form, Spinner, Stack } from "react-bootstrap";
 
 import type { Tensor } from "onnxruntime-web"; // type-only
 import { ort, createOrtSession, ortForceBasicWasm } from "../ort-setup";
+
+import "./LicensePlateBlur.css"; // your overrides
 
 /**
  * LicensePlateBlur — loads an ONNX model (once), detects plates on image load,
@@ -459,80 +461,78 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
   );
 
   return (
-    <Card className="shadow-sm border-0">
-      <Card.Body>
-        <Form>
-          <Form.Group controlId="fileInput" className="mb-3">
-            <Form.Label className="fw-semibold">
-              Pick an image with one or more license plates:
-            </Form.Label>
-            <Form.Control
-              type="file"
-              accept="image/*"
-              onChange={onPickFile}
-              disabled={busy}
-            />
-          </Form.Group>
-        </Form>
-
-        <div className="d-flex align-items-center gap-2 mb-1">
-          {busy && (
-            <Spinner
-              animation="border"
-              size="sm"
-              role="status"
-              aria-label="processing"
-            />
+    <>
+      <Card className="shadow-sm border-0">
+        <Card.Body>
+          <Form>
+            <div>
+              <div
+                className="state-banner d-flex align-items-center gap-2"
+                style={{ marginBottom: "20px" }}
+              >
+                <div
+                  className={`sm state-light ${
+                    sessionReady ? "is-success" : "is-busy"
+                  }`}
+                ></div>
+                <span> {sessionReady ? "Ready" : status}</span>
+              </div>
+              {imageUrl && (
+                <img
+                  ref={imgRef}
+                  alt="image-topic"
+                  src={imageUrl || undefined}
+                  onLoad={handleImgLoad}
+                  style={{ display: "none" }}
+                />
+              )}
+            </div>
+            {busy && (
+              <Spinner
+                animation="border"
+                size="sm"
+                role="status"
+                aria-label="processing"
+              />
+            )}
+            <Form.Group controlId="fileInput" className="mb-3">
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={onPickFile}
+                disabled={busy}
+              />
+            </Form.Group>
+          </Form>
+          {imageUrl && (
+            <>
+              <div className="mb-3">
+                <canvas
+                  ref={canvasRef}
+                  className="w-100 border rounded-3"
+                  style={{ height: "auto" }}
+                />
+              </div>
+              <Stack direction="horizontal" gap={2}>
+                <Button
+                  onClick={() => void detectAndBlur()}
+                  disabled={!imageUrl || !sessionReady || busy}
+                >
+                  Re-run detection
+                </Button>
+                <Button
+                  variant="success"
+                  onClick={handleDownload}
+                  disabled={!imageUrl || !sessionReady || busy}
+                >
+                  Download redacted
+                </Button>
+              </Stack>
+            </>
           )}
-          <div className="small text-muted">
-            Status: {busy ? "processing…" : status}
-          </div>
-          <Badge
-            bg={sessionReady ? "success" : "secondary"}
-            className="ms-auto"
-          >
-            {sessionReady ? "Model Ready" : "Loading Model"}
-          </Badge>
-        </div>
-        <div className="text-muted small mb-3">
-          modelUrl: <code>{modelUrl}</code>
-        </div>
-
-        {imageUrl ? (
-          <img
-            ref={imgRef}
-            alt="image-topic"
-            src={imageUrl || undefined}
-            onLoad={handleImgLoad}
-            style={{ display: "none" }}
-          />
-        ) : null}
-
-        <div className="mb-3">
-          <canvas
-            ref={canvasRef}
-            className="w-100 border rounded-3"
-            style={{ height: "auto" }}
-          />
-        </div>
-
-        <Stack direction="horizontal" gap={2}>
-          <Button
-            onClick={() => void detectAndBlur()}
-            disabled={!imageUrl || !sessionReady || busy}
-          >
-            Re-run detection
-          </Button>
-          <Button
-            variant="success"
-            onClick={handleDownload}
-            disabled={!imageUrl || !sessionReady || busy}
-          >
-            Download redacted
-          </Button>
-        </Stack>
-      </Card.Body>
-    </Card>
+        </Card.Body>
+      </Card>
+    </>
   );
 };
 
