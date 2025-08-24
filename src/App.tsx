@@ -1,34 +1,32 @@
-// src/App.tsx
-import { useEffect, useRef } from "react";
 import { Container } from "react-bootstrap";
-import { Title } from "./components/Title";
-import { FaceBlur } from "./components/FaceBlur";
-import { LicensePlateBlur } from "./components/LicensePlateBlur";
+import { Header } from "./components/Header";
+import PrivacyScrubber from "./components/PrivacyScrubber"; // use your path
+
+import { useEffect, useRef } from "react";
 
 export function App() {
-  const clearMsgTimeoutRef = useRef<number | null>(null);
-  const timeoutRef = clearMsgTimeoutRef.current;
+  const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const timeoutId = timeoutRef.current;
     return () => {
-      if (timeoutRef) window.clearTimeout(timeoutRef);
+      if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, [timeoutRef]);
+  }, []);
 
   return (
-    <Container className="py-3">
-      <main style={{ padding: 16, maxWidth: 900, margin: "0 auto" }}>
-        <Title />
-        <LicensePlateBlur
-          modelUrl="/models/license-plate-finetune-v1n.onnx"
-          modelSize={640}
-          confThresh={0.35}
-          iouThresh={0.45}
-          padRatio={0.2}
-          blurRadius={14}
+    <Container fluid>
+      <div className="bg-light min-vh-100">
+        {/* Ensure Bootstrap CSS is present in the preview */}
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         />
-        <FaceBlur />
-      </main>
+        <Container className="mt-n4 mb-5">
+          <Header />
+          <PrivacyScrubber />
+        </Container>
+      </div>
     </Container>
   );
 }

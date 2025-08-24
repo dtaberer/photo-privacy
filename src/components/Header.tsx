@@ -1,10 +1,9 @@
 import heroBubbles from "../assets/bubble-blower.jpg";
 
-export function Title() {
-  // Inline background to guarantee precedence over any external CSS
+export function Header() {
   const heroStyle: React.CSSProperties = {
     // vivid blue photo background; no overlay
-    backgroundColor: "#1f62c9",
+    // backgroundColor: "#1f62c9",
     borderRadius: "8px",
     backgroundImage: `url(${heroBubbles})`,
     backgroundSize: "cover",
@@ -20,13 +19,13 @@ export function Title() {
   } as const;
 
   return (
-    <div className="pps-hero my-3" style={heroStyle}>
-      <h1 className="pps-heading">Photo Privacy Scrubber</h1>
+    <div className="pps-hero my-3 " style={heroStyle}>
+      <h1 className="display-5 fw-bold mt-2 mb-1">Photo Privacy Scrubber</h1>
       <div>
-        <p className="pps-subtitle">
-          Blur faces * Obscure License Plates * Remove Embedded Metadata
-        </p>
-        <p className="pps-subtitle">No Uploads! * Fast!</p>
+        <span className="pps-subtitle">
+          Blur faces • Obscure License Plates • Remove Embedded Metadata • No
+          Uploads
+        </span>
       </div>
     </div>
   );

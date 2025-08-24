@@ -1,7 +1,24 @@
 #!/usr/bin/env node
 // copies onnxruntime-web sidecars into both dev (src/ort-runtime) and prod (public/ort)
 // and creates dashed↔dotted filename aliases so any loader naming scheme works.
-
+import React, { useMemo, useState } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Form,
+  Button,
+  Badge,
+  Stack,
+} from "react-bootstrap";
+import {
+  FaSync,
+  FaDownload,
+  FaUpload,
+  FaImage,
+  FaCircle,
+} from "react-icons/fa";
 import { createRequire } from "node:module";
 import fs from "node:fs/promises";
 import path from "node:path";
