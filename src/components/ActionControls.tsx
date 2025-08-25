@@ -42,4 +42,4 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
   );
 };
 
-export default ActionControls;
+export default React.memo(ActionControls);

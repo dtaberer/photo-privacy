@@ -1,18 +1,18 @@
+import React, { JSX, useCallback } from "react";
 import { Card, Form } from "react-bootstrap";
+import { ControlPanelProps } from "../types/ControlPanelTypes";
 
-type ControlPanelProps = {
-  blurVal: number;
-  setBlurVal: (val: number) => void;
-  confVal: number;
-  setConfVal: (val: number) => void;
-  controlName: string;
-};
+export function ControlPanel(props: ControlPanelProps): JSX.Element {
+  const { blurVal, setBlurVal, controlName } = props;
 
-export function ControlPanel({
-  blurVal,
-  setBlurVal,
-  controlName,
-}: ControlPanelProps) {
+  const handleBlurChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = Number(e.currentTarget.value);
+      setBlurVal(value);
+    },
+    [setBlurVal]
+  );
+
   return (
     <Card className="border-0 bg-body-tertiary mb-3">
       <Card.Body>
@@ -23,13 +23,16 @@ export function ControlPanel({
           <span className="text-muted">{blurVal}px</span>
         </Form.Label>
         <Form.Range
+          aria-label={`${controlName} Intensity`}
           min={0}
-          max={30}
-          step={0.11}
+          max={100}
+          step={1}
           value={blurVal}
-          onChange={(e) => setBlurVal(Number(e.currentTarget.value))}
+          onChange={handleBlurChange}
         />
       </Card.Body>
     </Card>
   );
 }
+
+export default React.memo(ControlPanel);

@@ -1,5 +1,5 @@
 import { Container } from "react-bootstrap";
-import { Header } from "./components/Header";
+import Header from "./components/Header";
 import PrivacyScrubber from "./components/PrivacyScrubber"; // use your path
 
 import { useEffect, useRef } from "react";

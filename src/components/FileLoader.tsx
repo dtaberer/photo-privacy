@@ -1,12 +1,7 @@
+import { FileLoaderProps } from "@/types/FileLoaderTypes";
 import { useEffect } from "react";
 import { Form } from "react-bootstrap";
 import { FaUpload } from "react-icons/fa";
-
-type FileLoaderProps = {
-  onFilePickHandler: (file: File) => void;
-  dragOver: boolean;
-  setDragOver: (val: boolean) => void;
-};
 
 export function FileLoader({
   onFilePickHandler,

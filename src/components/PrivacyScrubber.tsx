@@ -8,20 +8,22 @@ import {
   runFaceBlurOnCanvas,
   type DetectTimings,
 } from "./utils/detectors";
-import { ControlPanel } from "./ControlPanel";
-import { ActionControls } from "./ActionControls";
-import { Preview } from "./Preview";
+import ControlPanel from "./ControlPanel";
+import ActionControls from "./ActionControls";
+import Preview from "./Preview";
 import { FileLoader } from "./FileLoader";
 
 /* ============================== Component ============================== */
-export default function PrivacyScrubber() {
+export function PrivacyScrubber() {
   const [platesOn, setPlatesOn] = useState(true);
   const [facesOn, setFacesOn] = useState(true);
   const [plateBlur, setPlateBlur] = useState(14);
   const [plateConf, setPlateConf] = useState(0.35);
   const [faceBlur, setFaceBlur] = useState(12);
   const [faceConf, setFaceConf] = useState(0.6);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [status, setStatus] = useState("Model ready. Pick an image.");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [ready] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [detections, setDetections] = useState({ plates: 0, faces: 0 });
@@ -38,7 +40,7 @@ export default function PrivacyScrubber() {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const badgeList = useMemo(
-    () => ["SIMD", "1 thread", "On-device"] as const,
+    () => ["SIMD", "1 Thread", "On-Device"] as const,
     []
   );
 
@@ -117,7 +119,6 @@ export default function PrivacyScrubber() {
     downloadCanvas(canvasRef.current, "redacted.jpg", "image/jpeg", 0.92);
   }, []);
 
-  // optional: revoke blob on unmount
   useEffect(
     () => () => {
       if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
@@ -223,3 +224,5 @@ export default function PrivacyScrubber() {
     </div>
   );
 }
+
+export default PrivacyScrubber;

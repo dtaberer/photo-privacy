@@ -19,7 +19,7 @@ interface PreviewProps {
   imgRef?: React.RefObject<HTMLImageElement | null>;
 }
 
-export const Preview: React.FC<PreviewProps> = ({
+const Preview: React.FC<PreviewProps> = ({
   onClickRefreshHandler,
   onClickDownloadHandler,
   imgSize,
@@ -148,4 +148,4 @@ export const Preview: React.FC<PreviewProps> = ({
   );
 };
 
-export default Preview;
+export default React.memo(Preview);

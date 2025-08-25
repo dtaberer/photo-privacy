@@ -1,3 +1,4 @@
+import React from "react";
 import heroBubbles from "../assets/bubble-blower.jpg";
 
 export function Header() {
@@ -30,3 +31,5 @@ export function Header() {
     </div>
   );
 }
+
+export default React.memo(Header);
