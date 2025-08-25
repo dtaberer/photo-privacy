@@ -31,9 +31,11 @@ export function FileLoader({
         className="w-100"
         onDragOver={(e) => {
           e.preventDefault();
-          setDragOver(true);
+          if (!dragOver) setDragOver(true);
         }}
-        onDragLeave={() => setDragOver(false)}
+        onDragLeave={() => {
+          if (dragOver) setDragOver(false);
+        }}
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);

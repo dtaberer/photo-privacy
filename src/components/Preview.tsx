@@ -1,11 +1,10 @@
 import React from "react";
-import { Col, Card, Button, Badge } from "react-bootstrap";
-import { FaImage, FaSync, FaDownload, FaCircle } from "react-icons/fa";
-import { DetectTimings } from "./utils/detectors";
+import { Col, Card, Badge, Spinner, Button } from "react-bootstrap";
+import { FaImage } from "react-icons/fa";
+import { DetectTimings } from "@/types/detectors";
 
 interface PreviewProps {
   onClickRefreshHandler: () => void;
-  onClickDownloadHandler: () => void;
   imgSize: { w: number; h: number };
   setImgSize: React.Dispatch<React.SetStateAction<{ w: number; h: number }>>;
   canvasVisible: boolean;
@@ -13,15 +12,16 @@ interface PreviewProps {
   detections: { plates: number; faces: number };
   title: string;
   previewUrl: string | null;
-  badgeList: string[];
+  badgeList: ReadonlyArray<string>;
   perfPlates: DetectTimings | null;
   perfFaces: DetectTimings | null;
   imgRef?: React.RefObject<HTMLImageElement | null>;
+  busy: boolean;
+  status: string;
 }
 
 export const Preview: React.FC<PreviewProps> = ({
   onClickRefreshHandler,
-  onClickDownloadHandler,
   imgSize,
   setImgSize,
   canvasVisible,
@@ -33,6 +33,8 @@ export const Preview: React.FC<PreviewProps> = ({
   perfPlates,
   perfFaces,
   imgRef,
+  busy,
+  status,
 }) => {
   if (!imgRef) {
     return <div>No image to preview.</div>;
@@ -47,32 +49,16 @@ export const Preview: React.FC<PreviewProps> = ({
             <span className="fw-semibold">{title}</span>
           </div>
           <div className="d-flex align-items-center gap-2">
-            <span title="State Indicator" aria-label="State Indicator">
-              <FaCircle
-                style={{
-                  fontSize: 10,
-                  color: "green",
-                  borderRadius: "50%",
-                }}
-              />{" "}
+            <span className="small text-secondary text-truncate" title={status}>
+              {status}
             </span>
             <Button
-              variant="light"
-              className="p-2"
-              title="Re-run recognition"
-              aria-label="Re-run recognition"
+              size="sm"
+              variant="outline-secondary"
               onClick={onClickRefreshHandler}
+              disabled={busy || !previewUrl}
             >
-              <FaSync />
-            </Button>
-            <Button
-              variant="light"
-              className="p-2"
-              title="Download scrubbed"
-              aria-label="Download scrubbed"
-              onClick={onClickDownloadHandler}
-            >
-              <FaDownload />
+              Refresh
             </Button>
             <div className="d-flex align-items-center gap-1 ms-2">
               {badgeList.map((b) => (
@@ -89,34 +75,32 @@ export const Preview: React.FC<PreviewProps> = ({
         </Card.Header>
 
         <div
-          className="bg-body-tertiary position-relative"
-          style={
-            imgSize.w && imgSize.h
-              ? { aspectRatio: `${imgSize.w} / ${imgSize.h}` }
-              : undefined
-          }
+          className="position-relative"
+          style={{ aspectRatio: `${imgSize.w}/${imgSize.h}` }}
         >
           <img
             ref={imgRef}
-            src={
-              previewUrl ||
-              "https://images.unsplash.com/photo-1549923746-c502d488b3ea?q=80&w=1600&auto=format&fit=crop"
-            }
+            src={previewUrl ?? ""}
             alt="preview"
-            className="w-100 h-100 object-fit-cover"
-            crossOrigin="anonymous"
-            onLoad={(e) =>
-              setImgSize({
-                w: e.currentTarget.naturalWidth,
-                h: e.currentTarget.naturalHeight,
-              })
-            }
+            className="w-100 h-100"
           />
           <canvas
             ref={canvasRef}
-            className="position-absolute top-0 start-0 w-100 h-100"
-            style={{ visibility: canvasVisible ? "visible" : "hidden" }}
+            className="position-absolute top-0 start-0 w-100"
+            style={{
+              height: "100%",
+              visibility: canvasVisible ? "visible" : "hidden",
+            }}
           />
+          {busy && (
+            <div
+              className="position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center"
+              style={{ zIndex: 2, pointerEvents: "none" }}
+              aria-label="Processing image"
+            >
+              <Spinner animation="border" role="status" />
+            </div>
+          )}
         </div>
 
         <Card.Footer className="d-flex flex-column gap-1 small text-secondary">
@@ -128,17 +112,18 @@ export const Preview: React.FC<PreviewProps> = ({
           <div className="d-flex flex-wrap gap-3">
             {perfPlates && (
               <div>
-                Plates ⏱ pre {perfPlates.preprocess.toFixed(1)}ms · run{" "}
-                {perfPlates.run.toFixed(1)}ms · post{" "}
-                {perfPlates.post.toFixed(1)}ms · total{" "}
-                {perfPlates.total.toFixed(1)}ms
+                Plates ⏱ pre {perfPlates.preprocess?.toFixed(1) ?? "N/A"}ms ·
+                run {perfPlates.run?.toFixed(1) ?? "N/A"}ms · post{" "}
+                {perfPlates.post?.toFixed(1) ?? "N/A"}ms · total{" "}
+                {perfPlates.total?.toFixed(1) ?? "N/A"}ms
               </div>
             )}
             {perfFaces && (
               <span>
-                Faces ⏱ pre {perfFaces.preprocess.toFixed(1)}ms · run{" "}
-                {perfFaces.run.toFixed(1)}ms · post {perfFaces.post.toFixed(1)}
-                ms · total {perfFaces.total.toFixed(1)}ms
+                Faces ⏱ pre {perfFaces.preprocess?.toFixed(1) ?? "N/A"}ms · run{" "}
+                {perfFaces.run?.toFixed(1) ?? "N/A"}ms · post{" "}
+                {perfFaces.post?.toFixed(1) ?? "N/A"}
+                ms · total {perfFaces.total?.toFixed(1) ?? "N/A"}ms
               </span>
             )}
           </div>

@@ -7,24 +7,17 @@ interface ActionControlsProps {
   onClickDownloadHandler: () => void;
 }
 
-export const ActionControls: React.FC<ActionControlsProps> = ({
+export const ActionControls = React.memo(function ActionControls({
   onClickRefreshHandler,
   onClickDownloadHandler,
-}) => {
+}: ActionControlsProps) {
   return (
     <>
-      <Stack direction="horizontal" gap={2} className="mt-2 flex-wrap">
-        <Button
-          variant="primary"
-          className="d-inline-flex align-items-center gap-2"
-          onClick={onClickRefreshHandler}
-        >
-          <FaSync /> Run detection
-        </Button>
+      <Stack direction="horizontal" gap={2} className="mt-2 flex-wrap mb-5">
         <Button
           variant="outline-secondary"
-          title="Download scrubbed"
-          aria-label="Download scrubbed"
+          title="Download"
+          aria-label="Download"
           onClick={onClickDownloadHandler}
         >
           <FaDownload />
@@ -40,6 +33,6 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
       </Stack>
     </>
   );
-};
+});
 
 export default ActionControls;

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Card, Form, Spinner, Stack } from "react-bootstrap";
+import { Card, Form, Spinner } from "react-bootstrap";
 
 import type { Tensor } from "onnxruntime-web"; // type-only
 import { ort, createOrtSession, ortForceBasicWasm } from "../ort-setup";
@@ -340,7 +340,10 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
     };
   }, [modelUrl]);
 
+  const runIdRef = useRef(0);
+
   const detectAndBlur = useCallback(async (): Promise<void> => {
+    const myRun = ++runIdRef.current;
     const img = imgRef.current;
     const cvs = canvasRef.current;
     const session = sessionRef.current;
@@ -390,6 +393,7 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
 
       const ctx = cvs.getContext("2d");
       if (!ctx) return;
+      if (myRun !== runIdRef.current) return; // stale run; bail
       for (const r of mapped) blurRegion(ctx, img, r, blurRadius);
 
       setStatus(
@@ -406,26 +410,6 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
     }
   }, [blurRadius, confThresh, drawOriginal, iouThresh, modelSize, padRatio]);
 
-  // inside your component
-  const handleDownload = useCallback(() => {
-    const cvs = canvasRef.current;
-    if (!cvs) return;
-    // Re-encode from canvas → new file, no EXIF metadata.
-    cvs.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "redacted.jpg"; // or .png
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 0);
-      },
-      "image/jpeg", // PNG also strips EXIF; use "image/png" if you prefer lossless
-      0.92
-    );
-  }, []);
-
   const handleImgLoad = useCallback((): void => {
     setImageReady(true);
   }, []);
@@ -440,9 +424,8 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
   useEffect(() => {
     const img = imgRef.current;
     if (!sessionReady || !imageReady || !imageUrl || !img) return;
-    if (processedUrlRef.current === imageUrl) return; // avoid repeats
+    if (processedUrlRef.current === imageUrl) return;
     processedUrlRef.current = imageUrl;
-    drawOriginal();
     void detectAndBlur();
   }, [sessionReady, imageReady, imageUrl, detectAndBlur, drawOriginal]);
 
@@ -513,21 +496,6 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
                   style={{ height: "auto" }}
                 />
               </div>
-              <Stack direction="horizontal" gap={2}>
-                <Button
-                  onClick={() => void detectAndBlur()}
-                  disabled={!imageUrl || !sessionReady || busy}
-                >
-                  Re-run detection
-                </Button>
-                <Button
-                  variant="success"
-                  onClick={handleDownload}
-                  disabled={!imageUrl || !sessionReady || busy}
-                >
-                  Download redacted
-                </Button>
-              </Stack>
             </>
           )}
         </Card.Body>
