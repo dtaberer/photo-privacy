@@ -1,18 +1,17 @@
 // src/__tests__/SetupTests.ts
 import "@testing-library/jest-dom/vitest";
-
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 
 afterEach(() => cleanup());
 
-// Canvas stub so jsdom doesn't crash on getContext('2d')
+// mark test environment so setupOrt() is a no-op in tests
+Object.defineProperty(window, "__TEST__", { value: true, configurable: true });
+
+// Canvas stub...
 Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
   value: vi.fn((ctxType: string) => {
-    // mark parameter as used to satisfy no-unused-vars
     void ctxType;
-
-    // Minimal 2D-like context stub for our code paths
     return {
       fillRect: () => {},
       clearRect: () => {},

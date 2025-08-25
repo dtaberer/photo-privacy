@@ -1,3 +1,6 @@
+import { setupOrt } from "./ort-setup";
+setupOrt();
+
 import "./ort-setup"; // <- must be first
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

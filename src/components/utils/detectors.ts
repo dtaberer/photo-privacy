@@ -1,4 +1,3 @@
-// src/components/utils/detectors.ts
 // Robust detectors with YOLO output parsing and resilient Face fallback.
 // Exports:
 //   - runLicensePlateBlurOnCanvas(img, canvas, opts) -> { count, timings }

@@ -5,6 +5,7 @@ import { ControlPanelProps } from "../types/ControlPanelTypes";
 export function ControlPanel(props: ControlPanelProps): JSX.Element {
   const { blurVal, setBlurVal, controlName } = props;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleBlurChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = Number(e.currentTarget.value);
@@ -28,7 +29,12 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
           max={100}
           step={1}
           value={blurVal}
-          onChange={handleBlurChange}
+          onChange={
+            ((e: React.ChangeEvent<HTMLInputElement>) =>
+              setBlurVal(
+                Number(e.target.value)
+              )) as React.ChangeEventHandler<HTMLInputElement>
+          }
         />
       </Card.Body>
     </Card>
