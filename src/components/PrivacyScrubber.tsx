@@ -236,6 +236,7 @@ export function PrivacyScrubber() {
                     controlName="License Plate Redaction"
                     busy={busy}
                     count={detections.plates}
+                    onCommit={() => void onRefreshHandler()} // ← apply on release
                   />
                 )}
 
@@ -249,6 +250,7 @@ export function PrivacyScrubber() {
                     controlName="Facial Redaction"
                     busy={busy}
                     count={detections.faces}
+                    onCommit={() => void onRefreshHandler()} // ← apply on release
                   />
                 )}
               </Card.Body>

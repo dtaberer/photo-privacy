@@ -15,8 +15,19 @@ interface FaceBlurProps {
   canvasRef?: RefObject<HTMLCanvasElement>;
 }
 
-const DEFAULT_BLUR = 40;
+const DEFAULT_BLUR = 35; // now interpreted as strength 0–100
 const DEFAULT_FADE = 40;
+
+// Map 0–100 slider "strength" → kernel radius(px) + number of passes
+function strengthToBlur(strength: number): {
+  radiusPx: number;
+  passes: number;
+} {
+  const s = Math.max(0, Math.min(100, Math.round(strength)));
+  const radiusPx = Math.round(1 + (19 * s) / 100); // ≈ 1..20 px
+  const passes = s < 40 ? 1 : s < 75 ? 2 : 3; // 1..3 passes
+  return { radiusPx, passes };
+}
 
 export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
   // Internal refs if not provided
@@ -28,7 +39,7 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
 
   const [loading, setLoading] = useState("");
   const [resultText, setResultText] = useState("");
-  const [blurStrength, setBlurStrength] = useState(DEFAULT_BLUR);
+  const [blurStrength, setBlurStrength] = useState(DEFAULT_BLUR); // strength 0–100
   const [fadeEdge, setFadeEdge] = useState(DEFAULT_FADE);
   const [faces, setFaces] = useState<faceapi.FaceDetection[]>([]);
   const [imageSrc, setImageSrc] = useState("");
@@ -100,6 +111,8 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
+    const { radiusPx, passes } = strengthToBlur(blurStrength);
+
     faces.forEach((face) => {
       const box = face.box;
       blurRegionFeathered(
@@ -109,7 +122,8 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
         box.y,
         box.width,
         box.height,
-        blurStrength,
+        radiusPx,
+        passes,
         fadeEdge
       );
     });
@@ -128,7 +142,7 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
     drawAll();
   }, [drawAll]);
 
-  // Helper: feathered/soft mask blurred region
+  // Helper: feathered/soft mask blurred region (supports multi-pass strength)
   const blurRegionFeathered = (
     ctx: CanvasRenderingContext2D,
     img: HTMLImageElement,
@@ -136,7 +150,8 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
     y: number,
     width: number,
     height: number,
-    blurAmount: number,
+    radiusPx: number,
+    passes: number,
     fade: number
   ) => {
     // Clamp box to image bounds
@@ -146,61 +161,70 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
     const sh = Math.min(ctx.canvas.height - sy, Math.ceil(height));
     if (sw <= 0 || sh <= 0) return;
 
-    // 1. Get face region from original image (not already-blurred canvas!)
-    const faceRegion = document.createElement("canvas");
-    faceRegion.width = sw;
-    faceRegion.height = sh;
-    const faceCtx = faceRegion.getContext("2d");
-    if (!faceCtx) return;
-    faceCtx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    // 1. Extract region from original (never blur an already blurred canvas)
+    const region = document.createElement("canvas");
+    region.width = sw;
+    region.height = sh;
+    const rctx = region.getContext("2d");
+    if (!rctx) return;
+    rctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-    // 2. Blur that region on another canvas
-    const blurredFace = document.createElement("canvas");
-    blurredFace.width = sw;
-    blurredFace.height = sh;
-    const blurredCtx = blurredFace.getContext("2d");
-    if (!blurredCtx) return;
-    blurredCtx.filter = `blur(${blurAmount}px)`;
-    blurredCtx.drawImage(faceRegion, 0, 0);
+    // 2. Multi-pass blur on a double-buffer pair
+    const A = document.createElement("canvas");
+    const B = document.createElement("canvas");
+    A.width = B.width = sw;
+    A.height = B.height = sh;
+    const a = A.getContext("2d");
+    const b = B.getContext("2d");
+    if (!a || !b) return;
 
-    // 3. Create an alpha mask with a radial gradient (ellipse)
-    const maskCanvas = document.createElement("canvas");
-    maskCanvas.width = sw;
-    maskCanvas.height = sh;
-    const maskCtx = maskCanvas.getContext("2d");
-    if (!maskCtx) return;
-    const centerX = sw / 2;
-    const centerY = sh / 2;
-    const radiusX = sw / 2;
-    const radiusY = sh / 2;
-    const grad = maskCtx.createRadialGradient(
-      centerX,
-      centerY,
-      Math.max(0, Math.min(radiusX, radiusY) - fade),
-      centerX,
-      centerY,
-      Math.max(radiusX, radiusY)
+    // start with original region in A
+    a.drawImage(region, 0, 0);
+    for (let i = 0; i < passes; i++) {
+      b.filter = `blur(${radiusPx}px)`;
+      b.drawImage(A, 0, 0); // A -> B blurred
+      b.filter = "none";
+      // swap A<->B for next pass
+      a.clearRect(0, 0, sw, sh);
+      a.drawImage(B, 0, 0);
+      b.clearRect(0, 0, sw, sh);
+    }
+
+    // 3. Build a feathered alpha mask (radial gradient)
+    const mask = document.createElement("canvas");
+    mask.width = sw;
+    mask.height = sh;
+    const mctx = mask.getContext("2d");
+    if (!mctx) return;
+    const cx = sw / 2;
+    const cy = sh / 2;
+    const rx = sw / 2;
+    const ry = sh / 2;
+    const grad = mctx.createRadialGradient(
+      cx,
+      cy,
+      Math.max(0, Math.min(rx, ry) - fade),
+      cx,
+      cy,
+      Math.max(rx, ry)
     );
     grad.addColorStop(0, "rgba(0,0,0,1)");
     grad.addColorStop(1, "rgba(0,0,0,0)");
-    maskCtx.fillStyle = grad;
-    maskCtx.fillRect(0, 0, sw, sh);
+    mctx.fillStyle = grad;
+    mctx.fillRect(0, 0, sw, sh);
 
-    // 4. Compose: draw blurred region with mask as alpha onto main canvas
-    // - Create an offscreen canvas for compositing
-    const composite = document.createElement("canvas");
-    composite.width = sw;
-    composite.height = sh;
-    const compositeCtx = composite.getContext("2d");
-    if (!compositeCtx) return;
-    // Draw blurred face
-    compositeCtx.drawImage(blurredFace, 0, 0);
-    // Set destination-in to apply the alpha mask
-    compositeCtx.globalCompositeOperation = "destination-in";
-    compositeCtx.drawImage(maskCanvas, 0, 0);
+    // 4. Composite: apply mask to blurred output, then draw back
+    const comp = document.createElement("canvas");
+    comp.width = sw;
+    comp.height = sh;
+    const cctx = comp.getContext("2d");
+    if (!cctx) return;
+    cctx.drawImage(A, 0, 0); // final blurred image is in A
+    cctx.globalCompositeOperation = "destination-in";
+    cctx.drawImage(mask, 0, 0);
+    cctx.globalCompositeOperation = "source-over";
 
-    // Draw the composite back to main canvas at the right spot
-    ctx.drawImage(composite, sx, sy);
+    ctx.drawImage(comp, sx, sy);
   };
 
   // File upload handler
@@ -222,7 +246,7 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
     reader.readAsDataURL(file);
   }, []);
 
-  // Blur slider
+  // Blur strength slider (0–100)
   const handleBlurChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     setBlurStrength(Number(e.target.value));
   }, []);
@@ -257,14 +281,14 @@ export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {
             <input
               id="face-blur-slider"
               type="range"
-              min={4}
-              max={64}
-              step={2}
+              min={0}
+              max={100}
+              step={1}
               value={blurStrength}
               onChange={handleBlurChange}
               className="form-range"
             />
-            <span className="ms-2">{blurStrength}px</span>
+            <span className="ms-2">{blurStrength}</span>
           </div>
           <div className="mb-3">
             <label htmlFor="face-fade-slider" className="form-label">

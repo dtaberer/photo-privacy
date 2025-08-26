@@ -6,4 +6,5 @@ export type ControlPanelProps = {
   controlName: string;
   busy?: boolean;
   count: number;
+  onCommit?: () => void; // ← new, optional
 };

@@ -1,24 +1,19 @@
-import React, { JSX, useCallback, useId, startTransition } from "react";
+import React, { JSX, useCallback, useId } from "react";
 import { Card, Form } from "react-bootstrap";
 import { ControlPanelProps } from "../types/ControlPanelTypes";
 
-/**
- * Sliders: label (left) | slider | value (right)
- * - Blur updates use startTransition to keep drag buttery-smooth.
- * - Sensitivity shown as 0–100%, stored as 0–1.
- */
 export function ControlPanel(props: ControlPanelProps): JSX.Element {
-  const { blurVal, setBlurVal, confVal, setConfVal, controlName, busy } = props;
+  const {
+    blurVal,
+    setBlurVal,
+    confVal,
+    setConfVal,
+    controlName,
+    busy,
+    onCommit,
+  } = props;
   const blurId = useId();
   const confId = useId();
-
-  const handleBlurChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const next = Number(e.currentTarget.value);
-      startTransition(() => setBlurVal(next));
-    },
-    [setBlurVal]
-  );
 
   const uiConf = Math.round((confVal ?? 0) * 100);
 
@@ -47,15 +42,14 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
           </Form.Label>
 
           <Form.Range
-            id={blurId}
-            aria-label={`${controlName} Blur`}
-            className="flex-grow-1"
             min={0}
             max={100}
             step={1}
             value={blurVal}
-            onChange={handleBlurChange}
-            disabled={busy}
+            onChange={(e) => setBlurVal(Number(e.currentTarget.value))}
+            onPointerUp={() => onCommit?.()} // ← call once when user releases
+            aria-label="Blur strength"
+            className="flex-grow-1"
           />
 
           <span className="text-muted small text-end" style={{ minWidth: 56 }}>

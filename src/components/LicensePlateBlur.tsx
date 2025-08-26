@@ -6,16 +6,6 @@ import { ort, createOrtSession, ortForceBasicWasm } from "../ort-setup";
 
 import "./LicensePlateBlur.css"; // your overrides
 
-/**
- * LicensePlateBlur — loads an ONNX model (once), detects plates on image load,
- * and blurs the detected regions on a canvas.
- *
- * Why certain choices:
- * - `onLoad` on <img>: guarantees refs are set when detection runs.
- * - `sessionReady` flag: prevents running detection before model init.
- * - StrictMode guard (didInitRef): avoids double model init in React dev.
- */
-
 /* ============================== Utilities ============================== */
 function invariant(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -44,13 +34,25 @@ export type LicensePlateBlurProps = {
   modelSize?: number;
   confThresh?: number;
   iouThresh?: number;
-  blurRadius?: number;
+  blurRadius?: number; // interpreted as strength 0–100
   padRatio?: number;
   modelUrl?: string;
 };
 
 type Box = { x: number; y: number; w: number; h: number; conf: number };
 type Size = { w: number; h: number };
+
+/* ============================== Strength ============================== */
+// Map 0–100 slider "strength" → kernel radius(px) + number of passes
+function strengthToBlur(strength: number): {
+  radiusPx: number;
+  passes: number;
+} {
+  const s = Math.max(0, Math.min(100, Math.round(strength)));
+  const radiusPx = Math.round(1 + (19 * s) / 100); // ≈ 1..20 px
+  const passes = s < 40 ? 1 : s < 75 ? 2 : 3; // 1..3 passes
+  return { radiusPx, passes };
+}
 
 /* ================================ Math ================================= */
 function letterbox(
@@ -167,7 +169,6 @@ function parseYOLO(out: Tensor, imgSize: number, confThreshold: number): Box[] {
     )
       continue;
 
-    // All values are defined and finite at this point
     const cxVal = cx as number;
     const cyVal = cy as number;
     const wVal = w as number;
@@ -211,20 +212,30 @@ function toOriginalSpace(
   return { x: x2, y: y2, w: w2, h: h2, conf: b.conf };
 }
 
+// Replaces the old single-pass blur with multi-pass "strength" blur
 function blurRegion(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   r: Box,
-  radius: number
+  radiusPx: number,
+  passes: number
 ): void {
   if (r.w <= 0 || r.h <= 0) return;
-  const off = document.createElement("canvas");
-  off.width = Math.max(1, Math.round(r.w));
-  off.height = Math.max(1, Math.round(r.h));
-  const octx = off.getContext("2d");
-  if (!octx) return;
-  octx.filter = `blur(${radius}px)`; // why: strong privacy blur in region
-  octx.drawImage(
+
+  const w = Math.max(1, Math.round(r.w));
+  const h = Math.max(1, Math.round(r.h));
+
+  // double buffers
+  const A = document.createElement("canvas");
+  const B = document.createElement("canvas");
+  A.width = B.width = w;
+  A.height = B.height = h;
+  const a = A.getContext("2d");
+  const b = B.getContext("2d");
+  if (!a || !b) return;
+
+  // copy from original
+  a.drawImage(
     img,
     Math.round(r.x),
     Math.round(r.y),
@@ -232,20 +243,31 @@ function blurRegion(
     Math.round(r.h),
     0,
     0,
-    off.width,
-    off.height
+    w,
+    h
   );
-  const x = Math.round(r.x),
-    y = Math.round(r.y);
-  ctx.drawImage(off, x, y);
+
+  for (let i = 0; i < passes; i++) {
+    b.filter = `blur(${radiusPx}px)`;
+    b.drawImage(A, 0, 0); // A -> B blurred
+    b.filter = "none";
+    // swap A <-> B
+    a.clearRect(0, 0, w, h);
+    a.drawImage(B, 0, 0);
+    b.clearRect(0, 0, w, h);
+  }
+
+  const x = Math.round(r.x);
+  const y = Math.round(r.y);
+  ctx.drawImage(A, x, y); // final in A
 }
 
 /* ============================== Component =============================== */
 const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
   modelSize = 640,
-  confThresh = 0.35,
+  confThresh = 0.3,
   iouThresh = 0.45,
-  blurRadius = 14,
+  blurRadius = 35, // ← strength 0–100 by convention
   padRatio = 0.2,
   modelUrl = "/models/license-plate-finetune-v1n.onnx",
   initialImageUrl = null,
@@ -306,7 +328,7 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
         if (!resp.ok) throw new Error(`Model HTTP ${resp.status}`);
         const buf = await resp.arrayBuffer();
 
-        if (!alive) return; // effect cleaned up while fetching
+        if (!alive) return;
         const size = buf.byteLength;
         const head = new TextDecoder().decode(
           new Uint8Array(buf, 0, Math.min(64, size))
@@ -317,17 +339,17 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
           head.startsWith("<html")
         ) {
           throw new Error(
-            `Invalid model payload (${size} bytes) — check ${"@ort-prod"}/models path.`
+            `Invalid model payload (${size} bytes) — check path.`
           );
         }
 
         const sess = await createOrtSession(buf);
-        if (!alive) return; // effect cleaned up while creating session
+        if (!alive) return;
         sessionRef.current = sess;
         setSessionReady(true);
         setStatus("Model ready. Pick an image.");
       } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") return; // fetch aborted
+        if (e instanceof DOMException && e.name === "AbortError") return;
         setStatus(
           `Failed to load model: ${e instanceof Error ? e.message : String(e)}`
         );
@@ -335,8 +357,8 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
     })();
 
     return () => {
-      alive = false; // prevents post-await work
-      ac.abort(); // cancel in-flight fetch
+      alive = false;
+      ac.abort();
     };
   }, [modelUrl]);
 
@@ -390,7 +412,11 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
 
       const ctx = cvs.getContext("2d");
       if (!ctx) return;
-      for (const r of mapped) blurRegion(ctx, img, r, blurRadius);
+
+      // interpret `blurRadius` prop as strength 0–100
+      const { radiusPx, passes } = strengthToBlur(blurRadius ?? 35);
+
+      for (const r of mapped) blurRegion(ctx, img, r, radiusPx, passes);
 
       setStatus(
         mapped.length
@@ -406,22 +432,20 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
     }
   }, [blurRadius, confThresh, drawOriginal, iouThresh, modelSize, padRatio]);
 
-  // inside your component
   const handleDownload = useCallback(() => {
     const cvs = canvasRef.current;
     if (!cvs) return;
-    // Re-encode from canvas → new file, no EXIF metadata.
     cvs.toBlob(
       (blob) => {
         if (!blob) return;
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "redacted.jpg"; // or .png
+        a.download = "redacted.jpg";
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 0);
       },
-      "image/jpeg", // PNG also strips EXIF; use "image/png" if you prefer lossless
+      "image/jpeg",
       0.92
     );
   }, []);
@@ -430,29 +454,25 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
     setImageReady(true);
   }, []);
 
-  // If the image is already decoded when assigned, mark it ready
   useEffect(() => {
     const img = imgRef.current;
     if (imageUrl && img && img.complete) setImageReady(true);
   }, [imageUrl]);
 
-  // Run detection once when BOTH model and image are ready
   useEffect(() => {
     const img = imgRef.current;
     if (!sessionReady || !imageReady || !imageUrl || !img) return;
-    if (processedUrlRef.current === imageUrl) return; // avoid repeats
+    if (processedUrlRef.current === imageUrl) return;
     processedUrlRef.current = imageUrl;
     drawOriginal();
     void detectAndBlur();
   }, [sessionReady, imageReady, imageUrl, detectAndBlur, drawOriginal]);
 
-  // Reset per-image flags on image change
   useEffect(() => {
     processedUrlRef.current = null;
     setImageReady(false);
   }, [imageUrl]);
 
-  // revoke blob URLs on unmount or when replaced
   useEffect(
     () => () => {
       if (imageUrl?.startsWith("blob:")) URL.revokeObjectURL(imageUrl);
