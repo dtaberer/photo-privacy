@@ -13,14 +13,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
 }) => {
   return (
     <>
-      <Stack direction="horizontal" gap={2} className="mt-2 flex-wrap">
-        <Button
-          variant="primary"
-          className="d-inline-flex align-items-center gap-2"
-          onClick={onClickRefreshHandler}
-        >
-          <FaSync /> Run detection
-        </Button>
+      <Stack direction="horizontal" gap={2} className="flex-wrap">
         <Button
           variant="outline-secondary"
           title="Download scrubbed"

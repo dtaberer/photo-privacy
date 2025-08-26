@@ -44,31 +44,6 @@ export function PrivacyScrubber() {
     []
   );
 
-  const clearCanvas = useCallback(() => {
-    const cvs = canvasRef.current;
-    const ctx = cvs?.getContext("2d");
-    if (cvs && ctx) {
-      ctx.clearRect(0, 0, cvs.width, cvs.height);
-      // Reset bitmap to guarantee a transparent overlay
-      cvs.width = 0; // also resets drawing state
-      cvs.height = 0;
-    }
-  }, []);
-
-  const onFilePickHandler = useCallback(
-    (file: File): void => {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl((old) => {
-        if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
-        return url;
-      });
-      setStatus("Image loaded. Ready to run.");
-      setCanvasVisible(false); // hide old overlay
-      clearCanvas();
-    },
-    [clearCanvas]
-  );
-
   const onRefreshHandler = useCallback(async () => {
     const img = imgRef.current;
     const cvs = canvasRef.current;
@@ -115,22 +90,56 @@ export function PrivacyScrubber() {
     }
   }, [facesOn, faceBlur, faceConf, platesOn, plateBlur, plateConf, modelUrl]);
 
+  const clearCanvas = useCallback(() => {
+    const cvs = canvasRef.current;
+    const ctx = cvs?.getContext("2d");
+    if (cvs && ctx) {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      // Reset bitmap to guarantee a transparent overlay
+      cvs.width = 0; // also resets drawing state
+      cvs.height = 0;
+    }
+  }, []);
+
+  const onFilePickHandler = useCallback(
+    (file: File): void => {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl((old) => {
+        if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
+        return url;
+      });
+      setStatus("Image loaded. Ready to run.");
+      setCanvasVisible(false); // hide old overlay
+      clearCanvas();
+    },
+    [clearCanvas]
+  );
+
+  const refreshRef = useRef(onRefreshHandler);
+  useEffect(() => {
+    refreshRef.current = onRefreshHandler;
+  }, [onRefreshHandler]);
+
+  // Run detection only when imgSize changes (e.g., new image/load completes)
+  useEffect(() => {
+    if (!imgRef.current) return;
+    void refreshRef.current();
+  }, [imgSize]);
+
   const onDownloadHandler = useCallback(() => {
     downloadCanvas(canvasRef.current, "redacted.jpg", "image/jpeg", 0.92);
   }, []);
 
-  useEffect(
-    () => () => {
-      if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
-    },
-    [previewUrl]
-  );
+  useEffect(() => {
+    if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
 
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const items = Array.from(e.clipboardData?.items ?? []);
       const it = items.find((i) => i.type.startsWith("image/"));
       const file = it?.getAsFile();
+      console.log("useEffect: 134: file", file);
       if (file) onFilePickHandler(file);
     };
     window.addEventListener("paste", onPaste);
@@ -170,9 +179,17 @@ export function PrivacyScrubber() {
                   setDragOver={setDragOver}
                   dragOver={dragOver}
                 />
+                {/* Actions */}
+
+                <div className="d-flex justify-content-end mb-3">
+                  <ActionControls
+                    onClickRefreshHandler={onRefreshHandler}
+                    onClickDownloadHandler={onDownloadHandler}
+                  />
+                </div>
 
                 {/* Master Switches */}
-                <div className="d-flex align-items-center gap-3 flex-wrap mb-2">
+                <div className="d-flex align-items-center gap-5 flex-wrap-3 p-3">
                   <Form.Check
                     type="switch"
                     id="sw-plates"
@@ -191,13 +208,15 @@ export function PrivacyScrubber() {
 
                 {/* License Plate Panel */}
                 {platesOn && (
-                  <ControlPanel
-                    blurVal={plateBlur}
-                    setBlurVal={setPlateBlur}
-                    confVal={plateConf}
-                    setConfVal={setPlateConf}
-                    controlName="License Plate Redaction"
-                  />
+                  <>
+                    <ControlPanel
+                      blurVal={plateBlur}
+                      setBlurVal={setPlateBlur}
+                      confVal={plateConf}
+                      setConfVal={setPlateConf}
+                      controlName="License Plate Redaction"
+                    />
+                  </>
                 )}
 
                 {/* Face Panel */}
@@ -210,12 +229,6 @@ export function PrivacyScrubber() {
                     controlName="Facial Redaction"
                   />
                 )}
-
-                {/* Actions */}
-                <ActionControls
-                  onClickRefreshHandler={onRefreshHandler}
-                  onClickDownloadHandler={onDownloadHandler}
-                />
               </Card.Body>
             </Card>
           </Col>

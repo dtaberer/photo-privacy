@@ -1,6 +1,6 @@
 import React from "react";
-import { Col, Card, Button, Badge } from "react-bootstrap";
-import { FaImage, FaSync, FaDownload, FaCircle } from "react-icons/fa";
+import { Col, Card, Badge } from "react-bootstrap";
+import { FaImage } from "react-icons/fa";
 import { DetectTimings } from "./utils/detectors";
 
 interface PreviewProps {
@@ -20,8 +20,6 @@ interface PreviewProps {
 }
 
 const Preview: React.FC<PreviewProps> = ({
-  onClickRefreshHandler,
-  onClickDownloadHandler,
   imgSize,
   setImgSize,
   canvasVisible,
@@ -47,33 +45,6 @@ const Preview: React.FC<PreviewProps> = ({
             <span className="fw-semibold">{title}</span>
           </div>
           <div className="d-flex align-items-center gap-2">
-            <span title="State Indicator" aria-label="State Indicator">
-              <FaCircle
-                style={{
-                  fontSize: 10,
-                  color: "green",
-                  borderRadius: "50%",
-                }}
-              />{" "}
-            </span>
-            <Button
-              variant="light"
-              className="p-2"
-              title="Re-run recognition"
-              aria-label="Re-run recognition"
-              onClick={onClickRefreshHandler}
-            >
-              <FaSync />
-            </Button>
-            <Button
-              variant="light"
-              className="p-2"
-              title="Download scrubbed"
-              aria-label="Download scrubbed"
-              onClick={onClickDownloadHandler}
-            >
-              <FaDownload />
-            </Button>
             <div className="d-flex align-items-center gap-1 ms-2">
               {badgeList.map((b) => (
                 <Badge
