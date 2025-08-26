@@ -70,10 +70,9 @@ const Preview: React.FC<PreviewProps> = ({
           <img
             ref={imgRef}
             src={
-              previewUrl ||
-              "https://images.unsplash.com/photo-1549923746-c502d488b3ea?q=80&w=1600&auto=format&fit=crop"
+              previewUrl ??
+              "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
             }
-            alt="preview"
             className="w-100 h-100 object-fit-cover"
             crossOrigin="anonymous"
             onLoad={(e) =>

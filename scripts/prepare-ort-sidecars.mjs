@@ -1,24 +1,5 @@
 #!/usr/bin/env node
-// copies onnxruntime-web sidecars into both dev (src/ort-runtime) and prod (public/ort)
-// and creates dashed↔dotted filename aliases so any loader naming scheme works.
-import React, { useMemo, useState } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Form,
-  Button,
-  Badge,
-  Stack,
-} from "react-bootstrap";
-import {
-  FaSync,
-  FaDownload,
-  FaUpload,
-  FaImage,
-  FaCircle,
-} from "react-icons/fa";
+// Copy onnxruntime-web sidecars into public/ort-runtime and create dashed↔dotted aliases.
 import { createRequire } from "node:module";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -39,16 +20,15 @@ async function ensureAlias(filePath, pattern, replacer) {
   }
 }
 
-async function copyDirInto(dir, outDev, outProd) {
+async function copyDirInto(dir, outDir) {
   const entries = await fs.readdir(dir).catch(() => []);
   const allow = /\.(mjs|wasm|js|map)$/i;
   const files = entries.filter((f) => allow.test(f));
-  const srcPaths = files.map((f) => path.join(dir, f));
+  await fs.mkdir(outDir, { recursive: true });
   await Promise.all(
-    srcPaths.flatMap((src) => [
-      fs.copyFile(src, path.join(outDev, path.basename(src))).catch(() => {}),
-      fs.copyFile(src, path.join(outProd, path.basename(src))).catch(() => {}),
-    ])
+    files.map((f) =>
+      fs.copyFile(path.join(dir, f), path.join(outDir, f)).catch(() => {})
+    )
   );
 }
 
@@ -56,54 +36,11 @@ async function addAliasesIn(folder) {
   const entries = await fs.readdir(folder).catch(() => []);
   for (const f of entries) {
     const p = path.join(folder, f);
-    // Create dashed <-> dotted aliases so either naming scheme works.
-    if (/^ort\.wasm[\w.-]*\.(mjs|wasm)$/i.test(f)) {
+    if (/^ort\.wasm[\w.-]*\.(mjs|wasm)$/i.test(f))
       await ensureAlias(p, /^ort\.wasm/, "ort-wasm");
-    }
-    if (/^ort-wasm[\w.-]*\.(mjs|wasm)$/i.test(f)) {
+    if (/^ort-wasm[\w.-]*\.(mjs|wasm)$/i.test(f))
       await ensureAlias(p, /^ort-wasm/, "ort.wasm");
-    }
   }
-}
-
-async function copyOrtSidecars() {
-  const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-  const outDev = path.join(root, "src", "ort-runtime");
-  const outProd = path.join(root, "public", "ort");
-  await fs.mkdir(outDev, { recursive: true });
-  await fs.mkdir(outProd, { recursive: true });
-
-  // Pull from BOTH export roots to cover version differences.
-  const candidates = [];
-  try {
-    candidates.push(path.dirname(require.resolve("onnxruntime-web/wasm")));
-  } catch {}
-  try {
-    candidates.push(
-      path.dirname(
-        require.resolve("onnxruntime-web/dist/ort.wasm.bundle.min.mjs")
-      )
-    );
-  } catch {}
-  try {
-    candidates.push(
-      path.dirname(require.resolve("onnxruntime-web/dist/ort-wasm.min.mjs"))
-    );
-  } catch {}
-
-  if (candidates.length === 0)
-    throw new Error("Cannot resolve onnxruntime-web sidecar directories");
-
-  for (const dir of candidates) await copyDirInto(dir, outDev, outProd);
-
-  await addAliasesIn(outDev);
-  await addAliasesIn(outProd);
-
-  console.log("[prepare-ort-sidecars] Completed. Sources:");
-  for (const d of candidates) console.log("  -", d);
-  console.log("Outputs:");
-  console.log("  - dev :", outDev);
-  console.log("  - prod:", outProd);
 }
 
 async function ensureVariantFiles(folder) {
@@ -116,8 +53,6 @@ async function ensureVariantFiles(folder) {
       await fs.copyFile(src, dst);
     } catch {}
   };
-
-  // Prefer simd-threaded as the canonical binary if others are missing
   const candidates = [
     "ort-wasm-simd-threaded.wasm",
     "ort.wasm-simd-threaded.wasm",
@@ -126,16 +61,13 @@ async function ensureVariantFiles(folder) {
     "ort-wasm.wasm",
     "ort.wasm.wasm",
   ];
-
-  const pickSource = async () => {
-    for (const c of candidates) if (await has(c)) return c;
-    return null;
-  };
-
-  const src = await pickSource();
-  if (!src) return; // nothing to alias from
-
-  // Ensure all common variant names exist (map to src if missing)
+  let src = null;
+  for (const c of candidates)
+    if (await has(c)) {
+      src = c;
+      break;
+    }
+  if (!src) return;
   const targets = [
     "ort-wasm.wasm",
     "ort.wasm.wasm",
@@ -147,21 +79,43 @@ async function ensureVariantFiles(folder) {
   for (const t of targets) if (!(await has(t))) await copyAs(src, t);
 }
 
-copyOrtSidecars()
-  .then(async () => {
-    const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-    const outDev = path.join(root, "src", "ort-runtime");
-    const outProd = path.join(root, "public", "ort");
-    await ensureVariantFiles(outDev);
-    await ensureVariantFiles(outProd);
-    console.log(
-      "[prepare-ort-sidecars] Ensured variant aliases in",
-      outDev,
-      "and",
-      outProd
+async function main() {
+  const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+  // DEV/PROD can both serve from /ort-runtime via Vite's public/ folder
+  const outDir = path.join(root, "public", "__ort__");
+  await fs.mkdir(outDir, { recursive: true });
+
+  const sources = [];
+  try {
+    sources.push(path.dirname(require.resolve("onnxruntime-web/wasm")));
+  } catch {}
+  try {
+    sources.push(
+      path.dirname(
+        require.resolve("onnxruntime-web/dist/ort.wasm.bundle.min.mjs")
+      )
     );
-  })
-  .catch((err) => {
-    console.error("[prepare-ort-sidecars] Failed:", err?.stack || err);
-    process.exitCode = 1;
-  });
+  } catch {}
+  try {
+    sources.push(
+      path.dirname(require.resolve("onnxruntime-web/dist/ort-wasm.min.mjs"))
+    );
+  } catch {}
+
+  if (sources.length === 0)
+    throw new Error("Cannot resolve onnxruntime-web sidecar directories");
+
+  for (const dir of sources) await copyDirInto(dir, outDir);
+  await addAliasesIn(outDir);
+  await ensureVariantFiles(outDir);
+
+  console.log("[prepare-ort-sidecars] Sources:");
+  for (const d of sources) console.log("  -", d);
+  console.log("Output:");
+  console.log("  -", outDir);
+}
+
+main().catch((err) => {
+  console.error("[prepare-ort-sidecars] Failed:", err?.stack || err);
+  process.exitCode = 1;
+});

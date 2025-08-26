@@ -7,6 +7,7 @@ import {
   type RefObject,
   type FC,
 } from "react";
+
 import * as faceapi from "face-api.js";
 
 interface FaceBlurProps {
@@ -14,7 +15,7 @@ interface FaceBlurProps {
   canvasRef?: RefObject<HTMLCanvasElement>;
 }
 
-const DEFAULT_BLUR = 20;
+const DEFAULT_BLUR = 40;
 const DEFAULT_FADE = 40;
 
 export const FaceBlur: FC<FaceBlurProps> = ({ imageRef, canvasRef }) => {

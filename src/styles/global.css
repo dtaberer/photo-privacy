@@ -1,0 +1,5 @@
+/* Force a busy cursor everywhere while work is in progress */
+.cursor-busy,
+.cursor-busy * {
+  cursor: progress !important; /* or 'wait' if you want the hourglass */
+}

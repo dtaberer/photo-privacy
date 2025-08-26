@@ -5,11 +5,13 @@ import { FaDownload, FaSync } from "react-icons/fa";
 interface ActionControlsProps {
   onClickRefreshHandler: () => void;
   onClickDownloadHandler: () => void;
+  busy?: boolean;
 }
 
 export const ActionControls: React.FC<ActionControlsProps> = ({
   onClickRefreshHandler,
   onClickDownloadHandler,
+  busy,
 }) => {
   return (
     <>
@@ -19,6 +21,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
           title="Download scrubbed"
           aria-label="Download scrubbed"
           onClick={onClickDownloadHandler}
+          disabled={busy}
         >
           <FaDownload />
         </Button>
@@ -27,6 +30,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
           title="Refresh"
           aria-label="Refresh"
           onClick={onClickRefreshHandler}
+          disabled={busy}
         >
           <FaSync />
         </Button>

@@ -7,6 +7,7 @@ export function FileLoader({
   onFilePickHandler,
   dragOver,
   setDragOver,
+  busy,
 }: FileLoaderProps) {
   //
   useEffect(() => {
@@ -54,6 +55,7 @@ export function FileLoader({
           type="file"
           accept="image/*"
           className="visually-hidden"
+          disabled={busy}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const f = e.currentTarget.files?.[0];
             if (f) onFilePickHandler(f);

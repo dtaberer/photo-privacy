@@ -317,7 +317,7 @@ const LicensePlateBlur: React.FC<LicensePlateBlurProps> = ({
           head.startsWith("<html")
         ) {
           throw new Error(
-            `Invalid model payload (${size} bytes) — check /public/models path.`
+            `Invalid model payload (${size} bytes) — check ${"@ort-prod"}/models path.`
           );
         }
 

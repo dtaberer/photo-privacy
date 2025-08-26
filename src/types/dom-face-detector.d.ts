@@ -19,9 +19,3 @@ declare global {
     };
   }
 }
-
-/** Lightweight module stub for face-api.js so TS doesn't complain about types. */
-declare module "face-api.js" {
-  const anyExport: unknown;
-  export = anyExport;
-}

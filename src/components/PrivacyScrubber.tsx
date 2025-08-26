@@ -22,9 +22,8 @@ export function PrivacyScrubber() {
   const [faceBlur, setFaceBlur] = useState(12);
   const [faceConf, setFaceConf] = useState(0.6);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [status, setStatus] = useState("Model ready. Pick an image.");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [ready] = useState(true);
+  const [status, setStatus] = useState("Ready");
+  const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [detections, setDetections] = useState({ plates: 0, faces: 0 });
   const [modelUrl] = useState("/models/license-plate-finetune-v1n.onnx");
@@ -45,6 +44,7 @@ export function PrivacyScrubber() {
   );
 
   const onRefreshHandler = useCallback(async () => {
+    setBusy(true);
     const img = imgRef.current;
     const cvs = canvasRef.current;
     if (!img || !cvs) {
@@ -87,8 +87,10 @@ export function PrivacyScrubber() {
       setStatus(
         `Detection error: ${e instanceof Error ? e.message : String(e)}`
       );
+    } finally {
+      setBusy(false);
     }
-  }, [facesOn, faceBlur, faceConf, platesOn, plateBlur, plateConf, modelUrl]);
+  }, [platesOn, modelUrl, plateBlur, plateConf, facesOn, faceBlur, faceConf]);
 
   const clearCanvas = useCallback(() => {
     const cvs = canvasRef.current;
@@ -178,56 +180,68 @@ export function PrivacyScrubber() {
                   onFilePickHandler={onFilePickHandler}
                   setDragOver={setDragOver}
                   dragOver={dragOver}
+                  busy={busy}
                 />
                 {/* Actions */}
 
                 <div className="d-flex justify-content-end mb-3">
-                  <ActionControls
-                    onClickRefreshHandler={onRefreshHandler}
-                    onClickDownloadHandler={onDownloadHandler}
-                  />
+                  <div aria-busy={busy} aria-live="polite">
+                    <ActionControls
+                      onClickRefreshHandler={onRefreshHandler}
+                      onClickDownloadHandler={onDownloadHandler}
+                      busy={busy}
+                    />
+                  </div>
                 </div>
 
                 {/* Master Switches */}
                 <div className="d-flex align-items-center gap-5 flex-wrap-3 p-3">
-                  <Form.Check
-                    type="switch"
-                    id="sw-plates"
-                    label="Blur License Plates"
-                    checked={platesOn}
-                    onChange={(e) => setPlatesOn(e.currentTarget.checked)}
-                  />
-                  <Form.Check
-                    type="switch"
-                    id="sw-faces"
-                    label="Blur Faces"
-                    checked={facesOn}
-                    onChange={(e) => setFacesOn(e.currentTarget.checked)}
-                  />
+                  <div aria-busy={busy} aria-live="polite">
+                    <Form.Check
+                      type="switch"
+                      id="sw-plates"
+                      label="Blur License Plates"
+                      checked={platesOn}
+                      onChange={(e) => setPlatesOn(e.currentTarget.checked)}
+                      {...(busy && { disabled: true })}
+                    />
+                    <Form.Check
+                      type="switch"
+                      id="sw-faces"
+                      label="Blur Faces"
+                      checked={facesOn}
+                      onChange={(e) => setFacesOn(e.currentTarget.checked)}
+                      {...(busy && { disabled: true })}
+                    />
+                  </div>
                 </div>
 
                 {/* License Plate Panel */}
                 {platesOn && (
-                  <>
+                  <div aria-busy={busy} aria-live="polite">
                     <ControlPanel
                       blurVal={plateBlur}
                       setBlurVal={setPlateBlur}
                       confVal={plateConf}
                       setConfVal={setPlateConf}
                       controlName="License Plate Redaction"
+                      busy={busy}
                     />
-                  </>
+                  </div>
                 )}
 
                 {/* Face Panel */}
                 {facesOn && (
-                  <ControlPanel
-                    blurVal={faceBlur}
-                    setBlurVal={setFaceBlur}
-                    confVal={faceConf}
-                    setConfVal={setFaceConf}
-                    controlName="Facial Redaction"
-                  />
+                  <div aria-busy={busy} aria-live="polite">
+                    <ControlPanel
+                      blurVal={faceBlur}
+                      setBlurVal={setFaceBlur}
+                      confVal={faceConf}
+                      setConfVal={setFaceConf}
+                      controlName="Facial Redaction"
+                      busy={busy}
+                    />
+                  </div>
                 )}
               </Card.Body>
             </Card>

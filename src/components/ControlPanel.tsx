@@ -3,7 +3,7 @@ import { Card, Form } from "react-bootstrap";
 import { ControlPanelProps } from "../types/ControlPanelTypes";
 
 export function ControlPanel(props: ControlPanelProps): JSX.Element {
-  const { blurVal, setBlurVal, confVal, setConfVal, controlName } = props;
+  const { blurVal, setBlurVal, confVal, setConfVal, controlName, busy } = props;
   const blurId = useId();
   const confId = useId();
 
@@ -40,18 +40,19 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
             className="mb-0 small text-nowrap"
             style={{ minWidth: 90 }}
           >
-            Blur strength
+            Blur
           </Form.Label>
 
           <Form.Range
             id={blurId}
-            aria-label={`${controlName} Intensity`}
+            aria-label={`${controlName} Blur`}
             className="flex-grow-1"
             min={0}
             max={100}
             step={1}
             value={blurVal}
             onChange={handleBlurChange}
+            disabled={busy}
           />
 
           <span className="text-muted small text-end" style={{ minWidth: 56 }}>
@@ -78,6 +79,7 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
             step={1}
             value={uiConf}
             onChange={handleConfChange}
+            disabled={busy}
           />
 
           <span className="text-muted small text-end" style={{ minWidth: 56 }}>
