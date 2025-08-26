@@ -2,6 +2,7 @@ import React from "react";
 import { Col, Card, Badge } from "react-bootstrap";
 import { FaImage } from "react-icons/fa";
 import { DetectTimings } from "./utils/detectors";
+import ActionControls from "./ActionControls";
 
 interface PreviewProps {
   onClickRefreshHandler: () => void;
@@ -17,9 +18,12 @@ interface PreviewProps {
   perfPlates: DetectTimings | null;
   perfFaces: DetectTimings | null;
   imgRef?: React.RefObject<HTMLImageElement | null>;
+  busy?: boolean;
 }
 
 const Preview: React.FC<PreviewProps> = ({
+  onClickRefreshHandler,
+  onClickDownloadHandler,
   imgSize,
   setImgSize,
   canvasVisible,
@@ -31,34 +35,58 @@ const Preview: React.FC<PreviewProps> = ({
   perfPlates,
   perfFaces,
   imgRef,
+  busy,
 }) => {
-  if (!imgRef) {
-    return <div>No image to preview.</div>;
-  }
+  if (!imgRef) return <div>No image to preview.</div>;
+
+  // Match Bootstrap .btn-sm dimensions:
+  // padding: .25rem .5rem; font-size: .875rem; line-height: 1.5
+  const chipStyle: React.CSSProperties = {
+    padding: "0.25rem 0.5rem",
+    fontSize: ".875rem",
+    lineHeight: 1.5,
+  };
+  const chipClass =
+    "d-inline-flex align-items-center bg-opacity-10 text-secondary " +
+    "border border-secondary border-opacity-25 rounded-2";
 
   return (
     <Col md={8}>
-      <Card className="shadow-sm border-0">
+      <Card
+        className="shadow-sm border-0"
+        style={{ cursor: busy ? "progress" : "default" }}
+      >
+        {/* Toolbar header */}
         <Card.Header className="bg-light d-flex align-items-center justify-content-between">
           <div className="d-flex align-items-center gap-2 text-secondary">
             <FaImage className="text-secondary" />
             <span className="fw-semibold">{title}</span>
           </div>
+
           <div className="d-flex align-items-center gap-2">
-            <div className="d-flex align-items-center gap-1 ms-2">
+            {/* Chips sized exactly like btn-sm */}
+            <div className="d-flex align-items-center gap-1">
               {badgeList.map((b) => (
                 <Badge
                   key={b}
                   bg="secondary"
-                  className="bg-opacity-10 text-secondary border border-secondary border-opacity-25"
+                  className={chipClass}
+                  style={chipStyle}
                 >
                   {b}
                 </Badge>
               ))}
             </div>
+
+            <ActionControls
+              onClickRefreshHandler={onClickRefreshHandler}
+              onClickDownloadHandler={onClickDownloadHandler}
+              busy={busy}
+            />
           </div>
         </Card.Header>
 
+        {/* Image + overlay canvas */}
         <div
           className="bg-body-tertiary position-relative"
           style={
@@ -89,6 +117,7 @@ const Preview: React.FC<PreviewProps> = ({
           />
         </div>
 
+        {/* Footer with counts + perf */}
         <Card.Footer className="d-flex flex-column gap-1 small text-secondary">
           <div className="d-flex justify-content-between">
             <span>

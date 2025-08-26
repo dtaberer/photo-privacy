@@ -1,6 +1,6 @@
 // src/components/PrivacyScrubber.tsx
 import { useMemo, useRef, useState, useCallback, useEffect } from "react";
-import { Row, Col, Card, Form } from "react-bootstrap";
+import { Row, Col, Card, Form, Badge } from "react-bootstrap";
 import downloadCanvas from "./utils/downloadCanvas";
 
 import {
@@ -9,11 +9,9 @@ import {
   type DetectTimings,
 } from "./utils/detectors";
 import ControlPanel from "./ControlPanel";
-import ActionControls from "./ActionControls";
 import Preview from "./Preview";
 import { FileLoader } from "./FileLoader";
 
-/* ============================== Component ============================== */
 export function PrivacyScrubber() {
   const [platesOn, setPlatesOn] = useState(true);
   const [facesOn, setFacesOn] = useState(true);
@@ -38,6 +36,7 @@ export function PrivacyScrubber() {
 
   const imgRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
   const badgeList = useMemo(
     () => ["SIMD", "1 Thread", "On-Device"] as const,
     []
@@ -49,11 +48,13 @@ export function PrivacyScrubber() {
     const cvs = canvasRef.current;
     if (!img || !cvs) {
       setStatus("Image/canvas not ready");
+      setBusy(false);
       return;
     }
     setStatus("Running detection…");
+
     try {
-      // Prepare canvas to match image and draw source
+      // Prep canvas
       cvs.width = img.naturalWidth;
       cvs.height = img.naturalHeight;
       const ctx = cvs.getContext("2d");
@@ -82,7 +83,7 @@ export function PrivacyScrubber() {
       setPerfPlates(plateRes.timings);
       setPerfFaces(faceRes.timings);
       setStatus(`Done — plates ${plateRes.count}, faces ${faceRes.count}`);
-      setCanvasVisible(true); // reveal processed overlay
+      setCanvasVisible(true);
     } catch (e) {
       setStatus(
         `Detection error: ${e instanceof Error ? e.message : String(e)}`
@@ -97,8 +98,7 @@ export function PrivacyScrubber() {
     const ctx = cvs?.getContext("2d");
     if (cvs && ctx) {
       ctx.clearRect(0, 0, cvs.width, cvs.height);
-      // Reset bitmap to guarantee a transparent overlay
-      cvs.width = 0; // also resets drawing state
+      cvs.width = 0;
       cvs.height = 0;
     }
   }, []);
@@ -111,18 +111,19 @@ export function PrivacyScrubber() {
         return url;
       });
       setStatus("Image loaded. Ready to run.");
-      setCanvasVisible(false); // hide old overlay
+      setCanvasVisible(false);
       clearCanvas();
     },
     [clearCanvas]
   );
 
+  // keep latest refresh fn
   const refreshRef = useRef(onRefreshHandler);
   useEffect(() => {
     refreshRef.current = onRefreshHandler;
   }, [onRefreshHandler]);
 
-  // Run detection only when imgSize changes (e.g., new image/load completes)
+  // When image size is known (load complete), run detection
   useEffect(() => {
     if (!imgRef.current) return;
     void refreshRef.current();
@@ -132,16 +133,19 @@ export function PrivacyScrubber() {
     downloadCanvas(canvasRef.current, "redacted.jpg", "image/jpeg", 0.92);
   }, []);
 
+  // revoke blob url on change
   useEffect(() => {
-    if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+    return () => {
+      if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+    };
   }, [previewUrl]);
 
+  // paste-to-upload
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const items = Array.from(e.clipboardData?.items ?? []);
       const it = items.find((i) => i.type.startsWith("image/"));
       const file = it?.getAsFile();
-      console.log("useEffect: 134: file", file);
       if (file) onFilePickHandler(file);
     };
     window.addEventListener("paste", onPaste);
@@ -149,15 +153,16 @@ export function PrivacyScrubber() {
   }, [onFilePickHandler]);
 
   return (
-    <div className="bg-light min-vh-100">
+    <div
+      className="bg-light min-vh-100"
+      style={{ cursor: busy ? "progress" : "default" }} // busy cursor
+    >
       <Row className="g-3">
-        {/* Preview */}
+        {/* Preview column */}
         <Preview
           imgSize={imgSize}
           setImgSize={setImgSize}
-          onClickRefreshHandler={() => {
-            void onRefreshHandler();
-          }}
+          onClickRefreshHandler={() => void onRefreshHandler()}
           onClickDownloadHandler={onDownloadHandler}
           canvasRef={canvasRef}
           detections={detections}
@@ -168,11 +173,12 @@ export function PrivacyScrubber() {
           perfFaces={perfFaces}
           imgRef={imgRef}
           canvasVisible={canvasVisible}
+          busy={busy}
         />
 
-        {/* Controls */}
-        {imgRef && (
-          <Col md={4}>
+        {/* Controls column (sticky) */}
+        <Col md={4}>
+          <div className="sticky-top" style={{ top: "1rem" }}>
             <Card className="shadow-sm border-0">
               <Card.Body>
                 {/* Drop zone */}
@@ -182,21 +188,10 @@ export function PrivacyScrubber() {
                   dragOver={dragOver}
                   busy={busy}
                 />
-                {/* Actions */}
 
-                <div className="d-flex justify-content-end mb-3">
-                  <div aria-busy={busy} aria-live="polite">
-                    <ActionControls
-                      onClickRefreshHandler={onRefreshHandler}
-                      onClickDownloadHandler={onDownloadHandler}
-                      busy={busy}
-                    />
-                  </div>
-                </div>
-
-                {/* Master Switches */}
-                <div className="d-flex align-items-center gap-5 flex-wrap-3 p-3">
-                  <div aria-busy={busy} aria-live="polite">
+                {/* Master Switches with count badges */}
+                <div className="px-2 mb-3">
+                  <div className="d-flex align-items-center justify-content-between">
                     <Form.Check
                       type="switch"
                       id="sw-plates"
@@ -205,6 +200,15 @@ export function PrivacyScrubber() {
                       onChange={(e) => setPlatesOn(e.currentTarget.checked)}
                       {...(busy && { disabled: true })}
                     />
+                    <Badge
+                      bg="secondary"
+                      className="bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"
+                    >
+                      {detections.plates}
+                    </Badge>
+                  </div>
+
+                  <div className="d-flex align-items-center justify-content-between mt-1">
                     <Form.Check
                       type="switch"
                       id="sw-faces"
@@ -213,40 +217,44 @@ export function PrivacyScrubber() {
                       onChange={(e) => setFacesOn(e.currentTarget.checked)}
                       {...(busy && { disabled: true })}
                     />
+                    <Badge
+                      bg="secondary"
+                      className="bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"
+                    >
+                      {detections.faces}
+                    </Badge>
                   </div>
                 </div>
 
                 {/* License Plate Panel */}
                 {platesOn && (
-                  <div aria-busy={busy} aria-live="polite">
-                    <ControlPanel
-                      blurVal={plateBlur}
-                      setBlurVal={setPlateBlur}
-                      confVal={plateConf}
-                      setConfVal={setPlateConf}
-                      controlName="License Plate Redaction"
-                      busy={busy}
-                    />
-                  </div>
+                  <ControlPanel
+                    blurVal={plateBlur}
+                    setBlurVal={setPlateBlur}
+                    confVal={plateConf}
+                    setConfVal={setPlateConf}
+                    controlName="License Plate Redaction"
+                    busy={busy}
+                    count={detections.plates}
+                  />
                 )}
 
                 {/* Face Panel */}
                 {facesOn && (
-                  <div aria-busy={busy} aria-live="polite">
-                    <ControlPanel
-                      blurVal={faceBlur}
-                      setBlurVal={setFaceBlur}
-                      confVal={faceConf}
-                      setConfVal={setFaceConf}
-                      controlName="Facial Redaction"
-                      busy={busy}
-                    />
-                  </div>
+                  <ControlPanel
+                    blurVal={faceBlur}
+                    setBlurVal={setFaceBlur}
+                    confVal={faceConf}
+                    setConfVal={setFaceConf}
+                    controlName="Facial Redaction"
+                    busy={busy}
+                    count={detections.faces}
+                  />
                 )}
               </Card.Body>
             </Card>
-          </Col>
-        )}
+          </div>
+        </Col>
       </Row>
     </div>
   );

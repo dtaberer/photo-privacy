@@ -14,28 +14,28 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
   busy,
 }) => {
   return (
-    <>
-      <Stack direction="horizontal" gap={2} className="flex-wrap">
-        <Button
-          variant="outline-secondary"
-          title="Download scrubbed"
-          aria-label="Download scrubbed"
-          onClick={onClickDownloadHandler}
-          disabled={busy}
-        >
-          <FaDownload />
-        </Button>
-        <Button
-          variant="outline-secondary"
-          title="Refresh"
-          aria-label="Refresh"
-          onClick={onClickRefreshHandler}
-          disabled={busy}
-        >
-          <FaSync />
-        </Button>
-      </Stack>
-    </>
+    <Stack direction="horizontal" gap={2} className="flex-wrap">
+      <Button
+        size="sm"
+        variant="outline-secondary"
+        title="Download scrubbed"
+        aria-label="Download scrubbed"
+        onClick={onClickDownloadHandler}
+        disabled={busy}
+      >
+        <FaDownload />
+      </Button>
+      <Button
+        size="sm"
+        variant="outline-secondary"
+        title="Refresh"
+        aria-label="Refresh"
+        onClick={onClickRefreshHandler}
+        disabled={busy}
+      >
+        <FaSync />
+      </Button>
+    </Stack>
   );
 };
 

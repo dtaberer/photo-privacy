@@ -5,4 +5,5 @@ export type ControlPanelProps = {
   setConfVal: (val: number) => void;
   controlName: string;
   busy?: boolean;
+  count: number;
 };

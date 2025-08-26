@@ -2,12 +2,16 @@ import React, { JSX, useCallback, useId, startTransition } from "react";
 import { Card, Form } from "react-bootstrap";
 import { ControlPanelProps } from "../types/ControlPanelTypes";
 
+/**
+ * Sliders: label (left) | slider | value (right)
+ * - Blur updates use startTransition to keep drag buttery-smooth.
+ * - Sensitivity shown as 0–100%, stored as 0–1.
+ */
 export function ControlPanel(props: ControlPanelProps): JSX.Element {
   const { blurVal, setBlurVal, confVal, setConfVal, controlName, busy } = props;
   const blurId = useId();
   const confId = useId();
 
-  // Move blur updates off the urgent lane to keep dragging smooth
   const handleBlurChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const next = Number(e.currentTarget.value);
@@ -16,7 +20,6 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
     [setBlurVal]
   );
 
-  // Show confidence as 0–100 in UI, store 0–1 in state
   const uiConf = Math.round((confVal ?? 0) * 100);
 
   const handleConfChange = useCallback(
@@ -33,7 +36,7 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
       <Card.Body>
         <div className="fw-bold small mb-2">{controlName}</div>
 
-        {/* Blur strength: label | slider | value */}
+        {/* Blur strength */}
         <div className="d-flex small align-items-center gap-3 mb-2">
           <Form.Label
             htmlFor={blurId}
@@ -60,7 +63,7 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
           </span>
         </div>
 
-        {/* Sensitivity: label | slider | value (0–100%), stored as 0–1 */}
+        {/* Sensitivity */}
         <div className="d-flex small align-items-center gap-3">
           <Form.Label
             htmlFor={confId}
