@@ -4,10 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { PrivacyScrubber } from "../components/PrivacyScrubber"; // relative import = no alias issues
 
 // Mock BOTH possible helper locations (utils or old component files)
-vi.mock("../components/utils/detectors", () => ({
+vi.mock("../components/utils/license-plate-blur-utils", () => ({
   runLicensePlateBlurOnCanvas: vi
     .fn()
     .mockResolvedValue({ count: 1, boxes: [{ x: 10, y: 20, w: 100, h: 40 }] }),
+}));
+vi.mock("../components/utils/face-blur-utils", () => ({
   runFaceBlurOnCanvas: vi
     .fn()
     .mockResolvedValue({ count: 2, boxes: [{ x: 5, y: 5, w: 30, h: 30 }] }),
@@ -19,7 +21,8 @@ vi.mock("../components/FaceBlur", () => ({
   runFaceBlurOnCanvas: vi.fn().mockResolvedValue({ count: 2 }),
 }));
 
-import * as Detectors from "../components/utils/detectors";
+import * as faceDetector from "../components/utils/face-blur-utils";
+import * as plateDetector from "../components/utils/license-plate-blur-utils";
 import * as PlateComp from "../components/LicensePlateBlur";
 import * as FaceComp from "../components/FaceBlur";
 
@@ -90,13 +93,13 @@ describe("PrivacyScrubber detection triggers", () => {
     // wait for *either* module’s helper(s) to be called
     await waitFor(() => {
       const plateCalls = getCallsSum(
-        Detectors,
+        plateDetector,
         "runLicensePlateBlurOnCanvas",
         PlateComp,
         "runLicensePlateBlurOnCanvas"
       );
       const faceCalls = getCallsSum(
-        Detectors,
+        faceDetector,
         "runFaceBlurOnCanvas",
         FaceComp,
         "runFaceBlurOnCanvas"
@@ -113,13 +116,13 @@ describe("PrivacyScrubber detection triggers", () => {
       await userEvent.type(plateIntensity, "{arrowright}{arrowright}");
       await new Promise((r) => setTimeout(r, 50)); // allow rAF paints
       const plateCalls = getCallsSum(
-        Detectors,
+        plateDetector,
         "runLicensePlateBlurOnCanvas",
         PlateComp,
         "runLicensePlateBlurOnCanvas"
       );
       const faceCalls = getCallsSum(
-        Detectors,
+        faceDetector,
         "runFaceBlurOnCanvas",
         FaceComp,
         "runFaceBlurOnCanvas"
@@ -132,7 +135,7 @@ describe("PrivacyScrubber detection triggers", () => {
     const faceSwitch = screen.queryByRole("switch", { name: /blur faces/i });
     if (faceSwitch) {
       const before = getCallsSum(
-        Detectors,
+        faceDetector,
         "runFaceBlurOnCanvas",
         FaceComp,
         "runFaceBlurOnCanvas"
@@ -140,7 +143,7 @@ describe("PrivacyScrubber detection triggers", () => {
       fireEvent.click(faceSwitch);
       await waitFor(() => {
         const after = getCallsSum(
-          Detectors,
+          faceDetector,
           "runFaceBlurOnCanvas",
           FaceComp,
           "runFaceBlurOnCanvas"

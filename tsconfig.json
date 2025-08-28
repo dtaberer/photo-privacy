@@ -15,7 +15,8 @@
     "types": ["vite/client", "react"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@utils": ["./src/components/utils/*"]
     }
   },
   "include": ["src", "src/types", "vite.config.ts", "vitest.config.ts"],

@@ -1,29 +1,30 @@
-import React, { JSX, useCallback, useId } from "react";
+import React, { JSX, useCallback, useId, useState } from "react";
 import { Card, Form } from "react-bootstrap";
 import { ControlPanelProps } from "../types/ControlPanelTypes";
 
 export function ControlPanel(props: ControlPanelProps): JSX.Element {
   const {
     blurVal,
-    setBlurVal,
+    onClickChangeHandler,
     confVal,
     setConfVal,
     controlName,
     busy,
-    onCommit,
   } = props;
+  const [tmpPctConf, setTmpPctConf] = useState<number>(confVal);
+
   const blurId = useId();
   const confId = useId();
 
-  const uiConf = Math.round((confVal ?? 0) * 100);
+  const uiConf = Math.round((tmpPctConf ?? 0) * 100);
 
   const handleConfChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const nextPercent = Number(e.currentTarget.value);
       const next = Math.max(0, Math.min(100, nextPercent)) / 100;
-      setConfVal(next);
+      setTmpPctConf(next);
     },
-    [setConfVal]
+    []
   );
 
   return (
@@ -46,10 +47,12 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
             max={100}
             step={1}
             value={blurVal}
-            onChange={(e) => setBlurVal(Number(e.currentTarget.value))}
-            onPointerUp={() => onCommit?.()} // ← call once when user releases
+            onChange={async (e) => {
+              onClickChangeHandler(Number(e.currentTarget.value));
+            }}
             aria-label="Blur strength"
             className="flex-grow-1"
+            disabled={busy}
           />
 
           <span className="text-muted small text-end" style={{ minWidth: 56 }}>
@@ -77,8 +80,8 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
             value={uiConf}
             onChange={handleConfChange}
             disabled={busy}
+            onMouseUp={() => setConfVal(uiConf)}
           />
-
           <span className="text-muted small text-end" style={{ minWidth: 56 }}>
             {uiConf}%
           </span>

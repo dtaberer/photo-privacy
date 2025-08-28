@@ -2,6 +2,9 @@
 // Extend if you start using more APIs.
 declare module "face-api.js" {
   export interface Box {
+    conf: number;
+    w: number;
+    h: number;
     x: number;
     y: number;
     width: number;

@@ -82,7 +82,7 @@ async function ensureVariantFiles(folder) {
 async function main() {
   const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
   // DEV/PROD can both serve from /ort-runtime via Vite's public/ folder
-  const outDir = path.join(root, "public", "__ort__");
+  const outDir = path.join(root, "public", "ort-runtime");
   await fs.mkdir(outDir, { recursive: true });
 
   const sources = [];

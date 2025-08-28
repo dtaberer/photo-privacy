@@ -1,57 +1,149 @@
-// src/components/PrivacyScrubber.tsx
-import { useMemo, useRef, useState, useCallback, useEffect } from "react";
+import React, {
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
 import { Row, Col, Card, Form, Badge } from "react-bootstrap";
-import downloadCanvas from "./utils/downloadCanvas";
-
-import {
-  runLicensePlateBlurOnCanvas,
-  runFaceBlurOnCanvas,
-  type DetectTimings,
-} from "./utils/detectors";
+import downloadCanvas from "./utils/download-canvas";
+import { LicensePlateBlur } from "./LicensePlateBlur";
+import { FaceBlur } from "./FaceBlur";
 import ControlPanel from "./ControlPanel";
 import Preview from "./Preview";
 import { FileLoader } from "./FileLoader";
 
+const PERFORMANCE_REPORT_DEFAULT = {
+  count: 0,
+  total: 0,
+  timings: {
+    preprocess: 0,
+    run: 0,
+    post: 0,
+    total: 0,
+  },
+};
+
+const PLATE_BLUR_DFLT = 14;
+const PLATE_CONF_DFLT = 0.02;
+const FACE_BLUR_DFLT = 12;
+const FACE_CONF_DFLT = 0.06;
+const IOU_THRESH_DFLT = 0.1;
+const PAD_RATIO_DFLT = 0.01;
+const MODEL_SIZE_DFLT = 800;
+const STATUS_DFLT = "Ready";
+const FACE_DETECTION_DFLT = true;
+const LICENSE_PLATE_DETECTON_DFLT = true;
+const MODEL_URL_DFLT = "/models/license-plate-finetune-v1n.onnx";
+
 export function PrivacyScrubber() {
-  const [platesOn, setPlatesOn] = useState(true);
-  const [facesOn, setFacesOn] = useState(true);
-  const [plateBlur, setPlateBlur] = useState(14);
-  const [plateConf, setPlateConf] = useState(0.35);
-  const [faceBlur, setFaceBlur] = useState(12);
-  const [faceConf, setFaceConf] = useState(0.6);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [status, setStatus] = useState("Ready");
+  const [platesOn, setPlatesOn] = useState<boolean>(
+    LICENSE_PLATE_DETECTON_DFLT
+  );
+  const [facesOn, setFacesOn] = useState<boolean>(FACE_DETECTION_DFLT);
+  const [plateBlur, setPlateBlur] = useState<number>(PLATE_BLUR_DFLT);
+  const [plateConf, setPlateConf] = useState<number>(PLATE_CONF_DFLT);
+  const [faceBlur, setFaceBlur] = useState<number>(FACE_BLUR_DFLT);
+  const [faceConf, setFaceConf] = useState<number>(FACE_CONF_DFLT);
+  const [iouThresh, setIouThresh] = useState<number>(IOU_THRESH_DFLT);
+  const [padRatio, setPadRatio] = useState<number>(PAD_RATIO_DFLT);
+  const [status, setStatus] = useState(STATUS_DFLT);
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [detections, setDetections] = useState({ plates: 0, faces: 0 });
-  const [modelUrl] = useState("/models/license-plate-finetune-v1n.onnx");
+  const [modelUrl] = useState(MODEL_URL_DFLT);
   const [dragOver, setDragOver] = useState(false);
-  const [perfPlates, setPerfPlates] = useState<DetectTimings | null>(null);
-  const [perfFaces, setPerfFaces] = useState<DetectTimings | null>(null);
+  const [perfPlates, setPerfPlates] = useState<PerformanceReport>(
+    PERFORMANCE_REPORT_DEFAULT
+  );
+
+  const [perfFaces, setPerfFaces] = useState<PerformanceReport>({
+    count: 0,
+    total: 0,
+    timings: {
+      preprocess: 0,
+      run: 0,
+      post: 0,
+      total: 0,
+    },
+  });
+
   const [canvasVisible, setCanvasVisible] = useState(false);
+  const [modelSize, setModelSize] = useState(MODEL_SIZE_DFLT);
   const [imgSize, setImgSize] = useState<{ w: number; h: number }>({
     w: 0,
     h: 0,
   });
 
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null!);
+  const canvasRef = useRef<HTMLCanvasElement>(null!);
+  const faceRef = useRef<BlurHandler>(null!);
+  const plateRef = useRef<BlurHandler>(null!);
 
-  const badgeList = useMemo(
-    () => ["SIMD", "1 Thread", "On-Device"] as const,
-    []
+  const onRedrawHandler = useCallback(
+    async (
+      ref: React.RefObject<BlurHandler>,
+      setter: React.Dispatch<React.SetStateAction<number>>,
+      val: number
+    ) => {
+      setter(val);
+      if (!imgRef || !canvasRef || !modelUrl || !canvasRef) {
+        console.log("Image/canvas not ready");
+        setBusy(false);
+        return;
+      }
+
+      console.log("onPlateRedrawHandler....");
+      ref.current?.redraw();
+    },
+    [modelUrl]
   );
+
+  // const onPlateRefreshHandler = async () => {
+  //   setBusy(true);
+  //   const img = imgRef?.current;
+  //   const cvs = canvasRef.current;
+
+  //   if (!plateRef || !cvs || !img) {
+  //     console.log("Image/canvas not ready");
+  //     setBusy(false);
+  //     return;
+  //   }
+  //   console.log("Running detection…");
+
+  //   try {
+  //     // Prep canvas
+  //     cvs.width = img.naturalWidth;
+  //     cvs.height = img.naturalHeight;
+  //     const ctx = cvs.getContext("2d");
+  //     ctx?.clearRect(0, 0, cvs.width, cvs.height);
+  //     ctx?.drawImage(img, 0, 0);
+  //     await plateRef.current?.run();
+  //     plateRef.current?.redraw();
+
+  //     // await faceRef.current?.run();
+  //     // faceRef.current?.redraw();
+  //   } catch (e) {
+  //     console.log(
+  //       `Detection error: ${e instanceof Error ? e.message : String(e)}`
+  //     );
+  //   } finally {
+  //     setCanvasVisible(true);
+  //     setBusy(false);
+  //     console.log("Done.");
+  //   }
+  // };
 
   const onRefreshHandler = useCallback(async () => {
     setBusy(true);
-    const img = imgRef.current;
+    const img = imgRef?.current;
     const cvs = canvasRef.current;
-    if (!img || !cvs) {
-      setStatus("Image/canvas not ready");
+
+    if (!cvs || !img) {
+      console.log("Image/canvas not ready");
       setBusy(false);
       return;
     }
-    setStatus("Running detection…");
+    console.log("Running detection…");
 
     try {
       // Prep canvas
@@ -60,38 +152,26 @@ export function PrivacyScrubber() {
       const ctx = cvs.getContext("2d");
       ctx?.clearRect(0, 0, cvs.width, cvs.height);
       ctx?.drawImage(img, 0, 0);
+      await plateRef.current?.run();
+      plateRef.current?.redraw();
 
-      const plateRes = platesOn
-        ? await runLicensePlateBlurOnCanvas(img, cvs, {
-            modelUrl,
-            blurRadius: plateBlur,
-            confThresh: plateConf,
-            modelSize: 640,
-            iou: 0.45,
-            padRatio: 0.2,
-          })
-        : { count: 0, timings: { preprocess: 0, run: 0, post: 0, total: 0 } };
-
-      const faceRes = facesOn
-        ? await runFaceBlurOnCanvas(img, cvs, {
-            blurRadius: faceBlur,
-            confThresh: faceConf,
-          })
-        : { count: 0, timings: { preprocess: 0, run: 0, post: 0, total: 0 } };
-
-      setDetections({ plates: plateRes.count, faces: faceRes.count });
-      setPerfPlates(plateRes.timings);
-      setPerfFaces(faceRes.timings);
-      setStatus(`Done — plates ${plateRes.count}, faces ${faceRes.count}`);
-      setCanvasVisible(true);
+      await faceRef.current?.run();
+      faceRef.current?.redraw();
     } catch (e) {
-      setStatus(
+      console.log(
         `Detection error: ${e instanceof Error ? e.message : String(e)}`
       );
     } finally {
+      setCanvasVisible(true);
       setBusy(false);
+      console.log("Done.");
     }
-  }, [platesOn, modelUrl, plateBlur, plateConf, facesOn, faceBlur, faceConf]);
+  }, []);
+
+  const badgeList = useMemo(
+    () => ["SIMD", "1 Thread", "On-Device"] as const,
+    []
+  );
 
   const clearCanvas = useCallback(() => {
     const cvs = canvasRef.current;
@@ -110,35 +190,16 @@ export function PrivacyScrubber() {
         if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
         return url;
       });
-      setStatus("Image loaded. Ready to run.");
+      console.log("Image loaded. Ready to run.");
       setCanvasVisible(false);
       clearCanvas();
     },
     [clearCanvas]
   );
 
-  // keep latest refresh fn
-  const refreshRef = useRef(onRefreshHandler);
-  useEffect(() => {
-    refreshRef.current = onRefreshHandler;
-  }, [onRefreshHandler]);
-
-  // When image size is known (load complete), run detection
-  useEffect(() => {
-    if (!imgRef.current) return;
-    void refreshRef.current();
-  }, [imgSize]);
-
   const onDownloadHandler = useCallback(() => {
     downloadCanvas(canvasRef.current, "redacted.jpg", "image/jpeg", 0.92);
   }, []);
-
-  // revoke blob url on change
-  useEffect(() => {
-    return () => {
-      if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
 
   // paste-to-upload
   useEffect(() => {
@@ -152,20 +213,55 @@ export function PrivacyScrubber() {
     return () => window.removeEventListener("paste", onPaste);
   }, [onFilePickHandler]);
 
+  useEffect(() => {
+    console.log("PrivacyScrubber line 89");
+    return () => {
+      if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   return (
     <div
       className="bg-light min-vh-100"
       style={{ cursor: busy ? "progress" : "default" }} // busy cursor
     >
+      <LicensePlateBlur
+        ref={plateRef}
+        imgRef={imgRef}
+        canvasRef={canvasRef}
+        opts={{
+          modelSize: modelSize,
+          confThresh: plateConf,
+          blurStrength: plateBlur,
+          iouThresh: iouThresh,
+          padRatio: padRatio,
+          setPerfReport: setPerfPlates,
+          modelUrl: modelUrl,
+          debugMode: false,
+        }}
+      />
+      <FaceBlur
+        ref={faceRef}
+        imgRef={imgRef}
+        canvasRef={canvasRef}
+        opts={{
+          modelSize: 544,
+          confThresh: faceConf,
+          blurStrength: faceBlur,
+          iouThresh: iouThresh,
+          padRatio: 0.0, // padRatio,
+          setPerfReport: setPerfFaces,
+          debugMode: false,
+        }}
+      />
       <Row className="g-3">
         {/* Preview column */}
         <Preview
           imgSize={imgSize}
           setImgSize={setImgSize}
-          onClickRefreshHandler={() => void onRefreshHandler()}
+          onClickRefreshHandler={onRefreshHandler}
           onClickDownloadHandler={onDownloadHandler}
           canvasRef={canvasRef}
-          detections={detections}
           title="Preview"
           previewUrl={previewUrl ?? null}
           badgeList={[...badgeList]}
@@ -200,12 +296,12 @@ export function PrivacyScrubber() {
                       onChange={(e) => setPlatesOn(e.currentTarget.checked)}
                       {...(busy && { disabled: true })}
                     />
-                    <Badge
+                    {/* <Badge
                       bg="secondary"
                       className="bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"
                     >
                       {detections.plates}
-                    </Badge>
+                    </Badge> */}
                   </div>
 
                   <div className="d-flex align-items-center justify-content-between mt-1">
@@ -221,7 +317,7 @@ export function PrivacyScrubber() {
                       bg="secondary"
                       className="bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"
                     >
-                      {detections.faces}
+                      "detections.faces"
                     </Badge>
                   </div>
                 </div>
@@ -230,13 +326,14 @@ export function PrivacyScrubber() {
                 {platesOn && (
                   <ControlPanel
                     blurVal={plateBlur}
-                    setBlurVal={setPlateBlur}
-                    confVal={plateConf}
+                    onClickChangeHandler={(blurVal) =>
+                      onRedrawHandler(plateRef, setPlateBlur, blurVal)
+                    }
                     setConfVal={setPlateConf}
+                    confVal={plateConf}
                     controlName="License Plate Redaction"
                     busy={busy}
-                    count={detections.plates}
-                    onCommit={() => void onRefreshHandler()} // ← apply on release
+                    count={1}
                   />
                 )}
 
@@ -244,13 +341,14 @@ export function PrivacyScrubber() {
                 {facesOn && (
                   <ControlPanel
                     blurVal={faceBlur}
-                    setBlurVal={setFaceBlur}
-                    confVal={faceConf}
+                    onClickChangeHandler={(blurVal) =>
+                      onRedrawHandler(faceRef, setFaceBlur, blurVal)
+                    }
                     setConfVal={setFaceConf}
+                    confVal={faceConf}
                     controlName="Facial Redaction"
                     busy={busy}
-                    count={detections.faces}
-                    onCommit={() => void onRefreshHandler()} // ← apply on release
+                    count={1}
                   />
                 )}
               </Card.Body>

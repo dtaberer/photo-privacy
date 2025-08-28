@@ -3,8 +3,10 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { PrivacyScrubber } from "../components/PrivacyScrubber";
 
 // Mock BOTH possible helper locations
-vi.mock("../components/utils/detectors", () => ({
+vi.mock("../components/utils/license-plate-blur-utils", () => ({
   runLicensePlateBlurOnCanvas: vi.fn().mockResolvedValue({ count: 1 }),
+}));
+vi.mock("../components/utils/face-blur-utils", () => ({
   runFaceBlurOnCanvas: vi.fn().mockResolvedValue({ count: 2 }),
 }));
 vi.mock("../components/LicensePlateBlur", () => ({
@@ -14,7 +16,8 @@ vi.mock("../components/FaceBlur", () => ({
   runFaceBlurOnCanvas: vi.fn().mockResolvedValue({ count: 2 }),
 }));
 
-import * as Detectors from "../components/utils/detectors";
+import * as faceDetector from "../components/utils/face-blur-utils";
+import * as plateDetector from "../components/utils/license-plate-blur-utils";
 import * as PlateComp from "../components/LicensePlateBlur";
 import * as FaceComp from "../components/FaceBlur";
 
@@ -80,13 +83,13 @@ describe("PrivacyScrubber refresh flow", () => {
 
     await waitFor(() => {
       const plateCalls = getCallsSum(
-        Detectors,
+        plateDetector,
         "runLicensePlateBlurOnCanvas",
         PlateComp,
         "runLicensePlateBlurOnCanvas"
       );
       const faceCalls = getCallsSum(
-        Detectors,
+        faceDetector,
         "runFaceBlurOnCanvas",
         FaceComp,
         "runFaceBlurOnCanvas"

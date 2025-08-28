@@ -1,7 +1,6 @@
 import React from "react";
-import { Col, Card, Badge } from "react-bootstrap";
+import { Col, Card, Badge, Spinner } from "react-bootstrap";
 import { FaImage } from "react-icons/fa";
-import { DetectTimings } from "./utils/detectors";
 import ActionControls from "./ActionControls";
 
 interface PreviewProps {
@@ -11,12 +10,11 @@ interface PreviewProps {
   setImgSize: React.Dispatch<React.SetStateAction<{ w: number; h: number }>>;
   canvasVisible: boolean;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
-  detections: { plates: number; faces: number };
   title: string;
   previewUrl: string | null;
   badgeList: string[];
-  perfPlates: DetectTimings | null;
-  perfFaces: DetectTimings | null;
+  perfPlates: PerformanceReport;
+  perfFaces: PerformanceReport;
   imgRef?: React.RefObject<HTMLImageElement | null>;
   busy?: boolean;
 }
@@ -28,7 +26,6 @@ const Preview: React.FC<PreviewProps> = ({
   setImgSize,
   canvasVisible,
   canvasRef,
-  detections,
   title,
   previewUrl,
   badgeList,
@@ -110,6 +107,14 @@ const Preview: React.FC<PreviewProps> = ({
               })
             }
           />
+          {busy && (
+            <Spinner
+              animation="border"
+              size="sm"
+              role="status"
+              aria-label="processing"
+            />
+          )}
           <canvas
             ref={canvasRef}
             className="position-absolute top-0 start-0 w-100 h-100"
@@ -121,26 +126,29 @@ const Preview: React.FC<PreviewProps> = ({
         <Card.Footer className="d-flex flex-column gap-1 small text-secondary">
           <div className="d-flex justify-content-between">
             <span>
-              Detections: plates {detections.plates} · faces {detections.faces}
+              <p>
+                "Detections: plates detections.plates · faces detections.faces"
+              </p>
             </span>
           </div>
-          <div className="d-flex flex-wrap gap-3">
+          {/* <div className="d-flex flex-wrap gap-3">
             {perfPlates && (
               <div>
-                Plates ⏱ pre {perfPlates.preprocess.toFixed(1)}ms · run{" "}
-                {perfPlates.run.toFixed(1)}ms · post{" "}
-                {perfPlates.post.toFixed(1)}ms · total{" "}
-                {perfPlates.total.toFixed(1)}ms
+                Plates ⏱ pre {perfPlates.timings.preprocess.toFixed(1)}ms · run{" "}
+                {perfPlates.timings.run.toFixed(1)}ms · post{" "}
+                {perfPlates.timings.post.toFixed(1)}ms · total{" "}
+                {perfPlates.total?.toFixed(1)}ms
               </div>
             )}
             {perfFaces && (
               <span>
-                Faces ⏱ pre {perfFaces.preprocess.toFixed(1)}ms · run{" "}
-                {perfFaces.run.toFixed(1)}ms · post {perfFaces.post.toFixed(1)}
-                ms · total {perfFaces.total.toFixed(1)}ms
+                Faces ⏱ pre {perfFaces.timings.preprocess.toFixed(1)}ms · run{" "}
+                {perfFaces.timings.run.toFixed(1)}ms · post{" "}
+                {perfFaces.timings.post.toFixed(1)}
+                ms · total {perfFaces?.total.toFixed(1)}ms
               </span>
             )}
-          </div>
+          </div> */}
         </Card.Footer>
       </Card>
     </Col>
