@@ -23,6 +23,20 @@ let plateSession: ort.InferenceSession | null = null;
 let plateInputName = "";
 let boxes: Box[] = [];
 
+type WithConf = { conf?: number | string | null };
+
+export function filterByMinConf<T extends WithConf>(arr: T[], min: number): T[] {
+  return arr.filter(item => {
+    const n =
+      typeof item.conf === "number"
+        ? item.conf
+        : typeof item.conf === "string"
+        ? parseFloat(item.conf)
+        : NaN;
+    return Number.isFinite(n) && n! >= min;
+  });
+}
+
 interface LicensePlateBlurProps {
   imgRef: React.RefObject<HTMLImageElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -62,10 +76,19 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
 
       if (!img || !canvas) return;
 
+      // canvas.width = img.naturalWidth;
+      // canvas.height = img.naturalHeight;
+
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+      // ctx?.drawImage(img, 0, 0);
+      
+      const raw = nms(boxes, opts.confThresh);
+      const filtered = filterByMinConf(raw, opts.iouThresh);
 
-      for (const b of boxes) {
+      console.log(`${opts.iouThresh} Blurring ${filtered.length} plates...`);
+
+      for (const b of filtered) {
         const sx = Math.max(0, Math.floor(b.x));
         const sy = Math.max(0, Math.floor(b.y));
         const sw = Math.min(canvas.width - sx, Math.ceil(b.w));
@@ -80,7 +103,7 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
           );
         }
       }
-    }, [canvasRef, imgRef, opts.blurStrength, opts.debugMode]);
+    }, [canvasRef, imgRef, opts.blurStrength, opts.debugMode, opts.iouThresh, opts.confThresh]);
 
     const run = useCallback(async () => {
       console.log("LicensePlateBlur.run");
@@ -127,7 +150,7 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
           max: 30000,
         });
 
-        boxes = nms(raw, opts.iouThresh);
+        boxes = nms(raw, opts.confThresh);
         applyBluring(); // blur *now* using the same array
 
         // const t3 = performance.now();
@@ -145,11 +168,11 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
         runningRef.current = false;
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [imgRef, canvasRef]);
+    }, [imgRef, canvasRef, applyBluring, opts.iouThresh, opts.confThresh, opts.blurStrength, opts.debugMode]);
 
     const redraw = useCallback(async () => {
       applyBluring();
-    }, [applyBluring]);
+    }, [applyBluring, opts.iouThresh, opts.confThresh, opts.blurStrength, opts.debugMode]);
 
     useImperativeHandle(ref, () => ({ run, redraw }), [run, redraw]);
 

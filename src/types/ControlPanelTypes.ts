@@ -1,10 +1,9 @@
 export type ControlPanelProps = {
   blurVal: number;
-  onClickChangeHandler: (val: number) => void;
-  confVal: number;
-  setConfVal: (val: number) => void;
-  controlName: string;
   busy?: boolean;
+  iouThresh: number;
+  controlName: string;
   count: number;
-  onCommit?: () => void; // ← new, optional
+  setBlurVal: (val: number) => void;
+  setThreshVal: (val: number) => void;
 };

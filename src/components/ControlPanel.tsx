@@ -5,27 +5,25 @@ import { ControlPanelProps } from "../types/ControlPanelTypes";
 export function ControlPanel(props: ControlPanelProps): JSX.Element {
   const {
     blurVal,
-    onClickChangeHandler,
-    confVal,
-    setConfVal,
+    setBlurVal,
+    setThreshVal,
+    iouThresh,
     controlName,
     busy,
   } = props;
-  const [tmpPctConf, setTmpPctConf] = useState<number>(confVal);
 
   const blurId = useId();
   const confId = useId();
+  const uiConf = Math.round((iouThresh ?? 0) * 100);
 
-  const uiConf = Math.round((tmpPctConf ?? 0) * 100);
-
-  const handleConfChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const nextPercent = Number(e.currentTarget.value);
-      const next = Math.max(0, Math.min(100, nextPercent)) / 100;
-      setTmpPctConf(next);
-    },
-    []
-  );
+  // const handleConfChange = useCallback(
+  //   async (e: React.ChangeEvent<HTMLInputElement>) => {
+  //     const nextPercent = Number(e.currentTarget.value);
+  //     const next = Math.max(0, Math.min(100, nextPercent)) / 100;
+  //     setThreshVal(next);
+  //   },
+  //   []
+  // );
 
   return (
     <Card className="border-0 bg-body-tertiary mb-3">
@@ -48,7 +46,8 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
             step={1}
             value={blurVal}
             onChange={async (e) => {
-              onClickChangeHandler(Number(e.currentTarget.value));
+              const val = (Number(e.currentTarget.value));
+              setBlurVal(val);
             }}
             aria-label="Blur strength"
             className="flex-grow-1"
@@ -74,13 +73,15 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
             id={confId}
             aria-label={`${controlName} Sensitivity`}
             className="flex-grow-1"
-            min={0}
-            max={100}
-            step={1}
-            value={uiConf}
-            onChange={handleConfChange}
+            min={0.0}
+            max={1}
+            step={0.001}
+            value={iouThresh}
+            onChange={(e) => {
+              const val = Number(e.currentTarget.value);
+              setThreshVal(val);
+            }}
             disabled={busy}
-            onMouseUp={() => setConfVal(uiConf)}
           />
           <span className="text-muted small text-end" style={{ minWidth: 56 }}>
             {uiConf}%

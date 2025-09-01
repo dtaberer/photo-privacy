@@ -24,17 +24,17 @@ const PERFORMANCE_REPORT_DEFAULT = {
   },
 };
 
-const PLATE_BLUR_DFLT = 14;
-const PLATE_CONF_DFLT = 0.02;
 const FACE_BLUR_DFLT = 12;
 const FACE_CONF_DFLT = 0.06;
-const IOU_THRESH_DFLT = 0.1;
-const PAD_RATIO_DFLT = 0.01;
-const MODEL_SIZE_DFLT = 800;
-const STATUS_DFLT = "Ready";
 const FACE_DETECTION_DFLT = true;
+const IOU_THRESH_DFLT = 0.1;
 const LICENSE_PLATE_DETECTON_DFLT = true;
+const MODEL_SIZE_DFLT = 800;
 const MODEL_URL_DFLT = "/models/license-plate-finetune-v1n.onnx";
+const PAD_RATIO_DFLT = 0.01;
+const PLATE_BLUR_DFLT = 14;
+const PLATE_CONF_DFLT = 0.01;
+const STATUS_DFLT = "Ready";
 
 export function PrivacyScrubber() {
   const [platesOn, setPlatesOn] = useState<boolean>(
@@ -45,7 +45,8 @@ export function PrivacyScrubber() {
   const [plateConf, setPlateConf] = useState<number>(PLATE_CONF_DFLT);
   const [faceBlur, setFaceBlur] = useState<number>(FACE_BLUR_DFLT);
   const [faceConf, setFaceConf] = useState<number>(FACE_CONF_DFLT);
-  const [iouThresh, setIouThresh] = useState<number>(IOU_THRESH_DFLT);
+  const [faceIouThresh, setFaceIouThresh] = useState<number>(IOU_THRESH_DFLT);
+  const [plateIouThresh, setPlateIouThresh] = useState<number>(IOU_THRESH_DFLT);
   const [padRatio, setPadRatio] = useState<number>(PAD_RATIO_DFLT);
   const [status, setStatus] = useState(STATUS_DFLT);
   const [busy, setBusy] = useState(false);
@@ -79,51 +80,36 @@ export function PrivacyScrubber() {
   const faceRef = useRef<BlurHandler>(null!);
   const plateRef = useRef<BlurHandler>(null!);
 
-  const onRedrawHandler = useCallback(
-    async (
-      ref: React.RefObject<BlurHandler>,
-      setter: React.Dispatch<React.SetStateAction<number>>,
-      val: number
-    ) => {
-      setter(val);
-      if (!imgRef || !canvasRef || !modelUrl || !canvasRef) {
-        console.log("Image/canvas not ready");
-        setBusy(false);
-        return;
-      }
+  useEffect(() => {
+    if (platesOn)
+      plateRef.current?.redraw();
+      setCanvasVisible(true);
+    }, [platesOn, plateBlur, setCanvasVisible]);
 
-      console.log("onPlateRedrawHandler....");
-      ref.current?.redraw();
-    },
-    [modelUrl]
-  );
+    useEffect(() => {
+    if (platesOn)
+      // clearCanvas();
+      plateRef.current?.redraw();
+      setCanvasVisible(true);
+    }, [platesOn, plateIouThresh, setCanvasVisible]);
 
-  // const onPlateRefreshHandler = async () => {
-  //   setBusy(true);
-  //   const img = imgRef?.current;
-  //   const cvs = canvasRef.current;
 
-  //   if (!plateRef || !cvs || !img) {
-  //     console.log("Image/canvas not ready");
-  //     setBusy(false);
-  //     return;
-  //   }
-  //   console.log("Running detection…");
+  // const onRedrawFaceHandler = useCallback(
+  //   async (
+  //     val: number
+  //   ) => {
+  //     if (!imgRef || !canvasRef || !modelUrl || !canvasRef) {
+  //       console.log("Image/canvas not ready");
+  //       setBusy(false);
+  //       return;
+  //     }
 
-  //   try {
-  //     // Prep canvas
-  //     cvs.width = img.naturalWidth;
-  //     cvs.height = img.naturalHeight;
-  //     const ctx = cvs.getContext("2d");
-  //     ctx?.clearRect(0, 0, cvs.width, cvs.height);
-  //     ctx?.drawImage(img, 0, 0);
-  //     await plateRef.current?.run();
-  //     plateRef.current?.redraw();
-
-  //     // await faceRef.current?.run();
-  //     // faceRef.current?.redraw();
+  //     try {
+  //     console.log("onFaceRedrawHandler....");
+  //     clearCanvas();
+  //     faceRef.current?.redraw();
   //   } catch (e) {
-  //     console.log(
+  //      console.log(
   //       `Detection error: ${e instanceof Error ? e.message : String(e)}`
   //     );
   //   } finally {
@@ -131,7 +117,7 @@ export function PrivacyScrubber() {
   //     setBusy(false);
   //     console.log("Done.");
   //   }
-  // };
+  // }, [modelUrl, plateIouThresh, faceIouThresh]);
 
   const onRefreshHandler = useCallback(async () => {
     setBusy(true);
@@ -231,9 +217,9 @@ export function PrivacyScrubber() {
         canvasRef={canvasRef}
         opts={{
           modelSize: modelSize,
-          confThresh: plateConf,
+          confThresh: PLATE_CONF_DFLT,
           blurStrength: plateBlur,
-          iouThresh: iouThresh,
+          iouThresh: plateIouThresh,
           padRatio: padRatio,
           setPerfReport: setPerfPlates,
           modelUrl: modelUrl,
@@ -246,10 +232,10 @@ export function PrivacyScrubber() {
         canvasRef={canvasRef}
         opts={{
           modelSize: 544,
-          confThresh: faceConf,
+          confThresh: PLATE_CONF_DFLT,
           blurStrength: faceBlur,
-          iouThresh: iouThresh,
-          padRatio: 0.0, // padRatio,
+          iouThresh: faceIouThresh,
+          padRatio: padRatio,
           setPerfReport: setPerfFaces,
           debugMode: false,
         }}
@@ -326,14 +312,13 @@ export function PrivacyScrubber() {
                 {platesOn && (
                   <ControlPanel
                     blurVal={plateBlur}
-                    onClickChangeHandler={(blurVal) =>
-                      onRedrawHandler(plateRef, setPlateBlur, blurVal)
-                    }
-                    setConfVal={setPlateConf}
-                    confVal={plateConf}
-                    controlName="License Plate Redaction"
                     busy={busy}
+                    iouThresh={plateIouThresh}
+                    controlName="License Plate Redaction"
                     count={1}
+                    // onClickChangeHandler={onRedrawPlateHandler}
+                    setBlurVal={setPlateBlur}
+                    setThreshVal={setPlateIouThresh}
                   />
                 )}
 
@@ -341,14 +326,13 @@ export function PrivacyScrubber() {
                 {facesOn && (
                   <ControlPanel
                     blurVal={faceBlur}
-                    onClickChangeHandler={(blurVal) =>
-                      onRedrawHandler(faceRef, setFaceBlur, blurVal)
-                    }
-                    setConfVal={setFaceConf}
-                    confVal={faceConf}
-                    controlName="Facial Redaction"
                     busy={busy}
+                    iouThresh={faceConf}
+                    controlName="Facial Redaction"
                     count={1}
+                    // onClickChangeHandler={onRedrawFaceHandler}
+                    setBlurVal={setFaceBlur}
+                    setThreshVal={setFaceIouThresh}
                   />
                 )}
               </Card.Body>
