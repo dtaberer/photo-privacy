@@ -14,6 +14,7 @@ import {
   firstValue,
   parseYolo,
   get2D,
+  blurPatchWithMargin,
 } from "./utils/license-plate-blur-utils";
 import { Box } from "@/types/detector-types";
 import { Tensor } from "onnxruntime-web";
@@ -83,10 +84,9 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
       if (!ctx) return;
       // ctx?.drawImage(img, 0, 0);
       
-      const raw = nms(boxes, opts.confThresh);
-      const filtered = filterByMinConf(raw, opts.iouThresh);
-
-      console.log(`${opts.iouThresh} Blurring ${filtered.length} plates...`);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+      const filtered = filterByMinConf(boxes, opts.confThresh);
 
       for (const b of filtered) {
         const sx = Math.max(0, Math.floor(b.x));
@@ -95,22 +95,15 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
         const sh = Math.min(canvas.height - sy, Math.ceil(b.h));
         if (sw > 0 && sh > 0) {
           if (opts.debugMode) drawBox(ctx, { x: sx, y: sy, w: sw, h: sh });
-          blurRegion(
-            ctx,
-            img,
-            { x: sx, y: sy, w: sw, h: sh },
-            opts.blurStrength
-          );
+          blurPatchWithMargin(ctx, img, sx, sy, sw, sh, opts.blurStrength);
         }
       }
-    }, [canvasRef, imgRef, opts.blurStrength, opts.debugMode, opts.iouThresh, opts.confThresh]);
+    }, [canvasRef, imgRef, opts.blurStrength, opts.confThresh, opts.debugMode]);
 
     const run = useCallback(async () => {
-      console.log("LicensePlateBlur.run");
       if (runningRef.current) return;
       runningRef.current = true;
 
-      console.log("Running LicensePlateBlur...");
       resetPerfMetrics();
 
       try {
@@ -149,9 +142,10 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
           padRatio,
           max: 30000,
         });
-
-        boxes = nms(raw, opts.confThresh);
-        applyBluring(); // blur *now* using the same array
+        const pre = filterByMinConf(raw, opts.confThresh);
+      
+        boxes = nms(pre, opts.iouThresh);
+        applyBluring();
 
         // const t3 = performance.now();
         // setPerfs({
@@ -168,13 +162,21 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
         runningRef.current = false;
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [imgRef, canvasRef, applyBluring, opts.iouThresh, opts.confThresh, opts.blurStrength, opts.debugMode]);
+    }, [imgRef, canvasRef, opts.modelUrl, opts.modelSize, opts.confThresh, opts.iouThresh, opts.padRatio]);
 
     const redraw = useCallback(async () => {
       applyBluring();
     }, [applyBluring, opts.iouThresh, opts.confThresh, opts.blurStrength, opts.debugMode]);
 
-    useImperativeHandle(ref, () => ({ run, redraw }), [run, redraw]);
+    useImperativeHandle(
+    ref,
+  () => ({
+    run,
+    redraw,
+    getDetections: () => boxes.slice(),   // <-- add this
+  }),
+  [run, redraw]
+);
 
     const [perfPlates, setPerfPlates] = useState<DetectTimings>({
       preprocess: 0,

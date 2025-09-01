@@ -7,14 +7,14 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
     blurVal,
     setBlurVal,
     setThreshVal,
-    iouThresh,
+    confVal,
     controlName,
     busy,
   } = props;
 
   const blurId = useId();
   const confId = useId();
-  const uiConf = Math.round((iouThresh ?? 0) * 100);
+  const uiConf = Math.round((confVal ?? 0) * 100);
 
   // const handleConfChange = useCallback(
   //   async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,7 +42,7 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
 
           <Form.Range
             min={0}
-            max={100}
+            max={200}
             step={1}
             value={blurVal}
             onChange={async (e) => {
@@ -66,17 +66,17 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
             className="mb-0 small text-nowrap"
             style={{ minWidth: 90 }}
           >
-            Sensitivity
+            Filter
           </Form.Label>
 
           <Form.Range
             id={confId}
-            aria-label={`${controlName} Sensitivity`}
+            aria-label={`${controlName} Filter`}
             className="flex-grow-1"
             min={0.0}
             max={1}
             step={0.001}
-            value={iouThresh}
+            value={confVal}
             onChange={(e) => {
               const val = Number(e.currentTarget.value);
               setThreshVal(val);

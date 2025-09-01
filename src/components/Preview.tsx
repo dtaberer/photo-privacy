@@ -100,20 +100,23 @@ const Preview: React.FC<PreviewProps> = ({
             }
             className="w-100 h-100 object-fit-cover"
             crossOrigin="anonymous"
-            onLoad={(e) =>
-              setImgSize({
-                w: e.currentTarget.naturalWidth,
-                h: e.currentTarget.naturalHeight,
-              })
-            }
+            onLoad={(e) => {
+              const w = e.currentTarget.naturalWidth;
+              const h = e.currentTarget.naturalHeight;
+              setImgSize({ w, h });
+
+              // Lock the overlay canvas to the image's intrinsic pixel size
+              const c = canvasRef.current as HTMLCanvasElement | null;
+              if (c) {
+                c.width = w;
+                c.height = h;
+              }
+            }}
           />
           {busy && (
-            <Spinner
-              animation="border"
-              size="sm"
-              role="status"
-              aria-label="processing"
-            />
+            <div className="position-absolute top-50 start-50 translate-middle">
+              <Spinner animation="border" role="status" aria-label="processing" />
+            </div>
           )}
           <canvas
             ref={canvasRef}

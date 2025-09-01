@@ -31,5 +31,6 @@ declare global {
   export type BlurHandler = {
     run: () => Promise<void>;
     redraw: () => void;
+    getDetections?: () => Box[];
   };
 }

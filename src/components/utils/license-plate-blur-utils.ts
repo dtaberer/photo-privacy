@@ -290,3 +290,86 @@ export function drawBox(
   );
   ctx.restore();
 }
+
+export type NatBox = { x: number; y: number; w: number; h: number };
+
+/** Map a natural-image-space box to the Canvas display space (letterboxed contain). */
+export function mapBoxToCanvas(
+  b: NatBox,
+  naturalW: number,
+  naturalH: number,
+  canvasW: number,
+  canvasH: number
+) {
+  const canvasRatio = canvasW / canvasH;
+  const imgRatio = naturalW / naturalH;
+
+  let drawW: number, drawH: number, offsetX = 0, offsetY = 0, scale: number;
+
+  if (imgRatio > canvasRatio) {
+    // image is wider: full width, centered vertically
+    drawW = canvasW;
+    drawH = canvasW / imgRatio;
+    offsetY = (canvasH - drawH) / 2;
+    scale = drawW / naturalW;
+  } else {
+    // image is taller: full height, centered horizontally
+    drawH = canvasH;
+    drawW = canvasH * imgRatio;
+    offsetX = (canvasW - drawW) / 2;
+    scale = drawH / naturalH;
+  }
+
+  return {
+    x: offsetX + b.x * scale,
+    y: offsetY + b.y * scale,
+    w: b.w * scale,
+    h: b.h * scale,
+  };
+}
+
+export function blurPatchWithMargin(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number, y: number, w: number, h: number,
+  strength0to100: number
+) {
+  // map slider 0..100 → blur radius ~1..40px (tweak 40 if you want more)
+  const px = Math.max(1, Math.round((strength0to100 / 100) * 40));
+  const m = Math.ceil(px * 2); // margin to avoid edge transparency
+
+  // expanded source rect (clamped to image bounds)
+  const sx = Math.max(0, x - m);
+  const sy = Math.max(0, y - m);
+  const sw = Math.min(img.naturalWidth - sx, w + 2 * m);
+  const sh = Math.min(img.naturalHeight - sy, h + 2 * m);
+
+  const off = document.createElement("canvas");
+  off.width = sw;
+  off.height = sh;
+  const octx = off.getContext("2d");
+  if (!octx) return;
+
+  octx.filter = `blur(${px}px)`;
+  octx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  octx.filter = "none";
+
+  // draw back, clipped to the original box
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.drawImage(off, sx, sy); // place in the same coords
+  ctx.restore();
+}
+
+
+export function mapBoxesToCanvas(
+  boxes: NatBox[],
+  naturalW: number,
+  naturalH: number,
+  canvasW: number,
+  canvasH: number
+) {
+  return boxes.map(b => mapBoxToCanvas(b, naturalW, naturalH, canvasW, canvasH));
+}

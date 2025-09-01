@@ -24,8 +24,7 @@ export function Header() {
       <h1 className="display-5 fw-bold mt-2 mb-1">Photo Privacy Scrubber</h1>
       <div>
         <span className="pps-subtitle">
-          Blur faces • Obscure License Plates • Remove Embedded Metadata • No
-          Uploads
+          Redact Faces • Redact Plates • Strip EXIF • No Data Leaves Your Browse
         </span>
       </div>
     </div>
