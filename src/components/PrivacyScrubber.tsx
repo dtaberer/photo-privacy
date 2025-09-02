@@ -25,15 +25,15 @@ const PERFORMANCE_REPORT_DEFAULT = {
   },
 };
 
-const FACE_BLUR_DFLT = 12;
-const FACE_CONF_DFLT = 0.06;
+const FACE_BLUR_DFLT = 40;
+const FACE_CONF_DFLT = 0.05;
 const FACE_DETECTION_DFLT = true;
 const IOU_THRESH_DFLT = 0.1;
 const LICENSE_PLATE_DETECTON_DFLT = true;
 const MODEL_SIZE_DFLT = 800;
 const MODEL_URL_DFLT = "/models/license-plate-finetune-v1n.onnx";
 const PAD_RATIO_DFLT = 0.01;
-const PLATE_BLUR_DFLT = 14;
+const PLATE_BLUR_DFLT = 40;
 const PLATE_CONF_DFLT = 0.02;
 const STATUS_DFLT = "Ready";
 
@@ -44,8 +44,8 @@ export function PrivacyScrubber() {
     LICENSE_PLATE_DETECTON_DFLT
   );
 
-  const [plateFeather, setPlateFeather] = useState<number>(6);
-  const [faceFeather, setFaceFeather] = useState<number>(6);
+  const [plateFeather, setPlateFeather] = useState<number>(1);
+  const [faceFeather, setFaceFeather] = useState<number>(1);
 
   const [facesOn, setFacesOn] = useState<boolean>(FACE_DETECTION_DFLT);
   const [plateBlur, setPlateBlur] = useState<number>(PLATE_BLUR_DFLT);

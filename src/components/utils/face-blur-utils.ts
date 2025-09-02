@@ -114,7 +114,7 @@ export function blurPatchWithFeather(
   ctx.drawImage(off, sx, sy);
 }
 
-export function filterByScore(arr: FaceBox[], min: number) {
+export function filterByScore(arr: FaceBox[], min: number): FaceBox[] {
   return arr.filter((f) => (typeof f.score === "number" ? f.score : 1) >= min);
 }
 
@@ -140,4 +140,14 @@ export function cssToCanvasRect(
     w: r.width * scaleX,
     h: r.height * scaleY,
   };
+}
+
+export function grow(r: FaceBox, pad: number, W: number, H: number): FaceBox {
+  const dx = r.w * pad,
+    dy = r.h * pad;
+  const x = Math.max(0, r.x - dx);
+  const y = Math.max(0, r.y - dy);
+  const w = Math.min(W - x, r.w + 2 * dx);
+  const h = Math.min(H - y, r.h + 2 * dy);
+  return { ...r, x, y, w, h };
 }

@@ -13,9 +13,9 @@ import { FaceApiNS } from "@/types/face-blur-types";
 import { drawBox } from "./utils/license-plate-blur-utils";
 import {
   blurPatchWithFeather,
-  filterByScore,
   cssToCanvasRect,
   FaceBox,
+  grow,
 } from "./utils/face-blur-utils";
 
 interface FaceBlurProps {
@@ -76,9 +76,12 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
             });
           });
 
-          for (const r of faces) {
+          const conf = Math.min(0.99, Math.max(0.01, opts.confThresh ?? 0.5));
+          const pad = Math.min(0.5, Math.max(0, opts.padRatio ?? 0.1));
+          for (const base of faces) {
+            if ((base.score ?? 1) < conf) continue;
+            const r = grow(base, pad, canvas.width, canvas.height);
             if (opts.debugMode) drawBox(ctx, r);
-            // compose with plate blur: blur from the *current canvas*
             blurPatchWithFeather(
               ctx,
               img,
@@ -138,13 +141,20 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         );
 
       const t1 = performance.now();
+
+      const conf = Math.min(0.99, Math.max(0.01, opts.confThresh ?? 0.5));
+      const size = Math.max(
+        128,
+        Math.min(1024, Math.round((opts.modelSize ?? 544) / 32) * 32)
+      );
       const detections = await faceapi.detectAllFaces(
         img,
         new faceapi.TinyFaceDetectorOptions({
-          scoreThreshold: opts.confThresh ?? 0.6,
-          inputSize: 512,
+          scoreThreshold: conf,
+          inputSize: size,
         })
       );
+
       const t2 = performance.now();
 
       // face-api boxes are already in image px → fits your canvas (which you set to natural size)
@@ -157,8 +167,10 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       }));
 
       // Optional extra filter (in case you set a very low scoreThreshold)
-      const filtered = filterByScore(faces, opts.confThresh ?? 0);
-      for (const r of filtered) {
+      const pad = Math.min(0.5, Math.max(0, opts.padRatio ?? 0.1));
+      for (const base of faces) {
+        if ((base.score ?? 1) < conf) continue;
+        const r = grow(base, pad, canvas.width, canvas.height);
         if (opts.debugMode) drawBox(ctx, r);
         blurPatchWithFeather(
           ctx,
@@ -174,7 +186,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
 
       const t3 = performance.now();
       opts.setPerfReport({
-        count: filtered.length,
+        count: faces.length,
         timings: {
           preprocess: t1 - t0,
           run: t2 - t1,
@@ -201,10 +213,12 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       if (!ctx) return;
 
       const blur = Math.max(1, Math.round(blurStrength));
-      const filtered = filterByScore(faces, opts.confThresh ?? 0);
-
+      const conf = Math.min(0.99, Math.max(0.01, opts.confThresh ?? 0.5));
+      const pad = Math.min(0.5, Math.max(0, opts.padRatio ?? 0.1));
       // DO NOT clear the canvas here—plates already drew first
-      for (const r of filtered) {
+      for (const base of faces) {
+        if ((base.score ?? 1) < conf) continue;
+        const r = grow(base, pad, canvas.width, canvas.height);
         if (opts.debugMode) drawBox(ctx, r);
         blurPatchWithFeather(
           ctx,
@@ -224,6 +238,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       opts.confThresh,
       opts.debugMode,
       opts.featherPx,
+      opts.padRatio,
     ]);
 
     useImperativeHandle(ref, () => ({ run, redraw }), [run, redraw]);

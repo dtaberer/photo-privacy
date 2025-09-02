@@ -30,7 +30,7 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
 
           <Form.Range
             min={0}
-            max={200}
+            max={80}
             step={1}
             value={blurVal}
             onChange={async (e) => {
@@ -57,7 +57,7 @@ export function ControlPanel(props: ControlPanelProps): JSX.Element {
             id={confId}
             aria-label={`${controlName} Filter`}
             className="flex-grow-1"
-            min={0.0}
+            min={0.02}
             max={1}
             step={0.001}
             value={confVal}
