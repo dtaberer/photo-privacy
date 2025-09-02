@@ -12,11 +12,7 @@ import { FaceBlur } from "./FaceBlur";
 import ControlPanel from "./ControlPanel";
 import Preview from "./Preview";
 import { FileLoader } from "./FileLoader";
-import PlateRedactor, {
-  type PlateRedactorHandle,
-  type NatBox
-} from "./PlateRedactor";
-
+import PlateRedactor, { type PlateRedactorHandle } from "./PlateRedactor";
 
 const PERFORMANCE_REPORT_DEFAULT = {
   count: 0,
@@ -32,7 +28,7 @@ const PERFORMANCE_REPORT_DEFAULT = {
 const FACE_BLUR_DFLT = 12;
 const FACE_CONF_DFLT = 0.06;
 const FACE_DETECTION_DFLT = true;
-const IOU_THRESH_DFLT = 0.10;
+const IOU_THRESH_DFLT = 0.1;
 const LICENSE_PLATE_DETECTON_DFLT = true;
 const MODEL_SIZE_DFLT = 800;
 const MODEL_URL_DFLT = "/models/license-plate-finetune-v1n.onnx";
@@ -53,9 +49,9 @@ export function PrivacyScrubber() {
   const [plateConf, setPlateConf] = useState<number>(PLATE_CONF_DFLT);
   const [faceBlur, setFaceBlur] = useState<number>(FACE_BLUR_DFLT);
   const [faceConf, setFaceConf] = useState<number>(FACE_CONF_DFLT);
-  const [faceIouThresh, setFaceIouThresh] = useState<number>(IOU_THRESH_DFLT);
-  const [plateIouThresh, setPlateIouThresh] = useState<number>(IOU_THRESH_DFLT);
-  const [padRatio, setPadRatio] = useState<number>(PAD_RATIO_DFLT);
+  const faceIouThresh = IOU_THRESH_DFLT;
+  const plateIouThresh = IOU_THRESH_DFLT;
+  const [padRatio] = useState<number>(PAD_RATIO_DFLT);
   const [status, setStatus] = useState(STATUS_DFLT);
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -78,35 +74,40 @@ export function PrivacyScrubber() {
   });
 
   const [canvasVisible, setCanvasVisible] = useState(false);
-  const [modelSize, setModelSize] = useState(MODEL_SIZE_DFLT);
+  const [modelSize] = useState(MODEL_SIZE_DFLT);
   const [imgSize, setImgSize] = useState<{ w: number; h: number }>({
     w: 0,
     h: 0,
   });
 
-  type PlateBlurHandle = BlurHandler & {
-    getDetections: () => Array<{ x: number; y: number; w: number; h: number; conf?: number }>;
-  };
   const imgRef = useRef<HTMLImageElement>(null!);
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const faceRef = useRef<BlurHandler>(null!);
   const plateRef = useRef<BlurHandler>(null!);
   const plateRedactorRef = useRef<PlateRedactorHandle>(null);
- 
+
   useEffect(() => {
-    if (!platesOn) return;
-    plateRef.current?.redraw();
-  }, [platesOn, plateBlur, plateConf, plateIouThresh]); // ← if your slider controls confidence
+    // Only when an image is loaded
+    if (!previewUrl) return;
+    const cvs = canvasRef.current;
+    const ctx = cvs?.getContext("2d");
+    if (!cvs || !ctx) return;
 
- useEffect(() => {
-  if (!platesOn) return;
-  const id = requestAnimationFrame(() => {
-    plateRef.current?.redraw();
+    // Start clean, then redraw plates → faces (faces composes on top)
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    if (platesOn) plateRef.current?.redraw();
+    if (facesOn) faceRef.current?.redraw();
     setCanvasVisible(true);
-  });
-
-  return () => cancelAnimationFrame(id);
-}, [platesOn, plateBlur, plateIouThresh, setCanvasVisible]);
+  }, [
+    previewUrl,
+    platesOn,
+    facesOn,
+    plateBlur,
+    plateConf,
+    plateIouThresh,
+    faceBlur,
+    faceConf,
+  ]);
 
   const onRefreshHandler = useCallback(async () => {
     setBusy(true);
@@ -121,19 +122,13 @@ export function PrivacyScrubber() {
     console.log("Running detection…");
 
     try {
-      // Prep canvas
-      // cvs.width = img.naturalWidth;
-      // cvs.height = img.naturalHeight;
-      const ctx = cvs.getContext("2d");
-      ctx?.clearRect(0, 0, cvs.width, cvs.height);
-      // ctx?.drawImage(img, 0, 0);
       await plateRef.current?.run();
-      // Prefill the manual mask editor with detected plates
-      void plateRedactorRef.current?.prefillFromDetections(plateRef.current?.getDetections?.() ?? []);
-
-      plateRef.current?.redraw();
-      await faceRef.current?.run();
-      faceRef.current?.redraw();
+      void plateRedactorRef.current?.prefillFromDetections(
+        plateRef.current?.getDetections?.() ?? []
+      );
+      if (facesOn) {
+        await faceRef.current?.run();
+      }
     } catch (e) {
       console.log(
         `Detection error: ${e instanceof Error ? e.message : String(e)}`
@@ -143,7 +138,7 @@ export function PrivacyScrubber() {
       setBusy(false);
       console.log("Done.");
     }
-  }, []);
+  }, [facesOn]);
 
   const badgeList = useMemo(
     () => ["SIMD", "1 Thread", "On-Device"] as const,
@@ -155,8 +150,6 @@ export function PrivacyScrubber() {
     const ctx = cvs?.getContext("2d");
     if (cvs && ctx) {
       ctx.clearRect(0, 0, cvs.width, cvs.height);
-      // cvs.width = 0;
-      // cvs.height = 0;
     }
   }, []);
 
@@ -176,9 +169,9 @@ export function PrivacyScrubber() {
   );
 
   const onDownloadHandler = useCallback(() => {
-    const base = imgRef.current;        // <img> from <Preview>
-    const overlay = canvasRef.current;  // overlay <canvas> from LicensePlateBlur
-    
+    const base = imgRef.current; // <img> from <Preview>
+    const overlay = canvasRef.current; // overlay <canvas> from LicensePlateBlur
+
     if (!base || !overlay) return;
 
     // Use the overlay’s internal size (device pixels) so the two layers line up
@@ -191,28 +184,21 @@ export function PrivacyScrubber() {
     const ctx = out.getContext("2d");
     if (!ctx) return;
 
-    // 1) paint the base photo
     ctx.drawImage(base, 0, 0, W, H);
-
-    // 2) paint the blur overlay on top
     ctx.drawImage(overlay, 0, 0, W, H);
 
-    // filename: "<original>-redacted.<ext>"
-   const name = origName ?? "image.jpg";
-   const dot = name.lastIndexOf(".");
-   const baseName = dot >= 0 ? name.slice(0, dot) : name;
-   const ext = (dot >= 0 ? name.slice(dot + 1) : "jpg").toLowerCase();
-   const safeExt = ext === "png" ? "png" : ext === "jpeg" || ext === "jpg" ? "jpg" : "jpg";
-   const mime = safeExt === "png" ? "image/png" : "image/jpeg";
-   const filename = `${baseName}-redacted.${safeExt}`;
+    const name = origName ?? "image.jpg";
+    const dot = name.lastIndexOf(".");
+    const baseName = dot >= 0 ? name.slice(0, dot) : name;
+    const ext = (dot >= 0 ? name.slice(dot + 1) : "jpg").toLowerCase();
+    const safeExt =
+      ext === "png" ? "png" : ext === "jpeg" || ext === "jpg" ? "jpg" : "jpg";
+    const mime = safeExt === "png" ? "image/png" : "image/jpeg";
+    const filename = `${baseName}-redacted.${safeExt}`;
 
-    // 3) download the composite
-    // if your util takes a canvas element:
     downloadCanvas(out, filename, mime, 0.92);
   }, [origName]);
 
-
-  // paste-to-upload
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const items = Array.from(e.clipboardData?.items ?? []);
@@ -225,7 +211,6 @@ export function PrivacyScrubber() {
   }, [onFilePickHandler]);
 
   useEffect(() => {
-    console.log("PrivacyScrubber line 89");
     return () => {
       if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
     };
@@ -286,7 +271,7 @@ export function PrivacyScrubber() {
           <PlateRedactor
             ref={plateRedactorRef}
             imageURL={previewUrl!}
-            blurVal={plateBlur}    // <-- uses your existing ControlPanel blur value
+            blurVal={plateBlur}
             width={900}
             height={600}
           />

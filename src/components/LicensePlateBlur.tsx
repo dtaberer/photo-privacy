@@ -26,8 +26,11 @@ let boxes: Box[] = [];
 
 type WithConf = { conf?: number | string | null };
 
-export function filterByMinConf<T extends WithConf>(arr: T[], min: number): T[] {
-  return arr.filter(item => {
+export function filterByMinConf<T extends WithConf>(
+  arr: T[],
+  min: number
+): T[] {
+  return arr.filter((item) => {
     const n =
       typeof item.conf === "number"
         ? item.conf
@@ -83,9 +86,9 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       // ctx?.drawImage(img, 0, 0);
-      
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
       const filtered = filterByMinConf(boxes, opts.confThresh);
 
       for (const b of filtered) {
@@ -142,9 +145,8 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
           padRatio,
           max: 30000,
         });
-        const pre = filterByMinConf(raw, opts.confThresh);
-      
-        boxes = nms(pre, opts.iouThresh);
+        boxes = [];
+        boxes = nms(raw, opts.iouThresh);
         applyBluring();
 
         // const t3 = performance.now();
@@ -162,21 +164,35 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
         runningRef.current = false;
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [imgRef, canvasRef, opts.modelUrl, opts.modelSize, opts.confThresh, opts.iouThresh, opts.padRatio]);
+    }, [
+      imgRef,
+      canvasRef,
+      opts.modelUrl,
+      opts.modelSize,
+      opts.confThresh,
+      opts.iouThresh,
+      opts.padRatio,
+    ]);
 
     const redraw = useCallback(async () => {
       applyBluring();
-    }, [applyBluring, opts.iouThresh, opts.confThresh, opts.blurStrength, opts.debugMode]);
+    }, [
+      applyBluring,
+      opts.iouThresh,
+      opts.confThresh,
+      opts.blurStrength,
+      opts.debugMode,
+    ]);
 
     useImperativeHandle(
-    ref,
-  () => ({
-    run,
-    redraw,
-    getDetections: () => boxes.slice(),   // <-- add this
-  }),
-  [run, redraw]
-);
+      ref,
+      () => ({
+        run,
+        redraw,
+        getDetections: () => boxes.slice(), // <-- add this
+      }),
+      [run, redraw]
+    );
 
     const [perfPlates, setPerfPlates] = useState<DetectTimings>({
       preprocess: 0,

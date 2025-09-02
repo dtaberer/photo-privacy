@@ -1,108 +1,36 @@
-import { FaceApiNS } from "@/types/face-blur-types";
-// import { DetectTimings } from "@/types/global";
-import { drawBox, blurRegion } from "./license-plate-blur-utils";
+export function blurPatchWithMargin(
+  ctx: CanvasRenderingContext2D,
+  srcImg: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  strength0to100: number
+) {
+  const px = Math.max(1, Math.round((strength0to100 / 100) * 40)); // map 0..100 → ~1..40px
+  const m = Math.ceil(px * 2); // margin to avoid edge transparency
 
-export async function runFaceBlurOnCanvas(
-  img: HTMLImageElement,
-  canvas: HTMLCanvasElement,
-  opts: {
-    blurStrength?: number;
-    confThresh?: number;
-    modelsBase?: string;
-    debug?: boolean;
-  }
-): Promise<void> {
-  const t0 = performance.now();
-  const blur = Math.max(1, Math.round(opts.blurStrength ?? 12));
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    perfReport = { count: 0, timings: { preprocess: 0, run: 0, post: 0, total: 0 } };
+  const sx = Math.max(0, Math.floor(x - m));
+  const sy = Math.max(0, Math.floor(y - m));
+  const sw = Math.min(srcImg.naturalWidth - sx, Math.ceil(w + 2 * m));
+  const sh = Math.min(srcImg.naturalHeight - sy, Math.ceil(h + 2 * m));
+  if (sw <= 0 || sh <= 0) return;
 
-  // 1) Try hardware FaceDetector first
-  const FD = window.FaceDetector;
-  if (FD) {
-    try {
-      const det = new FD({ fastMode: true, maxDetectedFaces: 50 });
-      const t1 = performance.now();
-      const faces = await det.detect(img);
-      const t2 = performance.now();
-      for (const f of faces) {
-        const bb = (f.boundingBox ?? f) as DOMRect;
-        const rect = { x: bb.x, y: bb.y, w: bb.width, h: bb.height };
-        if (opts.debug) drawBox(ctx, rect);
-        // Blur from the current canvas so it composes with plate blur
-        blurRegion(ctx, canvas, rect, blur);
-      }
-      const t3 = performance.now();
-      return {
-        count: faces.length ?? 0,
-        timings: {
-          preprocess: t1 - t0,
-          run: t2 - t1,
-          post: t3 - t2,
-          total: t3 - t0,
-        },
-      };
-    } catch {
-      // fall through to JS model
-    }
-  }
+  // blur the expanded patch offscreen
+  const off = document.createElement("canvas");
+  off.width = sw;
+  off.height = sh;
+  const octx = off.getContext("2d");
+  if (!octx) return;
+  octx.filter = `blur(${px}px)`;
+  octx.drawImage(srcImg, sx, sy, sw, sh, 0, 0, sw, sh);
+  octx.filter = "none";
 
-  // 2) Fallback to face-api.js (requires models in /public)
-  let faceapi: FaceApiNS | null = null;
-  try {
-    faceapi = (await import("face-api.js")) as unknown as FaceApiNS;
-  } catch {
-    throw new Error(
-      "Face detection unavailable: FaceDetector API not present and 'face-api.js' not installed."
-    );
-  }
-
-  // Try a few common model base paths
-  const bases: Array<string> = [];
-  if (opts.modelsBase) bases.push(opts.modelsBase);
-  bases.push("/models/face", "/models");
-
-  let loaded = false;
-  for (const base of bases) {
-    try {
-      await faceapi.nets.tinyFaceDetector.loadFromUri(base);
-      loaded = true;
-      break;
-    } catch {
-      // try next base
-    }
-  }
-  if (!loaded) {
-    throw new Error(
-      `TinyFaceDetector model not found under ${bases.join(", ")}`
-    );
-  }
-
-  const t1 = performance.now();
-  const detections = await faceapi.detectAllFaces(
-    img,
-    new faceapi.TinyFaceDetectorOptions({
-      scoreThreshold: opts.confThresh ?? 0.6,
-      inputSize: 416,
-    })
-  );
-  const t2 = performance.now();
-
-  for (const d of detections) {
-    const rect = { x: d.box.x, y: d.box.y, w: d.box.width, h: d.box.height };
-    if (opts.debug) drawBox(ctx, rect);
-    // Blur from the current canvas so it composes with plate blur
-    blurRegion(ctx, canvas, rect, blur);
-  }
-  const t3 = performance.now();
-  return {
-    count: detections.length ?? 0,
-    timings: {
-      preprocess: t1 - t0,
-      run: t2 - t1,
-      post: t3 - t2,
-      total: t3 - t0,
-    },
-  };
+  // paint back, clipped to the original box
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.drawImage(off, sx, sy); // place at the same image coords
+  ctx.restore();
 }

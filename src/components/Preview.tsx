@@ -78,7 +78,7 @@ const Preview: React.FC<PreviewProps> = ({
             <ActionControls
               onClickRefreshHandler={onClickRefreshHandler}
               onClickDownloadHandler={onClickDownloadHandler}
-              busy={busy}
+              busy={busy || !previewUrl}
             />
           </div>
         </Card.Header>

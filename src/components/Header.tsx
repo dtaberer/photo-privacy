@@ -24,7 +24,8 @@ export function Header() {
       <h1 className="display-5 fw-bold mt-2 mb-1">Photo Privacy Scrubber</h1>
       <div>
         <span className="pps-subtitle">
-          Redact Faces • Redact Plates • Strip EXIF • No Data Leaves Your Browse
+          Redact Faces • Redact Plates • Strip EXIF • No Data Leaves Your
+          Browser!
         </span>
       </div>
     </div>
