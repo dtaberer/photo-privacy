@@ -9,12 +9,12 @@ import { ort, createOrtSession, ortForceBasicWasm } from "../ort-setup";
 import {
   letterbox,
   nms,
-  blurRegion,
   drawBox,
   firstValue,
   parseYolo,
   get2D,
-  blurPatchWithMargin,
+  blurPatchWithFeather,
+  filterByMinConf,
 } from "./utils/license-plate-blur-utils";
 import { Box } from "@/types/detector-types";
 import { Tensor } from "onnxruntime-web";
@@ -23,23 +23,6 @@ import Card from "react-bootstrap/esm/Card";
 let plateSession: ort.InferenceSession | null = null;
 let plateInputName = "";
 let boxes: Box[] = [];
-
-type WithConf = { conf?: number | string | null };
-
-export function filterByMinConf<T extends WithConf>(
-  arr: T[],
-  min: number
-): T[] {
-  return arr.filter((item) => {
-    const n =
-      typeof item.conf === "number"
-        ? item.conf
-        : typeof item.conf === "string"
-        ? parseFloat(item.conf)
-        : NaN;
-    return Number.isFinite(n) && n! >= min;
-  });
-}
 
 interface LicensePlateBlurProps {
   imgRef: React.RefObject<HTMLImageElement | null>;
@@ -53,6 +36,7 @@ interface LicensePlateBlurProps {
     setPerfReport: React.Dispatch<React.SetStateAction<PerformanceReport>>;
     modelUrl: string;
     debugMode: boolean;
+    featherPx?: number;
   };
 }
 
@@ -98,10 +82,26 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
         const sh = Math.min(canvas.height - sy, Math.ceil(b.h));
         if (sw > 0 && sh > 0) {
           if (opts.debugMode) drawBox(ctx, { x: sx, y: sy, w: sw, h: sh });
-          blurPatchWithMargin(ctx, img, sx, sy, sw, sh, opts.blurStrength);
+          blurPatchWithFeather(
+            ctx,
+            img,
+            sx,
+            sy,
+            sw,
+            sh,
+            opts.blurStrength,
+            opts.featherPx ?? 0
+          );
         }
       }
-    }, [canvasRef, imgRef, opts.blurStrength, opts.confThresh, opts.debugMode]);
+    }, [
+      canvasRef,
+      imgRef,
+      opts.blurStrength,
+      opts.confThresh,
+      opts.debugMode,
+      opts.featherPx,
+    ]);
 
     const run = useCallback(async () => {
       if (runningRef.current) return;
@@ -176,13 +176,7 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
 
     const redraw = useCallback(async () => {
       applyBluring();
-    }, [
-      applyBluring,
-      opts.iouThresh,
-      opts.confThresh,
-      opts.blurStrength,
-      opts.debugMode,
-    ]);
+    }, [applyBluring]);
 
     useImperativeHandle(
       ref,

@@ -304,7 +304,11 @@ export function mapBoxToCanvas(
   const canvasRatio = canvasW / canvasH;
   const imgRatio = naturalW / naturalH;
 
-  let drawW: number, drawH: number, offsetX = 0, offsetY = 0, scale: number;
+  let drawW: number,
+    drawH: number,
+    offsetX = 0,
+    offsetY = 0,
+    scale: number;
 
   if (imgRatio > canvasRatio) {
     // image is wider: full width, centered vertically
@@ -331,7 +335,10 @@ export function mapBoxToCanvas(
 export function blurPatchWithMargin(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
-  x: number, y: number, w: number, h: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
   strength0to100: number
 ) {
   // map slider 0..100 → blur radius ~1..40px (tweak 40 if you want more)
@@ -363,7 +370,6 @@ export function blurPatchWithMargin(
   ctx.restore();
 }
 
-
 export function mapBoxesToCanvas(
   boxes: NatBox[],
   naturalW: number,
@@ -371,5 +377,103 @@ export function mapBoxesToCanvas(
   canvasW: number,
   canvasH: number
 ) {
-  return boxes.map(b => mapBoxToCanvas(b, naturalW, naturalH, canvasW, canvasH));
+  return boxes.map((b) =>
+    mapBoxToCanvas(b, naturalW, naturalH, canvasW, canvasH)
+  );
+}
+
+export function blurPatchWithFeather(
+  ctx: CanvasRenderingContext2D,
+  srcImg: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  strength0to100: number,
+  featherPx: number
+) {
+  const blurPx = Math.max(1, Math.round((strength0to100 / 100) * 40)); // 0..100 → ~1..40px
+  const m = Math.ceil(blurPx * 2 + Math.max(0, featherPx)); // margin big enough for kernel + feather
+
+  const sx = Math.max(0, Math.floor(x - m));
+  const sy = Math.max(0, Math.floor(y - m));
+  const sw = Math.min(srcImg.naturalWidth - sx, Math.ceil(w + 2 * m));
+  const sh = Math.min(srcImg.naturalHeight - sy, Math.ceil(h + 2 * m));
+  if (sw <= 0 || sh <= 0) return;
+
+  // 1) blurred source patch
+  const off = document.createElement("canvas");
+  off.width = sw;
+  off.height = sh;
+  const octx = off.getContext("2d");
+  if (!octx) return;
+  octx.filter = `blur(${blurPx}px)`;
+  octx.drawImage(srcImg, sx, sy, sw, sh, 0, 0, sw, sh);
+  octx.filter = "none";
+
+  // 2) build soft mask the size of the offscreen
+  if (featherPx > 0) {
+    const mask = document.createElement("canvas");
+    mask.width = sw;
+    mask.height = sh;
+    const mctx = mask.getContext("2d")!;
+    // local rect inside offscreen
+    const rx = Math.max(0, Math.floor(x - sx));
+    const ry = Math.max(0, Math.floor(y - sy));
+    const rw = Math.min(sw, Math.ceil(w));
+    const rh = Math.min(sh, Math.ceil(h));
+    mctx.fillStyle = "#000";
+    mctx.fillRect(0, 0, sw, sh); // start black
+    mctx.fillStyle = "#fff";
+    mctx.fillRect(rx, ry, rw, rh); // white rect where we want the blur
+    mctx.filter = `blur(${featherPx}px)`;
+    const blurredMask = document.createElement("canvas");
+    blurredMask.width = sw;
+    blurredMask.height = sh;
+    const bmctx = blurredMask.getContext("2d")!;
+    bmctx.filter = `blur(${featherPx}px)`;
+    bmctx.drawImage(mask, 0, 0);
+    bmctx.filter = "none";
+
+    // 3) apply mask: keep only soft-rect region
+    octx.globalCompositeOperation = "destination-in";
+    octx.drawImage(blurredMask, 0, 0);
+    octx.globalCompositeOperation = "source-over";
+  } else {
+    // no feather → keep a hard rect
+    octx.globalCompositeOperation = "destination-in";
+    const hard = document.createElement("canvas");
+    hard.width = sw;
+    hard.height = sh;
+    const hctx = hard.getContext("2d")!;
+    hctx.fillStyle = "#fff";
+    hctx.fillRect(
+      Math.max(0, Math.floor(x - sx)),
+      Math.max(0, Math.floor(y - sy)),
+      Math.min(sw, Math.ceil(w)),
+      Math.min(sh, Math.ceil(h))
+    );
+    octx.drawImage(hard, 0, 0);
+    octx.globalCompositeOperation = "source-over";
+  }
+
+  // 4) paint result back in image coordinates
+  ctx.drawImage(off, sx, sy);
+}
+
+type WithConf = { conf?: number | string | null };
+
+export function filterByMinConf<T extends WithConf>(
+  arr: T[],
+  min: number
+): T[] {
+  return arr.filter((item) => {
+    const n =
+      typeof item.conf === "number"
+        ? item.conf
+        : typeof item.conf === "string"
+        ? parseFloat(item.conf)
+        : NaN;
+    return Number.isFinite(n) && n! >= min;
+  });
 }

@@ -11,7 +11,12 @@ import React, {
 
 import { FaceApiNS } from "@/types/face-blur-types";
 import { drawBox } from "./utils/license-plate-blur-utils";
-import { blurPatchWithMargin } from "./utils/face-blur-utils";
+import {
+  blurPatchWithFeather,
+  filterByScore,
+  cssToCanvasRect,
+  FaceBox,
+} from "./utils/face-blur-utils";
 
 interface FaceBlurProps {
   imgRef: RefObject<HTMLImageElement>;
@@ -25,31 +30,11 @@ interface FaceBlurProps {
     setPerfReport: Dispatch<SetStateAction<PerformanceReport>>;
     modelsBase?: string | null;
     debugMode?: boolean;
+    featherPx?: number;
   };
 }
 
-type FaceBox = { x: number; y: number; w: number; h: number; score?: number };
 let faces: FaceBox[] = [];
-
-function filterByScore(arr: FaceBox[], min: number) {
-  return arr.filter((f) => (typeof f.score === "number" ? f.score : 1) >= min);
-}
-
-function cssToCanvasRect(
-  img: HTMLImageElement,
-  canvas: HTMLCanvasElement,
-  r: { x: number; y: number; width: number; height: number }
-): FaceBox {
-  // FaceDetector reports CSS px; canvas draws in *internal* px
-  const scaleX = canvas.width / img.clientWidth;
-  const scaleY = canvas.height / img.clientHeight;
-  return {
-    x: r.x * scaleX,
-    y: r.y * scaleY,
-    w: r.width * scaleX,
-    h: r.height * scaleY,
-  };
-}
 
 export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
   ({ imgRef, canvasRef, opts }, ref) => {
@@ -94,7 +79,16 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
           for (const r of faces) {
             if (opts.debugMode) drawBox(ctx, r);
             // compose with plate blur: blur from the *current canvas*
-            blurPatchWithMargin(ctx, img, r.x, r.y, r.w, r.h, blur);
+            blurPatchWithFeather(
+              ctx,
+              img,
+              r.x,
+              r.y,
+              r.w,
+              r.h,
+              blur,
+              opts.featherPx ?? 0
+            );
           }
 
           const t3 = performance.now();
@@ -166,7 +160,16 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const filtered = filterByScore(faces, opts.confThresh ?? 0);
       for (const r of filtered) {
         if (opts.debugMode) drawBox(ctx, r);
-        blurPatchWithMargin(ctx, img, r.x, r.y, r.w, r.h, blur);
+        blurPatchWithFeather(
+          ctx,
+          img,
+          r.x,
+          r.y,
+          r.w,
+          r.h,
+          blur,
+          opts.featherPx ?? 0
+        );
       }
 
       const t3 = performance.now();
@@ -180,7 +183,15 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         },
         total: t3 - t0,
       });
-    }, [blurStrength, canvasRef, imgRef, opts]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      blurStrength,
+      canvasRef,
+      imgRef,
+      opts.confThresh,
+      opts.debugMode,
+      opts.featherPx,
+    ]);
 
     const redraw = useCallback(() => {
       const img = imgRef.current;
@@ -195,9 +206,25 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       // DO NOT clear the canvas here—plates already drew first
       for (const r of filtered) {
         if (opts.debugMode) drawBox(ctx, r);
-        blurPatchWithMargin(ctx, img, r.x, r.y, r.w, r.h, blur);
+        blurPatchWithFeather(
+          ctx,
+          img,
+          r.x,
+          r.y,
+          r.w,
+          r.h,
+          blur,
+          opts.featherPx ?? 0
+        );
       }
-    }, [blurStrength, canvasRef, imgRef, opts.confThresh, opts.debugMode]);
+    }, [
+      blurStrength,
+      canvasRef,
+      imgRef,
+      opts.confThresh,
+      opts.debugMode,
+      opts.featherPx,
+    ]);
 
     useImperativeHandle(ref, () => ({ run, redraw }), [run, redraw]);
 

@@ -44,6 +44,9 @@ export function PrivacyScrubber() {
     LICENSE_PLATE_DETECTON_DFLT
   );
 
+  const [plateFeather, setPlateFeather] = useState<number>(6);
+  const [faceFeather, setFaceFeather] = useState<number>(6);
+
   const [facesOn, setFacesOn] = useState<boolean>(FACE_DETECTION_DFLT);
   const [plateBlur, setPlateBlur] = useState<number>(PLATE_BLUR_DFLT);
   const [plateConf, setPlateConf] = useState<number>(PLATE_CONF_DFLT);
@@ -105,8 +108,10 @@ export function PrivacyScrubber() {
     plateBlur,
     plateConf,
     plateIouThresh,
+    plateFeather,
     faceBlur,
     faceConf,
+    faceFeather,
   ]);
 
   const onRefreshHandler = useCallback(async () => {
@@ -234,6 +239,7 @@ export function PrivacyScrubber() {
           setPerfReport: setPerfPlates,
           modelUrl: modelUrl,
           debugMode: false,
+          featherPx: plateFeather,
         }}
       />
       <FaceBlur
@@ -248,6 +254,7 @@ export function PrivacyScrubber() {
           padRatio: padRatio,
           setPerfReport: setPerfFaces,
           debugMode: false,
+          featherPx: faceFeather,
         }}
       />
       <Row className="g-3">
@@ -336,6 +343,8 @@ export function PrivacyScrubber() {
                     count={1}
                     setBlurVal={setPlateBlur}
                     setThreshVal={setPlateConf}
+                    featherVal={plateFeather}
+                    setFeatherVal={setPlateFeather}
                   />
                 )}
 
@@ -349,6 +358,8 @@ export function PrivacyScrubber() {
                     count={1}
                     setBlurVal={setFaceBlur}
                     setThreshVal={setFaceConf}
+                    featherVal={faceFeather}
+                    setFeatherVal={setFaceFeather}
                   />
                 )}
               </Card.Body>
