@@ -44,8 +44,8 @@ export function PrivacyScrubber() {
     LICENSE_PLATE_DETECTON_DFLT
   );
 
-  const [plateFeather, setPlateFeather] = useState<number>(1);
-  const [faceFeather, setFaceFeather] = useState<number>(1);
+  const [plateFeather, setPlateFeather] = useState<number>(0);
+  const [faceFeather, setFaceFeather] = useState<number>(0);
 
   const [facesOn, setFacesOn] = useState<boolean>(FACE_DETECTION_DFLT);
   const [plateBlur, setPlateBlur] = useState<number>(PLATE_BLUR_DFLT);
@@ -143,8 +143,14 @@ export function PrivacyScrubber() {
         `Detection error: ${e instanceof Error ? e.message : String(e)}`
       );
     } finally {
-      setCanvasVisible(true);
       setBusy(false);
+      setPlateBlur(PLATE_BLUR_DFLT);
+      setFaceBlur(FACE_BLUR_DFLT);
+      setFaceFeather(0);
+      setPlateFeather(0);
+      setCanvasVisible(true);
+      setPlateConf(PLATE_CONF_DFLT);
+      setFaceConf(FACE_CONF_DFLT);
       console.log("Done.");
     }
   }, [facesOn]);

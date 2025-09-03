@@ -77,7 +77,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
             });
           });
 
-          const conf = Math.min(0.99, Math.max(0.01, opts.confThresh ?? 0.5));
+          const conf = Math.min(0.99, Math.max(0.01, 0.05));
           const pad = Math.min(0.5, Math.max(0, opts.padRatio ?? 0.1));
           for (const base of faces) {
             if ((base.score ?? 1) < conf) continue;
@@ -88,8 +88,8 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
             const r = { ...r0, y };
             if (opts.debugMode) drawBox(ctx, r);
             const blurPx = Math.min(96, blurBase);
-            const feather = Math.max(0, opts.featherPx ?? 0);
-            blurPatchWithFeather(ctx, img, r.x, r.y, r.w, r.h, blurPx, feather);
+            // const feather = Math.max(0, 0);
+            blurPatchWithFeather(ctx, img, r.x, r.y, r.w, r.h, blurPx, 0);
           }
 
           const t3 = performance.now();
@@ -140,7 +140,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
 
       const t1 = performance.now();
 
-      const conf = Math.min(0.99, Math.max(0.01, opts.confThresh ?? 0.5));
+      const conf = Math.min(0.99, Math.max(0.01, 0.05));
       const size = Math.max(
         128,
         Math.min(1024, Math.round((opts.modelSize ?? 544) / 32) * 32)
@@ -174,8 +174,8 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         const r = { ...r0, y };
         if (opts.debugMode) drawBox(ctx, r);
         const blurPx = Math.min(96, blurBase);
-        const feather = Math.max(0, opts.featherPx ?? 0);
-        blurPatchWithFeather(ctx, img, r.x, r.y, r.w, r.h, blurPx, feather);
+        // const feather = Math.max(0, opts.featherPx ?? 0);
+        blurPatchWithFeather(ctx, img, r.x, r.y, r.w, r.h, blurPx, 0);
       }
 
       const t3 = performance.now();
