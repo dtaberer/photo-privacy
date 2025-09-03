@@ -39,7 +39,7 @@ let faces: FaceBox[] = [];
 export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
   ({ imgRef, canvasRef, opts }, ref) => {
     //
-    const { blurStrength, modelsBase } = opts;
+    const { blurStrength } = opts;
 
     const run = useCallback(async () => {
       const img = imgRef.current;
@@ -47,7 +47,8 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       if (!img || !canvas) return;
 
       const t0 = performance.now();
-      const blur = Math.max(1, Math.round(blurStrength));
+      // Stronger blur without changing the UI slider scale
+      const blurBase = Math.max(1, Math.round(blurStrength * 2.0));
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
@@ -80,18 +81,15 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
           const pad = Math.min(0.5, Math.max(0, opts.padRatio ?? 0.1));
           for (const base of faces) {
             if ((base.score ?? 1) < conf) continue;
-            const r = grow(base, pad, canvas.width, canvas.height);
+            const r0 = grow(base, pad, canvas.width, canvas.height);
+            // Shift up slightly to cover forehead/hairline
+            const shift = Math.round(r0.h * 0.12);
+            const y = Math.max(0, r0.y - shift);
+            const r = { ...r0, y };
             if (opts.debugMode) drawBox(ctx, r);
-            blurPatchWithFeather(
-              ctx,
-              img,
-              r.x,
-              r.y,
-              r.w,
-              r.h,
-              blur,
-              opts.featherPx ?? 0
-            );
+            const blurPx = Math.min(96, blurBase);
+            const feather = Math.max(0, opts.featherPx ?? 0);
+            blurPatchWithFeather(ctx, img, r.x, r.y, r.w, r.h, blurPx, feather);
           }
 
           const t3 = performance.now();
@@ -170,18 +168,14 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const pad = Math.min(0.5, Math.max(0, opts.padRatio ?? 0.1));
       for (const base of faces) {
         if ((base.score ?? 1) < conf) continue;
-        const r = grow(base, pad, canvas.width, canvas.height);
+        const r0 = grow(base, pad, canvas.width, canvas.height);
+        const shift = Math.round(r0.h * 0.12);
+        const y = Math.max(0, r0.y - shift);
+        const r = { ...r0, y };
         if (opts.debugMode) drawBox(ctx, r);
-        blurPatchWithFeather(
-          ctx,
-          img,
-          r.x,
-          r.y,
-          r.w,
-          r.h,
-          blur,
-          opts.featherPx ?? 0
-        );
+        const blurPx = Math.min(96, blurBase);
+        const feather = Math.max(0, opts.featherPx ?? 0);
+        blurPatchWithFeather(ctx, img, r.x, r.y, r.w, r.h, blurPx, feather);
       }
 
       const t3 = performance.now();
@@ -212,24 +206,20 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const blur = Math.max(1, Math.round(blurStrength));
+      const blurBase = Math.max(1, Math.round(blurStrength * 2.0));
       const conf = Math.min(0.99, Math.max(0.01, opts.confThresh ?? 0.5));
       const pad = Math.min(0.5, Math.max(0, opts.padRatio ?? 0.1));
       // DO NOT clear the canvas here—plates already drew first
       for (const base of faces) {
         if ((base.score ?? 1) < conf) continue;
-        const r = grow(base, pad, canvas.width, canvas.height);
+        const r0 = grow(base, pad, canvas.width, canvas.height);
+        const shift = Math.round(r0.h * 0.12);
+        const y = Math.max(0, r0.y - shift);
+        const r = { ...r0, y };
         if (opts.debugMode) drawBox(ctx, r);
-        blurPatchWithFeather(
-          ctx,
-          img,
-          r.x,
-          r.y,
-          r.w,
-          r.h,
-          blur,
-          opts.featherPx ?? 0
-        );
+        const blurPx = Math.min(96, blurBase);
+        const feather = Math.max(0, opts.featherPx ?? 0);
+        blurPatchWithFeather(ctx, img, r.x, r.y, r.w, r.h, blurPx, feather);
       }
     }, [
       blurStrength,

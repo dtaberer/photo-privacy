@@ -96,11 +96,15 @@ export function PrivacyScrubber() {
     const ctx = cvs?.getContext("2d");
     if (!cvs || !ctx) return;
 
-    // Start clean, then redraw plates → faces (faces composes on top)
-    ctx.clearRect(0, 0, cvs.width, cvs.height);
-    if (platesOn) plateRef.current?.redraw();
-    if (facesOn) faceRef.current?.redraw();
-    setCanvasVisible(true);
+    // Schedule on next paint to keep sliders snappy
+    const id = requestAnimationFrame(() => {
+      // Start clean, then redraw plates → faces (faces composes on top)
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      if (platesOn) plateRef.current?.redraw();
+      if (facesOn) faceRef.current?.redraw();
+      setCanvasVisible(true);
+    });
+    return () => cancelAnimationFrame(id);
   }, [
     previewUrl,
     platesOn,
