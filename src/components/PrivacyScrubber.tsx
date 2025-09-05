@@ -11,7 +11,7 @@ import LicensePlateBlur from "./LicensePlateBlur";
 import FaceBlur from "./FaceBlur";
 import ControlPanel from "./ControlPanel";
 import Preview from "./Preview";
-import demoImage from "../assets/bubble-blower.jpg";
+// import demoImage from "../assets/bubble-blower.jpg";
 import { FileLoader } from "./FileLoader";
 import PlateRedactor, { PlateRedactorHandle } from "./PlateRedactor";
 import {
@@ -65,7 +65,7 @@ export function PrivacyScrubber() {
   const rightPaneRef = useRef<HTMLDivElement>(null);
   const leftHeaderRef = useRef<HTMLDivElement>(null);
   const [initialPreviewHeight, setInitialPreviewHeight] = useState<number>(0);
-  const demoPendingRef = useRef(false);
+  //   const demoPendingRef = useRef(false);
 
   const imgRef = useRef<HTMLImageElement>(null!);
   const canvasRef = useRef<HTMLCanvasElement>(null!);
@@ -100,7 +100,10 @@ export function PrivacyScrubber() {
       window.removeEventListener("resize", calc);
       try {
         ro?.disconnect();
-      } catch {}
+      } catch {
+        // Error handler
+        console.log("ResizeObserver disconnect error");
+      }
     };
   }, []);
 
@@ -217,26 +220,6 @@ export function PrivacyScrubber() {
     downloadCanvas(out, filename, mime, 0.92);
   }, [origName]);
 
-  const onTryDemo = useCallback(() => {
-    setOrigName("demo.jpg");
-    if (previewUrl === demoImage) {
-      // If already showing demo image, just re-run detection
-      void onRefreshHandler();
-      return;
-    }
-    // Otherwise load the demo and refresh after the image loads
-    demoPendingRef.current = true;
-    setCanvasVisible(false);
-    setPreviewUrl(demoImage);
-  }, [onRefreshHandler, previewUrl]);
-
-  const onPreviewImageLoaded = useCallback(() => {
-    if (demoPendingRef.current) {
-      demoPendingRef.current = false;
-      void onRefreshHandler();
-    }
-  }, [onRefreshHandler]);
-
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const items = Array.from(e.clipboardData?.items ?? []);
@@ -298,8 +281,8 @@ export function PrivacyScrubber() {
           busy={busy}
           initialHeight={initialPreviewHeight}
           headerRef={leftHeaderRef}
-          onTryDemo={onTryDemo}
-          onImageLoaded={onPreviewImageLoaded}
+          // onTryDemo={onTryDemo}
+          // onImageLoaded={onPreviewImageLoaded}
         />
         {USE_MANUAL_REDACTOR && previewUrl && (
           <PlateRedactor
