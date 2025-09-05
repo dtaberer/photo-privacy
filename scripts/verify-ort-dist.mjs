@@ -7,7 +7,7 @@ import path from "node:path";
 import process from "node:process";
 
 const root = process.cwd();
-const distOrt = path.join(root, "dist", "ort");
+const distOrt = path.join(root, "public", "ort-runtime");
 
 const MJS_EXPECT = [
   "ort-wasm.min.mjs",
