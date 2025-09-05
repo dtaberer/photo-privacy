@@ -1,0 +1,21 @@
+// src/types/index.d.ts
+// Central ambient typings for browser/3P APIs used by the app.
+// Keep this file under `src/` so it's included by tsconfig.
+
+export {};
+
+declare global {
+  /** Optional browser API: Face Detection (Shape Detection API). */
+  interface Window {
+    FaceDetector?: new (options?: {
+      fastMode?: boolean;
+      maxDetectedFaces?: number;
+    }) => {
+      detect(image: CanvasImageSource): Promise<
+        Array<{
+          boundingBox: DOMRectReadOnly;
+        }>
+      >;
+    };
+  }
+}

@@ -1,36 +1,27 @@
-// src/App.tsx
-import { useEffect, useRef } from "react";
 import { Container } from "react-bootstrap";
-import AIRecognition from "./components/AIRecognition";
+import Header from "./components/Header";
+import PrivacyScrubber from "./components/PrivacyScrubber"; // use your path
 
-export default function App() {
-  const clearMsgTimeoutRef = useRef<number | null>(null);
-  const timeoutRef = clearMsgTimeoutRef.current;
+import { useEffect, useRef } from "react";
+
+export function App() {
+  const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const timeoutId = timeoutRef.current;
     return () => {
-      if (timeoutRef) window.clearTimeout(timeoutRef);
+      if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, [timeoutRef]);
+  }, []);
 
   return (
-    <Container className="py-3">
-      <AIRecognition />
-
-      {/* App-wide style overrides. Why: brand color on active tabs & form labels styling per request. */}
-      <style>{`
-        .pps-tabs .nav-tabs .nav-link.active,
-        .nav-tabs .nav-link.active {
-          color: #072a57;
-          font-weight: 600;
-        }
-        .form-check-label,
-        .form-label {
-          font-weight: 600;
-          font-size: 11pt;
-          color: #2e4f6ccc;
-        }
-      `}</style>
+    <Container fluid>
+      <div className="bg-light min-vh-100 app-root">
+        <Container className="mt-n4 mb-5">
+          <Header />
+          <PrivacyScrubber />
+        </Container>
+      </div>
     </Container>
   );
 }

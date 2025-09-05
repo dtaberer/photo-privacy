@@ -1,0 +1,25 @@
+.state-light {
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  padding: 2px;
+  vertical-align: middle;
+}
+
+.state-light.is-success {
+  background: #22c55e;
+  border: 1px solid #0eed0a00;
+}
+.state-light.is-error {
+  background: #ef4444;
+}
+.state-light.is-busy {
+  background: #e0dd16;
+}
+.state-banner {
+  margin-bottom: 20px;
+  border-radius: 5px;
+  padding-left: 0;
+  color: #6195bb;
+}
