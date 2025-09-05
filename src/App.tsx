@@ -16,12 +16,7 @@ export function App() {
 
   return (
     <Container fluid>
-      <div className="bg-light min-vh-100">
-        {/* Ensure Bootstrap CSS is present in the preview */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        />
+      <div className="bg-light min-vh-100 app-root">
         <Container className="mt-n4 mb-5">
           <Header />
           <PrivacyScrubber />

@@ -20,7 +20,61 @@
 
 .control-inner {
   gap: 8px;
-  min-width: 260px;
+  min-width: 200px;
+  max-width: 100%;
+}
+.control-row {
+  display: grid;
+  grid-template-columns: 140px 1fr auto; /* fixed label width to align sliders */
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+.control-row label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.control-slider {
+  min-width: 0;
+}
+.control-slider input[type="range"].themed-range {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .control-row {
+    grid-template-columns: 1fr;
+  }
+  .control-row .value-badge {
+    justify-self: end;
+    margin-top: 6px;
+  }
+}
+
+/* App-wide subtle font scaling */
+.app-root {
+  font-size: 0.95rem;
+}
+
+/* Control panel tone & scale */
+.control-panel-card {
+  font-size: 0.95rem;
+}
+.control-panel-card label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.control-panel-card .value-badge {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 576px) {
+  .stack-between-sm {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }
 
 .value-label {
@@ -29,12 +83,34 @@
   white-space: nowrap;
 }
 
+.value-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 2px 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-strong);
+  background: var(--surface-2);
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+}
+.value-badge .unit {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 .file-drop {
   cursor: pointer;
   min-height: 140px;
 }
 
 .pps-hero {
+  position: relative;
+  overflow: hidden;
   border-radius: 8px;
   background-size: cover;
   background-position: center;
@@ -46,6 +122,27 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+.pps-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      80% 60% at 50% 50%,
+      rgba(2, 6, 23, 0.25),
+      rgba(2, 6, 23, 0.55)
+    ),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.15) 0%, rgba(2, 6, 23, 0.6) 100%);
+  z-index: 0;
+}
+.pps-hero > * {
+  position: relative;
+  z-index: 1;
+}
+.pps-subtitle {
+  color: #e2e8f0;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
 .plate-redactor {
@@ -68,15 +165,343 @@
   position: absolute;
   left: 0;
   top: 0;
+  :root {
+    --brand-primary: #2563eb;
+    --brand-primary-rgb: 37, 99, 235;
+    --brand-secondary: #0ea5e9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --text-strong: #0f172a;
+    --text-muted: #64748b;
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --shadow-sm: 0 2px 10px rgba(2, 6, 23, 0.06);
+    --shadow-md: 0 8px 30px rgba(2, 6, 23, 0.08);
+    --font-sans: "Inter", "Source Sans 3", "Segoe UI", Roboto, Helvetica, Arial,
+      sans-serif;
+
+    /* Bootstrap 5 form-range defaults (global fallback) */
+    --bs-form-range-thumb-width: 22px;
+    --bs-form-range-thumb-height: 22px;
+    --bs-form-range-thumb-bg: var(--brand-primary);
+    --bs-form-range-thumb-border: 2px solid #fff;
+    --bs-form-range-thumb-box-shadow: 0 0 0 2px
+        rgba(var(--brand-primary-rgb), 0.45),
+      0 2px 6px rgba(2, 6, 23, 0.2);
+    --bs-form-range-thumb-focus-box-shadow: 0 0 0 0.25rem
+      rgba(var(--brand-primary-rgb), 0.25);
+    --bs-form-range-thumb-disabled-bg: #94a3b8;
+    --bs-form-range-track-height: 8px;
+    --bs-form-range-track-bg: #e2e8f0;
+  }
+
+  /* Typography baseline */
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-strong);
+    font-size: 0.975rem; /* slightly softer overall scale */
+    line-height: 1.55;
+    letter-spacing: 0.01rem;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headings and titles */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .card-title {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    color: var(--text-strong);
+  }
+
+  .text-muted,
+  .small,
+  .form-text {
+    color: var(--text-muted) !important;
+  }
+  .badge {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .btn {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .value-badge,
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Soft chip-style badges for toolbar/meta */
+  .badge-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-strong) !important;
+    background: rgba(var(--brand-primary-rgb), 0.12) !important;
+    border: 1px solid rgba(var(--brand-primary-rgb), 0.45) !important;
+    border-radius: 9999px;
+  }
+  .badge-chip .badge-icon {
+    color: var(--brand-primary);
+    opacity: 1;
+  }
+  .badge-chip:hover {
+    background: rgba(var(--brand-primary-rgb), 0.14);
+    border-color: rgba(var(--brand-primary-rgb), 0.45);
+  }
+
+  /* KPI badge for counts/timings */
+  .badge-kpi {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    min-width: 72px;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong) !important;
+    /* Match the slider track soft slate */
+    background: var(
+      --bs-form-range-track-bg
+    ) !important; /* #e2e8f0 by default */
+    border: 1px solid #cbd5e1 !important; /* slate-300 */
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* KPI badge reflects switch state */
+  /* Exact state match with Bootstrap switches */
+  .badge-kpi--on {
+    background: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
+    color: #fff !important;
+  }
+  .badge-kpi--off {
+    background: #dee2e6 !important; /* switch track-like grey */
+    border-color: #ced4da !important;
+    color: #6c757d !important; /* muted grey text */
+  }
   display: block;
 }
 
 /* Action button hover polish extracted from component */
 .action-btn.btn-outline-secondary:not(:disabled):hover,
 .action-btn.btn-outline-secondary:not(:disabled):focus-visible {
-  color: var(--bs-primary) !important;
-  border-color: var(--bs-primary) !important;
-  background-color: rgba(var(--bs-primary-rgb), 0.06) !important;
+  color: var(--brand-primary) !important;
+  border-color: var(--brand-primary) !important;
+  background-color: rgba(var(--brand-primary-rgb), 0.06) !important;
 }
 .action-btn.btn-outline-secondary:not(:disabled):active {
+}
+
+/* Toolbar and card polish */
+.card.shadow-sm.border-0 {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.card-header.bg-light {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Drop zone */
+.file-drop {
+  border-style: dashed !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.file-drop:hover {
+  background-color: rgba(var(--brand-primary-rgb), 0.04);
+  border-color: rgba(var(--brand-primary-rgb), 0.3) !important;
+  box-shadow: 0 0 0 2px rgba(var(--brand-primary-rgb), 0.05),
+    0 4px 14px rgba(var(--brand-primary-rgb), 0.1);
+}
+/* Subtle glow on the "Drag & Drop" label */
+.file-drop .fw-semibold {
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+.file-drop:hover .fw-semibold {
+  color: var(--brand-primary) !important;
+  text-shadow: 0 0 6px rgba(var(--brand-primary-rgb), 0.25);
+}
+
+/* Range slider theme */
+/* Cross‑browser custom range slider */
+/* Increase specificity to win over Bootstrap's .form-range styles */
+input.form-range.themed-range,
+input[type="range"].themed-range {
+  --thumb: 22px;
+  --track: 8px;
+  --min: 0;
+  --max: 100;
+  --value: 0;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 100%;
+  height: var(--track);
+  background: #e2e8f0 !important; /* fallback */
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  /* prevent Windows High Contrast from overriding colors */
+  forced-color-adjust: none;
+}
+
+/* Ensure Bootstrap 5 form-range variables reflect our design */
+input.form-range.themed-range {
+  --bs-form-range-thumb-width: 22px !important;
+  --bs-form-range-thumb-height: 22px !important;
+  --bs-form-range-thumb-bg: var(--brand-primary) !important;
+  --bs-form-range-thumb-border: 2px solid #fff !important;
+  --bs-form-range-thumb-box-shadow: 0 0 0 2px
+      rgba(var(--brand-primary-rgb), 0.45),
+    0 2px 6px rgba(2, 6, 23, 0.2) !important;
+  --bs-form-range-thumb-focus-box-shadow: 0 0 0 0.25rem
+    rgba(var(--brand-primary-rgb), 0.25) !important;
+  --bs-form-range-track-height: 8px !important;
+  --bs-form-range-track-bg: #e2e8f0 !important;
+}
+input.form-range.themed-range:focus,
+input[type="range"].themed-range:focus {
+  outline: none;
+}
+
+/* WebKit */
+input.form-range.themed-range::-webkit-slider-runnable-track,
+input[type="range"].themed-range::-webkit-slider-runnable-track {
+  height: var(--track);
+  /* progress fill using background-size */
+  background: linear-gradient(var(--brand-primary), var(--brand-primary)) 0 /
+      calc(((var(--value) - var(--min)) * 100%) / (var(--max) - var(--min)))
+      100% no-repeat,
+    #e2e8f0 !important;
+  border-radius: 9999px;
+}
+input.form-range.themed-range::-webkit-slider-thumb,
+input[type="range"].themed-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb);
+  height: var(--thumb);
+  border-radius: 50%;
+  background: var(--brand-primary) !important; /* distinct from track */
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(var(--brand-primary-rgb), 0.45),
+    0 2px 6px rgba(2, 6, 23, 0.2) !important;
+  margin-top: calc((var(--thumb) - var(--track)) / -2);
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out,
+    background-color 0.2s ease;
+}
+input.form-range.themed-range:disabled::-webkit-slider-thumb,
+input[type="range"].themed-range:disabled::-webkit-slider-thumb {
+  background: #94a3b8; /* muted */
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.45) !important;
+}
+input.form-range.themed-range:hover::-webkit-slider-thumb,
+input.form-range.themed-range:active::-webkit-slider-thumb,
+input.form-range.themed-range:focus-visible::-webkit-slider-thumb,
+input[type="range"].themed-range:hover::-webkit-slider-thumb,
+input[type="range"].themed-range:active::-webkit-slider-thumb,
+input[type="range"].themed-range:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), 0.25),
+    0 4px 12px rgba(2, 6, 23, 0.25);
+}
+
+/* Firefox */
+input.form-range.themed-range::-moz-range-track,
+input[type="range"].themed-range::-moz-range-track {
+  height: var(--track);
+  background: #e2e8f0 !important;
+  border-radius: 9999px;
+}
+/* Firefox progress fill */
+input.form-range.themed-range::-moz-range-progress,
+input[type="range"].themed-range::-moz-range-progress {
+  height: var(--track);
+  background: var(--brand-primary) !important;
+  border-radius: 9999px;
+}
+input.form-range.themed-range::-moz-range-thumb,
+input[type="range"].themed-range::-moz-range-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  border-radius: 50%;
+  background: var(--brand-primary) !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(var(--brand-primary-rgb), 0.45),
+    0 2px 6px rgba(2, 6, 23, 0.2) !important;
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out,
+    background-color 0.2s ease;
+}
+input.form-range.themed-range:disabled::-moz-range-thumb,
+input[type="range"].themed-range:disabled::-moz-range-thumb {
+  background: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.45) !important;
+}
+input.form-range.themed-range:hover::-moz-range-thumb,
+input.form-range.themed-range:active::-moz-range-thumb,
+input.form-range.themed-range:focus-visible::-moz-range-thumb,
+input[type="range"].themed-range:hover::-moz-range-thumb,
+input[type="range"].themed-range:active::-moz-range-thumb,
+input[type="range"].themed-range:focus-visible::-moz-range-thumb {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), 0.25),
+    0 4px 12px rgba(2, 6, 23, 0.25);
+}
+
+/* Fade-in utility for canvases */
+.fade-canvas {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+.fade-canvas.is-visible {
+  opacity: 1;
+}
+
+/* Windows High Contrast explicit colors */
+@media (forced-colors: active) {
+  input.form-range.themed-range,
+  input[type="range"].themed-range {
+    background: GrayText !important;
+  }
+  input.form-range.themed-range::-webkit-slider-runnable-track,
+  input[type="range"].themed-range::-webkit-slider-runnable-track {
+    background: GrayText !important;
+  }
+  input.form-range.themed-range::-webkit-slider-thumb,
+  input[type="range"].themed-range::-webkit-slider-thumb {
+    background: Highlight !important;
+    border: 2px solid Canvas !important;
+  }
+  input.form-range.themed-range:disabled::-webkit-slider-thumb,
+  input[type="range"].themed-range:disabled::-webkit-slider-thumb {
+    background: GrayText !important;
+  }
+  input.form-range.themed-range::-moz-range-track,
+  input[type="range"].themed-range::-moz-range-track {
+    background: GrayText !important;
+  }
+  input.form-range.themed-range::-moz-range-thumb,
+  input[type="range"].themed-range::-moz-range-thumb {
+    background: Highlight !important;
+    border: 2px solid Canvas !important;
+  }
+  input.form-range.themed-range:disabled::-moz-range-thumb,
+  input[type="range"].themed-range:disabled::-moz-range-thumb {
+    background: GrayText !important;
+  }
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import { Col, Card, Badge, Spinner } from "react-bootstrap";
-import { FaImage } from "react-icons/fa";
+import { FaImage, FaBolt, FaMicrochip, FaLaptop } from "react-icons/fa";
 import ActionControls from "./ActionControls";
 
 interface PreviewProps {
@@ -32,9 +32,19 @@ const Preview: React.FC<PreviewProps> = ({
 }) => {
   if (!imgRef) return <div>No image to preview.</div>;
 
-  const chipClass =
-    "d-inline-flex align-items-center bg-opacity-10 text-secondary " +
-    "border border-secondary border-opacity-25 rounded-2";
+  const chipClass = "badge-chip";
+
+  const renderChip = (label: string) => {
+    let Icon = FaMicrochip;
+    if (/simd/i.test(label)) Icon = FaBolt;
+    if (/device|on-?device/i.test(label)) Icon = FaLaptop;
+    return (
+      <Badge key={label} className={chipClass}>
+        <Icon size={12} className="badge-icon" />
+        {label}
+      </Badge>
+    );
+  };
 
   return (
     <Col md={8}>
@@ -47,15 +57,7 @@ const Preview: React.FC<PreviewProps> = ({
 
           <div className="d-flex align-items-center gap-2">
             <div className="d-flex align-items-center gap-1">
-              {badgeList.map((b) => (
-                <Badge
-                  key={b}
-                  bg="secondary"
-                  className={`${chipClass} preview-chip`}
-                >
-                  {b}
-                </Badge>
-              ))}
+              {badgeList.map((b) => renderChip(b))}
             </div>
 
             <ActionControls
@@ -98,7 +100,7 @@ const Preview: React.FC<PreviewProps> = ({
               />
             </div>
           )}
-          <canvas ref={canvasRef} className={`position-absolute top-0 start-0 w-100 h-100 ${canvasVisible ? "" : "canvas-hidden"}`} />
+          <canvas ref={canvasRef} className={`position-absolute top-0 start-0 w-100 h-100 fade-canvas ${canvasVisible ? "is-visible" : ""}`} />
         </div>
       </Card>
     </Col>

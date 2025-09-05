@@ -46,7 +46,7 @@ export function FileLoader({
         >
           <div className="text-secondary">
             <FaUpload className="mb-1 me-1 text-secondary" />
-            <div className="fw-semibold">Drag & drop</div>
+            <div className="fw-semibold">Drag & Drop</div>
             <div className="small text-muted">or click to choose a file</div>
           </div>
         </div>

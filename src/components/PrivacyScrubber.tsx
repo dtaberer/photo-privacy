@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
-import { Row, Col, Card, Form, Badge } from "react-bootstrap";
+import { Row, Col, Card, Form } from "react-bootstrap";
 import downloadCanvas from "./utils/download-canvas";
 import LicensePlateBlur from "./LicensePlateBlur";
 import FaceBlur from "./FaceBlur";
@@ -263,7 +263,7 @@ export function PrivacyScrubber() {
                 />
 
                 <div className="px-2 mb-3">
-                  <div className="d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center justify-content-between stack-between-sm">
                     <Form.Check
                       type="switch"
                       id="sw-plates"
@@ -272,17 +272,29 @@ export function PrivacyScrubber() {
                       onChange={(e) => setPlatesOn(e.currentTarget.checked)}
                       {...(busy && { disabled: true })}
                     />
-                    <Badge
-                      bg="secondary"
-                      className="bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"
+                    <span
+                      className="badge badge-kpi"
+                      style={
+                        platesOn
+                          ? ({
+                              backgroundColor: "var(--bs-primary)",
+                              borderColor: "var(--bs-primary)",
+                              color: "#fff",
+                            } as React.CSSProperties)
+                          : ({
+                              backgroundColor: "#dee2e6",
+                              borderColor: "#ced4da",
+                              color: "#6c757d",
+                            } as React.CSSProperties)
+                      }
                     >
                       {`${perfPlates.count} · ${fmtMs(perfPlates.total)}`}
-                    </Badge>
+                    </span>
                   </div>
                 </div>
 
                 <div className="px-2 mb-3">
-                  <div className="d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center justify-content-between stack-between-sm">
                     <Form.Check
                       type="switch"
                       id="sw-faces"
@@ -291,12 +303,24 @@ export function PrivacyScrubber() {
                       onChange={(e) => setFacesOn(e.currentTarget.checked)}
                       {...(busy && { disabled: true })}
                     />
-                    <Badge
-                      bg="secondary"
-                      className="bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"
+                    <span
+                      className="badge badge-kpi"
+                      style={
+                        facesOn
+                          ? ({
+                              backgroundColor: "var(--bs-primary)",
+                              borderColor: "var(--bs-primary)",
+                              color: "#fff",
+                            } as React.CSSProperties)
+                          : ({
+                              backgroundColor: "#dee2e6",
+                              borderColor: "#ced4da",
+                              color: "#6c757d",
+                            } as React.CSSProperties)
+                      }
                     >
                       {`${perfFaces.count} · ${fmtMs(perfFaces.total)}`}
-                    </Badge>
+                    </span>
                   </div>
                 </div>
 
