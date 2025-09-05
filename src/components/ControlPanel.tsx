@@ -60,14 +60,9 @@ function ControlPanel({
               style={{
                 // @ts-expect-error CSS custom props for progress fill
                 "--min": 1,
-                // @ts-expect-error
                 "--max": 80,
-                // @ts-expect-error
                 "--value": blurVal,
-                // keep track styling consistent
-                // @ts-expect-error bootstrap css vars
                 "--bs-form-range-track-height": "8px",
-                // @ts-expect-error bootstrap css vars
                 "--bs-form-range-track-bg": "#e2e8f0",
               }}
             />
@@ -102,13 +97,9 @@ function ControlPanel({
               style={{
                 // @ts-expect-error CSS custom props for progress fill
                 "--min": 0,
-                // @ts-expect-error
                 "--max": 100,
-                // @ts-expect-error
                 "--value": Math.round(confVal * 100),
-                // @ts-expect-error bootstrap css vars
                 "--bs-form-range-track-height": "8px",
-                // @ts-expect-error bootstrap css vars
                 "--bs-form-range-track-bg": "#e2e8f0",
               }}
             />
@@ -143,13 +134,8 @@ function ControlPanel({
               style={{
                 // @ts-expect-error CSS custom props for progress fill
                 "--min": 0,
-                // @ts-expect-error
                 "--max": 100,
-                // @ts-expect-error
                 "--value": featherVal,
-                // @ts-expect-error bootstrap css vars
-                "--bs-form-range-track-height": "8px",
-                // @ts-expect-error bootstrap css vars
                 "--bs-form-range-track-bg": "#e2e8f0",
               }}
             />

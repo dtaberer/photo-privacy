@@ -31,7 +31,6 @@ const Preview: React.FC<PreviewProps> = ({
   badgeList,
   imgRef,
   busy,
-  initialHeight,
   headerRef,
 }) => {
   if (!imgRef) return <div>No image to preview.</div>;
@@ -55,10 +54,12 @@ const Preview: React.FC<PreviewProps> = ({
   return (
     <Col md={8}>
       <Card
-        className={`shadow-sm border-0 preview-card ${busy ? "cursor-busy" : ""} ${
-          initialMode ? "is-initial" : ""
-        }`}
-        style={initialMode ? ({ height: "84%" } as React.CSSProperties) : undefined}
+        className={`shadow-sm border-0 preview-card ${
+          busy ? "cursor-busy" : ""
+        } ${initialMode ? "is-initial" : ""}`}
+        style={
+          initialMode ? ({ height: "84%" } as React.CSSProperties) : undefined
+        }
       >
         <Card.Header
           ref={headerRef as React.RefObject<HTMLDivElement>}
@@ -86,7 +87,9 @@ const Preview: React.FC<PreviewProps> = ({
           className="bg-body-tertiary position-relative preview-stage"
           style={
             imgSize.w && imgSize.h
-              ? ({ aspectRatio: `${imgSize.w} / ${imgSize.h}` } as React.CSSProperties)
+              ? ({
+                  aspectRatio: `${imgSize.w} / ${imgSize.h}`,
+                } as React.CSSProperties)
               : ({ height: "100%" } as React.CSSProperties)
           }
         >
