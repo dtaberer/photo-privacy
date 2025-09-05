@@ -1,0 +1,18 @@
+diff --git a/src/components/Preview.tsx b/src/components/Preview.tsx
+--- a/src/components/Preview.tsx
++++ b/src/components/Preview.tsx
+@@
+-  perfPlates?: PerformanceReport;
+-  perfFaces?: PerformanceReport;
++  perfPlates?: PerformanceReport | null;
++  perfFaces?: PerformanceReport | null;
+ }
+diff --git a/src/types/shims.d.ts b/src/types/shims.d.ts
+new file mode 100644
+--- /dev/null
++++ b/src/types/shims.d.ts
+@@
++// Temporary shims to satisfy TS when packages/types aren't installed.
++// Prefer installing real deps: `npm i idb-keyval` and `npm i -D @types/lru-cache`.
++declare module "idb-keyval";
++declare module "lru-cache";

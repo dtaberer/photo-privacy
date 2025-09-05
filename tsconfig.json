@@ -12,13 +12,13 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["vite/client", "react"],
+    "types": ["vite/client", "react", "jest", "node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
       "@utils": ["./src/components/utils/*"]
     }
   },
-  "include": ["src", "src/types", "vite.config.ts", "vitest.config.ts"],
+  "include": ["src", "src/types"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

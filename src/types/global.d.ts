@@ -22,15 +22,9 @@ declare global {
     total: number | 0;
   };
 
-  export type PerformanceReport = {
-    count: number | 0;
-    total: number | 0;
-    timings: DetectTimings;
-  };
-
-  export type BlurHandler = {
-    run: () => Promise<void>;
-    redraw: () => void;
-    getDetections?: () => Box[];
-  };
+  // Canonical types are defined in src/types/detector-types.ts
+  export type PerformanceReport = import("./detector-types").PerformanceReport;
+  export type BlurHandler = import("./detector-types").BlurHandler<
+    import("./detector-types").Box
+  >;
 }

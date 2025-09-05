@@ -16,6 +16,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
   return (
     <Stack direction="horizontal" gap={2} className="flex-wrap">
       <Button
+        className="action-btn"
         size="sm"
         variant="outline-secondary"
         title="Download scrubbed"
@@ -26,6 +27,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
         <FaDownload />
       </Button>
       <Button
+        className="action-btn"
         size="sm"
         variant="outline-secondary"
         title="Refresh"

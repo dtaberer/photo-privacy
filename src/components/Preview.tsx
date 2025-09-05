@@ -13,8 +13,6 @@ interface PreviewProps {
   title: string;
   previewUrl: string | null;
   badgeList: string[];
-  perfPlates: PerformanceReport;
-  perfFaces: PerformanceReport;
   imgRef?: React.RefObject<HTMLImageElement | null>;
   busy?: boolean;
 }
@@ -29,8 +27,6 @@ const Preview: React.FC<PreviewProps> = ({
   title,
   previewUrl,
   badgeList,
-  perfPlates,
-  perfFaces,
   imgRef,
   busy,
 }) => {
@@ -115,7 +111,11 @@ const Preview: React.FC<PreviewProps> = ({
           />
           {busy && (
             <div className="position-absolute top-50 start-50 translate-middle">
-              <Spinner animation="border" role="status" aria-label="processing" />
+              <Spinner
+                animation="border"
+                role="status"
+                aria-label="processing"
+              />
             </div>
           )}
           <canvas
@@ -124,35 +124,6 @@ const Preview: React.FC<PreviewProps> = ({
             style={{ visibility: canvasVisible ? "visible" : "hidden" }}
           />
         </div>
-
-        {/* Footer with counts + perf */}
-        <Card.Footer className="d-flex flex-column gap-1 small text-secondary">
-          <div className="d-flex justify-content-between">
-            <span>
-              <p>
-                "Detections: plates detections.plates · faces detections.faces"
-              </p>
-            </span>
-          </div>
-          {/* <div className="d-flex flex-wrap gap-3">
-            {perfPlates && (
-              <div>
-                Plates ⏱ pre {perfPlates.timings.preprocess.toFixed(1)}ms · run{" "}
-                {perfPlates.timings.run.toFixed(1)}ms · post{" "}
-                {perfPlates.timings.post.toFixed(1)}ms · total{" "}
-                {perfPlates.total?.toFixed(1)}ms
-              </div>
-            )}
-            {perfFaces && (
-              <span>
-                Faces ⏱ pre {perfFaces.timings.preprocess.toFixed(1)}ms · run{" "}
-                {perfFaces.timings.run.toFixed(1)}ms · post{" "}
-                {perfFaces.timings.post.toFixed(1)}
-                ms · total {perfFaces?.total.toFixed(1)}ms
-              </span>
-            )}
-          </div> */}
-        </Card.Footer>
       </Card>
     </Col>
   );

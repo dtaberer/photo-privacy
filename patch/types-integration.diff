@@ -1,0 +1,170 @@
+--- src/components/Canvas.tsx
++++ src/components/Canvas.tsx
+@@
+ import React, {
+ 
+ useRef,
+ useEffect,
+ useState,
+ useCallback,
+ forwardRef,
+ useImperativeHandle,
+ } from "react";
+-
+-export type Rect = { x: number; y: number; w: number; h: number };
++import type { Rect } from "@/types/detector-types";
+ 
+ type Mode = "paint" | "erase";
+ 
+ export type CanvasHandle = {
+ fillMaskRects: (rects: {x:number;y:number;w:number;h:number}[], color?: string) => void;
+ exportImage: (includeMask?: boolean) => string | null;
+--- src/components/FaceBlur.tsx
++++ src/components/FaceBlur.tsx
+@@
+ // File: src/components/FaceBlur.tsx
+ import {
+   forwardRef,
+   useImperativeHandle,
+   useCallback,
+   RefObject,
+   Dispatch,
+   SetStateAction,
+ } from "react";
+ import { FaceBlurConstants } from "./constants";
++import type { Box as FaceBox, PerformanceReport, BlurHandler } from "@/types/detector-types";
++export type { Box as FaceBox, PerformanceReport, BlurHandler } from "@/types/detector-types";
+ 
+-// ===== Public types (kept stable) =====
+-export interface FaceBox {
+-  x: number;
+-  y: number;
+-  w: number;
+-  h: number;
+-  score?: number;
+-}
+-
+-export interface PerformanceReport {
+-  count: number;
+-  total: number;
+-  timings: { preprocess: number; run: number; post: number; total: number };
+-}
+-
+-export interface BlurHandler {
+-  run: () => Promise<void>;
+-  redraw: () => void | Promise<void>;
+-  getDetections?: () => FaceBox[];
+-  reset?: () => void;
+-}
++// ===== Public types are now centralized in src/types/detector-types.ts =====
+@@
+ export interface FaceApiCompatNS {
+   nets: { tinyFaceDetector: { loadFromUri: (base: string) => Promise<void> } };
+   TinyFaceDetectorOptions: new (opts: {
+     scoreThreshold: number;
+     inputSize: number;
+   }) => unknown;
+   detectAllFaces: (
+     img: HTMLImageElement,
+     opts: unknown
+   ) => Promise<
+     Array<{
+       box: { x: number; y: number; width: number; height: number };
+       score?: number;
+     }>
+   >;
+ }
+--- src/components/LicensePlateBlur.tsx
++++ src/components/LicensePlateBlur.tsx
+@@
+ import React, {
+   forwardRef,
+   useImperativeHandle,
+   useCallback,
+   useRef,
+ } from "react";
+ import { ort, createOrtSession, ortForceBasicWasm } from "../ort-setup";
+ import {
+   letterbox,
+   nms,
+   firstValue,
+   parseYolo,
+   get2D,
+   blurPatchWithFeather,
+   filterByMinConf,
+ } from "./utils/license-plate-blur-utils";
+-import { Box } from "@/types/detector-types";
++import type { Box, PerformanceReport, BlurHandler } from "@/types/detector-types";
+@@
+   };
+ }
+@@
+ export default LicensePlateBlur;
+--- src/components/PlateRedactor.tsx
++++ src/components/PlateRedactor.tsx
+@@
+ import React, {
+   useRef, useEffect, useCallback, useImperativeHandle, forwardRef
+ } from "react";
+ import Canvas, { type CanvasHandle } from "./Canvas";
+-
+-export type NatBox = { x: number; y: number; w: number; h: number };
++import type { Box as NatBox } from "@/types/detector-types";
+ 
+ export type PlateRedactorHandle = {
+   /** Prefill mask from natural-image boxes; component figures out natural size from its imageURL */
+   prefillFromDetections: (boxes: NatBox[]) => Promise<void>;
+   /** Export the current composited result as PNG data URL */
+   exportResult: () => string | null;
+ };
+--- src/components/face-blur-utils.ts
++++ src/components/face-blur-utils.ts
+@@
++import type { Box as FaceBox } from "@/types/detector-types";
+ interface FaceApiCompatNS {
+   nets: { tinyFaceDetector: { loadFromUri: (base: string) => Promise<void> } };
+   TinyFaceDetectorOptions: new (opts: {
+     scoreThreshold: number;
+     inputSize: number;
+   }) => unknown;
+   detectAllFaces: (
+     img: HTMLImageElement,
+     opts: unknown
+   ) => Promise<
+     Array<{
+       box: { x: number; y: number; width: number; height: number };
+       score?: number;
+     }>
+   >;
+ }
+@@
+-export type FaceBox = {
+-  x: number;
+-  y: number;
+-  w: number;
+-  h: number;
+-  score?: number;
+-};
+--- src/components/license-plate-blur-utils.ts
++++ src/components/license-plate-blur-utils.ts
+@@
+-import { Size } from "@/types/detector-types";
+-import { Box } from "face-api.js";
++import type { Size } from "@/types/detector-types";
++import type { Box } from "@/types/detector-types";
+ import { Tensor } from "onnxruntime-web";
+@@
+ export function nms(
+   boxes: Array<{ x: number; y: number; w: number; h: number; conf: number }>,
+   thr: number
+ ) {
+   boxes.sort((a, b) => b.conf - a.conf);
+--- src/components/PrivacyScrubber.tsx
++++ src/components/PrivacyScrubber.tsx
+@@
+ import Preview from "./Preview";
+ import { FileLoader } from "./FileLoader";
+ import PlateRedactor, { type PlateRedactorHandle } from "./PlateRedactor";
+@@
+-import { Size } from "@/types/detector-types";
++import type { Size, PerformanceReport } from "@/types/detector-types";

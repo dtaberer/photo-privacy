@@ -1,0 +1,6 @@
+diff --git a/src/types/shims.d.ts b/src/types/shims.d.ts
+--- a/src/types/shims.d.ts
++++ b/src/types/shims.d.ts
+@@
+-declare module "lru-cache";
++// Using real lru-cache types; shim removed.

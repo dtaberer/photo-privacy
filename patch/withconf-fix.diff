@@ -1,0 +1,47 @@
+diff --git a/src/components/LicensePlateBlur.tsx b/src/components/LicensePlateBlur.tsx
+--- a/src/components/LicensePlateBlur.tsx
++++ b/src/components/LicensePlateBlur.tsx
+@@ -15,12 +15,13 @@
+   filterByMinConf,
+ } from "./utils/license-plate-blur-utils";
+ import { Box } from "@/types/detector-types";
++type BoxWithConf = Box & { conf: number };
+ import { Tensor } from "onnxruntime-web";
+ import { LicensePlateBlurConstants } from "./constants";
+ 
+ let plateSession: ort.InferenceSession | null = null;
+ let plateInputName = "";
+-let boxes: Box[] = [];
++let boxes: BoxWithConf[] = [];
+ 
+ interface LicensePlateBlurProps {
+   imgRef: React.RefObject<HTMLImageElement | null>;
+@@ -63,7 +64,7 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
+ 
+       ctx.clearRect(0, 0, canvas.width, canvas.height);
+ 
+-      const filtered = filterByMinConf(boxes, opts.confThresh);
++      const filtered = filterByMinConf<BoxWithConf>(boxes, opts.confThresh);
+ 
+       for (const b of filtered) {
+         const sx = Math.max(0, Math.floor(b.x));
+@@ -128,7 +129,7 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
+           padRatio,
+           max: 30000,
+         });
+-        boxes = nms(raw, LicensePlateBlurConstants.IOU_THRESHOLD);
++        boxes = nms(raw, LicensePlateBlurConstants.IOU_THRESHOLD) as BoxWithConf[];
+ 
+         await applyBluring();
+ 
+@@ -162,7 +163,8 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
+       ref,
+       () => ({
+         run,
+         redraw,
+-        getDetections: () => boxes.slice(),
++        // keep public API as Box[] (hide conf)
++        getDetections: () => boxes.map(({ conf, ...b }) => b as Box),
+       }),
+       [run, redraw]
+     );

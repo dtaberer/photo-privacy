@@ -1,5 +1,4 @@
-import { Size } from "@/types/detector-types";
-import { Box } from "face-api.js";
+import type { Size, Box } from "@/types/detector-types";
 import { Tensor } from "onnxruntime-web";
 
 export function invariant(cond: unknown, msg: string): asserts cond {
@@ -247,7 +246,7 @@ export function parseYolo(
 }
 
 export function toOriginalSpace(
-  b: Box,
+  b: Box & { conf?: number },
   src: Size,
   scale: number,
   pad: { x: number; y: number },
@@ -264,15 +263,7 @@ export function toOriginalSpace(
   const y2 = Math.max(0, Math.min(src.h - 1, y - py));
   const w2 = Math.max(1, Math.min(src.w - x2, w + px * 2));
   const h2 = Math.max(1, Math.min(src.h - y2, h + py * 2));
-  return {
-    x: x2,
-    y: y2,
-    w: w2,
-    h: h2,
-    conf: b.conf,
-    width: 0,
-    height: 0,
-  };
+  return { x: x2, y: y2, w: w2, h: h2 };
 }
 
 export function drawBox(

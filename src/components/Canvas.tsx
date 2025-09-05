@@ -2,7 +2,6 @@ import React, {
 
 useRef,
 useEffect,
-useState,
 useCallback,
 forwardRef,
 useImperativeHandle,
@@ -57,7 +56,7 @@ const drawing = useRef(false);
 const lastPoint = useRef<{ x: number; y: number } | null>(null);
 const dpr = (pixelRatio && pixelRatio > 0) ? pixelRatio : window.devicePixelRatio || 1;
 
-const [loadedSrc, setLoadedSrc] = useState<string | null>(image);
+// Track nothing — previously used for debugging loaded source
 
 // Expose imperative methods
 useImperativeHandle(
@@ -104,7 +103,6 @@ useImperativeHandle(
 
         loadImage: async (src: string) => {
             await loadAndDrawImage(src);
-            setLoadedSrc(src);
         },
 
         getMaskDataURL: () => {
@@ -208,10 +206,7 @@ const loadAndDrawImage = useCallback(
 
 // initial load when image prop changes
 useEffect(() => {
-    setLoadedSrc(image);
-    loadAndDrawImage(image).then(() => {
-        // no-op
-    });
+    void loadAndDrawImage(image);
     // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [image]);
 
@@ -219,8 +214,7 @@ useEffect(() => {
 const getPointerPos = useCallback(
     (evt: PointerEvent | React.PointerEvent): { x: number; y: number } => {
         const rect = maskCanvasRef.current?.getBoundingClientRect();
-        const clientX = (evt as PointerEvent).clientX ?? (evt as any).touches?.[0]?.clientX ?? 0;
-        const clientY = (evt as PointerEvent).clientY ?? (evt as any).touches?.[0]?.clientY ?? 0;
+        const { clientX = 0, clientY = 0 } = evt as PointerEvent;
         if (!rect) return { x: clientX, y: clientY };
         // map CSS coords to canvas logical (we already scaled contexts by dpr)
         const x = (clientX - rect.left) * (maskCanvasRef.current!.width / rect.width) / dpr;
@@ -269,7 +263,7 @@ useEffect(() => {
     if (!mask) return;
 
     const handlePointerDown = (e: PointerEvent) => {
-        (mask as HTMLElement).setPointerCapture((e as any).pointerId);
+        (mask as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
         drawing.current = true;
         lastPoint.current = getPointerPos(e);
         drawLine(null, lastPoint.current);
@@ -292,7 +286,7 @@ useEffect(() => {
             }
         }
         try {
-            (mask as HTMLElement).releasePointerCapture((e as any).pointerId);
+            (mask as HTMLElement).releasePointerCapture((e as PointerEvent).pointerId);
         } catch {
             // ignore
         }
@@ -365,7 +359,6 @@ useEffect(() => {
 
     renderGrid();
     // We intentionally don't clear grid on mask clear.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [showGrid, width, height]);
 
 // Basic styling inlined to avoid external CSS file

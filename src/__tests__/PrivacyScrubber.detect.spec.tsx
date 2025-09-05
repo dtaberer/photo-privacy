@@ -1,5 +1,7 @@
+import React from "react";
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PrivacyScrubber } from "../components/PrivacyScrubber"; // relative import = no alias issues
 
@@ -14,12 +16,44 @@ vi.mock("../components/utils/face-blur-utils", () => ({
     .fn()
     .mockResolvedValue({ count: 2, boxes: [{ x: 5, y: 5, w: 30, h: 30 }] }),
 }));
-vi.mock("../components/LicensePlateBlur", () => ({
-  runLicensePlateBlurOnCanvas: vi.fn().mockResolvedValue({ count: 1 }),
-}));
-vi.mock("../components/FaceBlur", () => ({
-  runFaceBlurOnCanvas: vi.fn().mockResolvedValue({ count: 2 }),
-}));
+vi.mock("../components/LicensePlateBlur", () => {
+  const runLicensePlateBlurOnCanvas = vi
+    .fn()
+    .mockResolvedValue({ count: 1 });
+  const Default = React.forwardRef((_props, ref) => {
+    React.useImperativeHandle(ref, () => ({
+      run: async () => {
+        await runLicensePlateBlurOnCanvas();
+      },
+      redraw: () => {},
+      getDetections: () => [],
+      reset: () => {},
+    }));
+    return null;
+  });
+  return {
+    default: Default,
+    runLicensePlateBlurOnCanvas,
+  };
+});
+vi.mock("../components/FaceBlur", () => {
+  const runFaceBlurOnCanvas = vi.fn().mockResolvedValue({ count: 2 });
+  const Default = React.forwardRef((_props, ref) => {
+    React.useImperativeHandle(ref, () => ({
+      run: async () => {
+        await runFaceBlurOnCanvas();
+      },
+      redraw: () => {},
+      getDetections: () => [],
+      reset: () => {},
+    }));
+    return null;
+  });
+  return {
+    default: Default,
+    runFaceBlurOnCanvas,
+  };
+});
 
 import * as faceDetector from "../components/utils/face-blur-utils";
 import * as plateDetector from "../components/utils/license-plate-blur-utils";
@@ -70,8 +104,10 @@ describe("PrivacyScrubber detection triggers", () => {
     ) as HTMLInputElement | null;
     expect(fileInput).not.toBeNull();
     const file = new File(["abc"], "photo.jpg", { type: "image/jpeg" });
-    fireEvent.change(fileInput as HTMLInputElement, {
-      target: { files: [file] },
+    await act(async () => {
+      fireEvent.change(fileInput as HTMLInputElement, {
+        target: { files: [file] },
+      });
     });
 
     // Simulate image load
@@ -84,11 +120,16 @@ describe("PrivacyScrubber detection triggers", () => {
       value: 800,
       configurable: true,
     });
-    imgEl.dispatchEvent(new Event("load"));
+    await act(async () => {
+      imgEl.dispatchEvent(new Event("load"));
+    });
 
     // If UI requires pressing Refresh, do it
     const refreshBtn = screen.queryByRole("button", { name: /refresh/i });
-    if (refreshBtn) fireEvent.click(refreshBtn);
+    if (refreshBtn)
+      await act(async () => {
+        fireEvent.click(refreshBtn);
+      });
 
     // wait for *either* module’s helper(s) to be called
     await waitFor(() => {
@@ -140,7 +181,9 @@ describe("PrivacyScrubber detection triggers", () => {
         FaceComp,
         "runFaceBlurOnCanvas"
       );
-      fireEvent.click(faceSwitch);
+      await act(async () => {
+        fireEvent.click(faceSwitch);
+      });
       await waitFor(() => {
         const after = getCallsSum(
           faceDetector,

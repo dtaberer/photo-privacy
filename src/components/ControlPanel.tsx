@@ -1,101 +1,132 @@
-import React, { JSX, useId } from "react";
-import { Card, Form } from "react-bootstrap";
-import { ControlPanelProps } from "../types/ControlPanelTypes";
+import React, { memo, useId } from "react";
+import { Card, Form, Badge } from "react-bootstrap";
 
-export function ControlPanel(props: ControlPanelProps): JSX.Element {
-  const {
-    blurVal,
-    setBlurVal,
-    setThreshVal,
-    confVal,
-    controlName,
-    busy,
-    featherVal,
-    setFeatherVal,
-  } = props;
+export type ControlPanelProps = {
+  controlName: string;
+  count?: number;
+  blurVal: number;
+  setBlurVal: (v: number) => void;
+  confVal: number;
+  setThreshVal: (v: number) => void;
+  featherVal: number;
+  setFeatherVal: (v: number) => void;
+  busy?: boolean;
+};
 
+function ControlPanel({
+  controlName,
+  count = 0,
+  blurVal,
+  setBlurVal,
+  confVal,
+  setThreshVal,
+  featherVal,
+  setFeatherVal,
+  busy = false,
+}: ControlPanelProps) {
+  const blurId = useId();
   const confId = useId();
-  const uiConf = Math.round((confVal ?? 0) * 100);
+  const featherId = useId();
 
   return (
-    <Card className="border-0 bg-body-tertiary mb-3">
+    <Card className="shadow-sm border-0 mb-3">
       <Card.Body>
-        <div className="fw-bold mb-4">{controlName}</div>
+        {/* Title row with count on the right */}
+        <div className="d-flex align-items-center justify-content-between mb-2">
+          <Card.Title as="h6" className="mb-0">
+            {controlName}
+          </Card.Title>
+          <Badge
+            bg="secondary"
+            className="bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"
+          >
+            {count}
+          </Badge>
+        </div>
 
-        {/* Blur strength */}
-        <div className="d-flex align-items-center gap-2 mt-2">
-          <label className="text-nowrap mb-0" style={{ width: 110 }}>
+        {/* Blur slider */}
+        <div className="d-flex align-items-center justify-content-between my-2">
+          <label htmlFor={blurId} className="mb-0">
             Blur Opacity
           </label>
-
-          <Form.Range
-            min={0}
-            max={80}
-            step={1}
-            value={blurVal}
-            onChange={async (e) => {
-              const val = Number(e.currentTarget.value);
-              setBlurVal(val);
-            }}
-            aria-label="Blur strength"
-            className="flex-grow-1"
-            disabled={busy}
-          />
-
-          <span className="text-muted small text-end" style={{ minWidth: 56 }}>
-            {blurVal}px
-          </span>
+          <div
+            className="d-flex align-items-center"
+            style={{ gap: 8, minWidth: 260 }}
+          >
+            <Form.Range
+              id={blurId}
+              min={1}
+              max={80}
+              step={1}
+              value={blurVal}
+              disabled={busy}
+              onChange={(e) => setBlurVal(Number(e.currentTarget.value))}
+            />
+            <span
+              className="text-muted"
+              style={{ width: 56, textAlign: "right", whiteSpace: "nowrap" }}
+            >
+              {blurVal}px
+            </span>
+          </div>
         </div>
 
-        {/* Sensitivity */}
-        <div className="d-flex align-items-center gap-2 mt-2">
-          <label className="text-nowrap mb-0" style={{ width: 110 }}>
+        {/* Filter slider (0–100 UI mapped to 0–1 threshold) */}
+        <div className="d-flex align-items-center justify-content-between my-2">
+          <label htmlFor={confId} className="mb-0">
             Filter
           </label>
-
-          <Form.Range
-            id={confId}
-            aria-label={`${controlName} Filter`}
-            className="flex-grow-1"
-            min={0.02}
-            max={1}
-            step={0.001}
-            value={confVal}
-            onChange={(e) => {
-              const val = Number(e.currentTarget.value);
-              setThreshVal(val);
-            }}
-            disabled={busy}
-          />
-          <span className="text-muted small text-end" style={{ minWidth: 56 }}>
-            {uiConf}%
-          </span>
+          <div
+            className="d-flex align-items-center"
+            style={{ gap: 8, minWidth: 260 }}
+          >
+            <Form.Range
+              id={confId}
+              min={0}
+              max={100}
+              step={1}
+              value={Math.round(confVal * 100)}
+              disabled={busy}
+              onChange={(e) => setThreshVal(Number(e.currentTarget.value) / 100)}
+            />
+            <span
+              className="text-muted"
+              style={{ width: 56, textAlign: "right", whiteSpace: "nowrap" }}
+            >
+              {Math.round(confVal * 100)}%
+            </span>
+          </div>
         </div>
 
-        {/* Feather slider (optional) */}
-        {typeof featherVal === "number" && setFeatherVal && (
-          <div className="d-flex align-items-center gap-2 mt-2">
-            <label className="text-nowrap mb-0" style={{ width: 110 }}>
-              Feather
-            </label>
-            <input
-              type="range"
+        {/* Feather slider */}
+        <div className="d-flex align-items-center justify-content-between my-2">
+          <label htmlFor={featherId} className="mb-0">
+            Feather
+          </label>
+          <div
+            className="d-flex align-items-center"
+            style={{ gap: 8, minWidth: 260 }}
+          >
+            <Form.Range
+              id={featherId}
               min={0}
-              max={30}
-              step={1}
+              max={100}
+              step={0.5}
               value={featherVal}
-              onChange={(e) => setFeatherVal(Number(e.currentTarget.value))}
-              className="form-range flex-grow-1"
               disabled={busy}
+              onChange={(e) => setFeatherVal(Number(e.currentTarget.value))}
             />
-            <span style={{ width: 42, textAlign: "right" }}>
+            <span
+              className="text-muted"
+              style={{ width: 56, textAlign: "right", whiteSpace: "nowrap" }}
+            >
               {featherVal}px
             </span>
           </div>
-        )}
+        </div>
       </Card.Body>
     </Card>
   );
 }
 
-export default React.memo(ControlPanel);
+export default memo(ControlPanel);

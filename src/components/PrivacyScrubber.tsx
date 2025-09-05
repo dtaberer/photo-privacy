@@ -7,87 +7,68 @@ import React, {
 } from "react";
 import { Row, Col, Card, Form, Badge } from "react-bootstrap";
 import downloadCanvas from "./utils/download-canvas";
-import { LicensePlateBlur } from "./LicensePlateBlur";
-import { FaceBlur } from "./FaceBlur";
+import LicensePlateBlur from "./LicensePlateBlur";
+import FaceBlur from "./FaceBlur";
 import ControlPanel from "./ControlPanel";
 import Preview from "./Preview";
 import { FileLoader } from "./FileLoader";
-import PlateRedactor, { type PlateRedactorHandle } from "./PlateRedactor";
-
-const PERFORMANCE_REPORT_DEFAULT = {
-  count: 0,
-  total: 0,
-  timings: {
-    preprocess: 0,
-    run: 0,
-    post: 0,
-    total: 0,
-  },
-};
-
-const FACE_BLUR_DFLT = 40;
-const FACE_CONF_DFLT = 0.05;
-const FACE_DETECTION_DFLT = true;
-const IOU_THRESH_DFLT = 0.1;
-const LICENSE_PLATE_DETECTON_DFLT = true;
-const MODEL_SIZE_DFLT = 800;
-const MODEL_URL_DFLT = "/models/license-plate-finetune-v1n.onnx";
-const PAD_RATIO_DFLT = 0.01;
-const PLATE_BLUR_DFLT = 40;
-const PLATE_CONF_DFLT = 0.02;
-const STATUS_DFLT = "Ready";
-
-const USE_MANUAL = false;
+import PlateRedactor, { PlateRedactorHandle } from "./PlateRedactor";
+import {
+  FaceBlurConstants,
+  PERFORMANCE_REPORT_ZEROS,
+  IMAGE_SIZE,
+  LicensePlateBlurConstants,
+  USE_MANUAL_REDACTOR,
+} from "./constants";
+import { Box, Size, BlurHandler } from "@/types/detector-types";
 
 export function PrivacyScrubber() {
+  // useState hooks for LicensePlateBlur
   const [platesOn, setPlatesOn] = useState<boolean>(
-    LICENSE_PLATE_DETECTON_DFLT
+    LicensePlateBlurConstants.RUN_LICENSE_PLATE_DETECTION
   );
-
-  const [plateFeather, setPlateFeather] = useState<number>(0);
-  const [faceFeather, setFaceFeather] = useState<number>(0);
-
-  const [facesOn, setFacesOn] = useState<boolean>(FACE_DETECTION_DFLT);
-  const [plateBlur, setPlateBlur] = useState<number>(PLATE_BLUR_DFLT);
-  const [plateConf, setPlateConf] = useState<number>(PLATE_CONF_DFLT);
-  const [faceBlur, setFaceBlur] = useState<number>(FACE_BLUR_DFLT);
-  const [faceConf, setFaceConf] = useState<number>(FACE_CONF_DFLT);
-  const faceIouThresh = IOU_THRESH_DFLT;
-  const plateIouThresh = IOU_THRESH_DFLT;
-  const [padRatio] = useState<number>(PAD_RATIO_DFLT);
-  const [status, setStatus] = useState(STATUS_DFLT);
-  const [busy, setBusy] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [modelUrl] = useState(MODEL_URL_DFLT);
-  const [dragOver, setDragOver] = useState(false);
-  const [origName, setOrigName] = useState<string | null>(null);
+  const [plateFeather, setPlateFeather] = useState<number>(
+    LicensePlateBlurConstants.FEATHER_PX
+  );
+  const [plateBlur, setPlateBlur] = useState<number>(
+    LicensePlateBlurConstants.BLUR_DENSITY
+  );
+  const [plateConf, setPlateConf] = useState<number>(
+    LicensePlateBlurConstants.CONFIDENCE_THRESHOLD
+  );
+  const [faceFeather, setFaceFeather] = useState<number>(
+    FaceBlurConstants.FEATHER_PX
+  );
+  const [facesOn, setFacesOn] = useState<boolean>(
+    FaceBlurConstants.RUN_FACE_DETECTION
+  );
+  const [faceBlur, setFaceBlur] = useState<number>(
+    FaceBlurConstants.BLUR_DENSITY
+  );
+  const [faceConf, setFaceConf] = useState<number>(
+    FaceBlurConstants.CONFIDENCE_THRESHOLD
+  );
   const [perfPlates, setPerfPlates] = useState<PerformanceReport>(
-    PERFORMANCE_REPORT_DEFAULT
+    PERFORMANCE_REPORT_ZEROS
   );
+  const [perfFaces, setPerfFaces] = useState<PerformanceReport>(
+    PERFORMANCE_REPORT_ZEROS
+  );
+  const [modelSize] = useState<number>(LicensePlateBlurConstants.MODEL_SIZE);
 
-  const [perfFaces, setPerfFaces] = useState<PerformanceReport>({
-    count: 0,
-    total: 0,
-    timings: {
-      preprocess: 0,
-      run: 0,
-      post: 0,
-      total: 0,
-    },
-  });
+  const [imgSize, setImgSize] = useState<Size>(IMAGE_SIZE);
+  const [busy, setBusy] = useState<boolean>(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<boolean>(false);
+  const [origName, setOrigName] = useState<string | null>(null);
+  const [canvasVisible, setCanvasVisible] = useState<boolean>(false);
 
-  const [canvasVisible, setCanvasVisible] = useState(false);
-  const [modelSize] = useState(MODEL_SIZE_DFLT);
-  const [imgSize, setImgSize] = useState<{ w: number; h: number }>({
-    w: 0,
-    h: 0,
-  });
-
+  // References to child components
   const imgRef = useRef<HTMLImageElement>(null!);
   const canvasRef = useRef<HTMLCanvasElement>(null!);
-  const faceRef = useRef<BlurHandler>(null!);
-  const plateRef = useRef<BlurHandler>(null!);
-  const plateRedactorRef = useRef<PlateRedactorHandle>(null);
+  const faceRef = useRef<BlurHandler<Box> | null>(null);
+  const plateRef = useRef<BlurHandler<Box> | null>(null);
+  const plateRedactorRef = useRef<PlateRedactorHandle | null>(null);
 
   useEffect(() => {
     // Only when an image is loaded
@@ -96,22 +77,30 @@ export function PrivacyScrubber() {
     const ctx = cvs?.getContext("2d");
     if (!cvs || !ctx) return;
 
-    // Schedule on next paint to keep sliders snappy
-    const id = requestAnimationFrame(() => {
-      // Start clean, then redraw plates → faces (faces composes on top)
-      ctx.clearRect(0, 0, cvs.width, cvs.height);
-      if (platesOn) plateRef.current?.redraw();
-      if (facesOn) faceRef.current?.redraw();
-      setCanvasVisible(true);
-    });
-    return () => cancelAnimationFrame(id);
+    // Throttle redraw slightly to keep sliders responsive
+    const cleanupFns: Array<() => void> = [];
+    const timeout = window.setTimeout(() => {
+      const id = requestAnimationFrame(() => {
+        // Start clean, then redraw plates → faces (faces composes on top)
+        ctx.clearRect(0, 0, cvs.width, cvs.height);
+        if (platesOn) plateRef.current?.redraw();
+        if (facesOn) faceRef.current?.redraw();
+        // Ensure canvas is visible (no-op if already true)
+        setCanvasVisible((v) => (v ? v : true));
+      });
+      // ensure pending rAF is cleared if dependencies change rapidly
+      cleanupFns.push(() => cancelAnimationFrame(id));
+    }, 32); // ~30 FPS max during slider drag
+    cleanupFns.push(() => clearTimeout(timeout));
+    return () => {
+      for (const fn of cleanupFns) fn();
+    };
   }, [
     previewUrl,
     platesOn,
     facesOn,
     plateBlur,
     plateConf,
-    plateIouThresh,
     plateFeather,
     faceBlur,
     faceConf,
@@ -124,11 +113,9 @@ export function PrivacyScrubber() {
     const cvs = canvasRef.current;
 
     if (!cvs || !img) {
-      console.log("Image/canvas not ready");
       setBusy(false);
       return;
     }
-    console.log("Running detection…");
 
     try {
       await plateRef.current?.run();
@@ -143,15 +130,8 @@ export function PrivacyScrubber() {
         `Detection error: ${e instanceof Error ? e.message : String(e)}`
       );
     } finally {
-      setBusy(false);
-      setPlateBlur(PLATE_BLUR_DFLT);
-      setFaceBlur(FACE_BLUR_DFLT);
-      setFaceFeather(0);
-      setPlateFeather(0);
       setCanvasVisible(true);
-      setPlateConf(PLATE_CONF_DFLT);
-      setFaceConf(FACE_CONF_DFLT);
-      console.log("Done.");
+      setBusy(false);
     }
   }, [facesOn]);
 
@@ -159,6 +139,9 @@ export function PrivacyScrubber() {
     () => ["SIMD", "1 Thread", "On-Device"] as const,
     []
   );
+
+  // simple perf formatter for badges
+  const fmtMs = (ms: number) => `${ms.toFixed(1)}ms`;
 
   const clearCanvas = useCallback(() => {
     const cvs = canvasRef.current;
@@ -168,20 +151,14 @@ export function PrivacyScrubber() {
     }
   }, []);
 
-  const onFilePickHandler = useCallback(
-    (file: File): void => {
-      const url = URL.createObjectURL(file);
-      setOrigName(file.name);
-      setPreviewUrl((old) => {
-        if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
-        return url;
-      });
-      console.log("Image loaded. Ready to run.");
-      setCanvasVisible(false);
-      clearCanvas();
-    },
-    [clearCanvas]
-  );
+  const onFilePickHandler = useCallback((file: File): void => {
+    const url = URL.createObjectURL(file);
+    setOrigName(file.name);
+    setPreviewUrl((old) => {
+      if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
+      return url;
+    });
+  }, []);
 
   const onDownloadHandler = useCallback(() => {
     const base = imgRef.current; // <img> from <Preview>
@@ -227,15 +204,31 @@ export function PrivacyScrubber() {
 
   useEffect(() => {
     return () => {
-      if (previewUrl?.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+      clearCanvas();
+      if (previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
     };
-  }, [previewUrl]);
+  }, [clearCanvas, previewUrl]);
 
   return (
     <div
       className="bg-light min-vh-100"
       style={{ cursor: busy ? "progress" : "default" }} // busy cursor
     >
+      {/* Action buttons hover polish */}
+      <style>
+        {`
+    .action-btn.btn-outline-secondary:not(:disabled):hover,
+    .action-btn.btn-outline-secondary:not(:disabled):focus-visible {
+      color: var(--bs-primary) !important;
+      border-color: var(--bs-primary) !important;
+      background-color: rgba(var(--bs-primary-rgb), .06) !important;
+    }
+    .action-btn.btn-outline-secondary:not(:disabled):active {
+    }
+  `}
+      </style>
       <LicensePlateBlur
         ref={plateRef}
         imgRef={imgRef}
@@ -244,11 +237,7 @@ export function PrivacyScrubber() {
           modelSize: modelSize,
           confThresh: plateConf,
           blurStrength: plateBlur,
-          iouThresh: plateIouThresh,
-          padRatio: padRatio,
           setPerfReport: setPerfPlates,
-          modelUrl: modelUrl,
-          debugMode: false,
           featherPx: plateFeather,
         }}
       />
@@ -260,10 +249,7 @@ export function PrivacyScrubber() {
           modelSize: 544,
           confThresh: faceConf,
           blurStrength: faceBlur,
-          iouThresh: faceIouThresh,
-          padRatio: padRatio,
           setPerfReport: setPerfFaces,
-          debugMode: false,
           featherPx: faceFeather,
         }}
       />
@@ -278,13 +264,11 @@ export function PrivacyScrubber() {
           title="Preview"
           previewUrl={previewUrl ?? null}
           badgeList={[...badgeList]}
-          perfPlates={perfPlates}
-          perfFaces={perfFaces}
           imgRef={imgRef}
           canvasVisible={canvasVisible}
           busy={busy}
         />
-        {USE_MANUAL && (
+        {USE_MANUAL_REDACTOR && previewUrl && (
           <PlateRedactor
             ref={plateRedactorRef}
             imageURL={previewUrl!}
@@ -293,6 +277,7 @@ export function PrivacyScrubber() {
             height={600}
           />
         )}
+
         {/* Controls column (sticky) */}
         <Col md={4}>
           <div className="sticky-top" style={{ top: "1rem" }}>
@@ -317,15 +302,18 @@ export function PrivacyScrubber() {
                       onChange={(e) => setPlatesOn(e.currentTarget.checked)}
                       {...(busy && { disabled: true })}
                     />
-                    {/* <Badge
+                    <Badge
                       bg="secondary"
                       className="bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"
                     >
-                      {detections.plates}
-                    </Badge> */}
+                      {`${perfPlates.count} · ${fmtMs(perfPlates.total)}`}
+                    </Badge>
                   </div>
+                </div>
 
-                  <div className="d-flex align-items-center justify-content-between mt-1">
+                {/* Faces switch + badge */}
+                <div className="px-2 mb-3">
+                  <div className="d-flex align-items-center justify-content-between">
                     <Form.Check
                       type="switch"
                       id="sw-faces"
@@ -338,7 +326,7 @@ export function PrivacyScrubber() {
                       bg="secondary"
                       className="bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 small"
                     >
-                      "detections.faces"
+                      {`${perfFaces.count} · ${fmtMs(perfFaces.total)}`}
                     </Badge>
                   </div>
                 </div>
@@ -350,7 +338,7 @@ export function PrivacyScrubber() {
                     busy={busy}
                     confVal={plateConf}
                     controlName="License Plate Redaction"
-                    count={1}
+                    count={perfPlates.count}
                     setBlurVal={setPlateBlur}
                     setThreshVal={setPlateConf}
                     featherVal={plateFeather}
@@ -365,7 +353,7 @@ export function PrivacyScrubber() {
                     busy={busy}
                     confVal={faceConf}
                     controlName="Facial Redaction"
-                    count={1}
+                    count={perfFaces.count}
                     setBlurVal={setFaceBlur}
                     setThreshVal={setFaceConf}
                     featherVal={faceFeather}

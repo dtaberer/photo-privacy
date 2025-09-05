@@ -22,12 +22,9 @@ describe("Preview layout", () => {
         onClickRefreshHandler={() => {}}
         onClickDownloadHandler={() => {}} // ← required by PreviewProps
         canvasRef={canvasRef}
-        detections={{ plates: 0, faces: 0 }}
         title="Preview"
         previewUrl="blob:test"
         badgeList={[]}
-        perfPlates={null}
-        perfFaces={null}
         imgRef={imgRef}
         canvasVisible={true}
       />

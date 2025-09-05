@@ -1,3 +1,20 @@
+interface FaceApiCompatNS {
+  nets: { tinyFaceDetector: { loadFromUri: (base: string) => Promise<void> } };
+  TinyFaceDetectorOptions: new (opts: {
+    scoreThreshold: number;
+    inputSize: number;
+  }) => unknown;
+  detectAllFaces: (
+    img: HTMLImageElement,
+    opts: unknown
+  ) => Promise<
+    Array<{
+      box: { x: number; y: number; width: number; height: number };
+      score?: number;
+    }>
+  >;
+}
+
 export function blurPatchWithMargin(
   ctx: CanvasRenderingContext2D,
   srcImg: HTMLImageElement,
@@ -35,112 +52,12 @@ export function blurPatchWithMargin(
   ctx.restore();
 }
 
-export function blurPatchWithFeather(
-  ctx: CanvasRenderingContext2D,
-  srcImg: HTMLImageElement,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  strength0to100: number,
-  featherPx: number
-) {
-  const blurPx = Math.max(1, Math.round((strength0to100 / 100) * 40)); // 0..100 → ~1..40px
-  const m = Math.ceil(blurPx * 2 + Math.max(0, featherPx)); // margin big enough for kernel + feather
-
-  const sx = Math.max(0, Math.floor(x - m));
-  const sy = Math.max(0, Math.floor(y - m));
-  const sw = Math.min(srcImg.naturalWidth - sx, Math.ceil(w + 2 * m));
-  const sh = Math.min(srcImg.naturalHeight - sy, Math.ceil(h + 2 * m));
-  if (sw <= 0 || sh <= 0) return;
-
-  // 1) blurred source patch
-  const off = document.createElement("canvas");
-  off.width = sw;
-  off.height = sh;
-  const octx = off.getContext("2d");
-  if (!octx) return;
-  octx.filter = `blur(${blurPx}px)`;
-  octx.drawImage(srcImg, sx, sy, sw, sh, 0, 0, sw, sh);
-  octx.filter = "none";
-
-  // 2) build soft mask the size of the offscreen
-  if (featherPx > 0) {
-    const mask = document.createElement("canvas");
-    mask.width = sw;
-    mask.height = sh;
-    const mctx = mask.getContext("2d")!;
-    // local rect inside offscreen
-    const rx = Math.max(0, Math.floor(x - sx));
-    const ry = Math.max(0, Math.floor(y - sy));
-    const rw = Math.min(sw, Math.ceil(w));
-    const rh = Math.min(sh, Math.ceil(h));
-    mctx.fillStyle = "#000";
-    mctx.fillRect(0, 0, sw, sh); // start black
-    mctx.fillStyle = "#fff";
-    mctx.fillRect(rx, ry, rw, rh); // white rect where we want the blur
-    mctx.filter = `blur(${featherPx}px)`;
-    const blurredMask = document.createElement("canvas");
-    blurredMask.width = sw;
-    blurredMask.height = sh;
-    const bmctx = blurredMask.getContext("2d")!;
-    bmctx.filter = `blur(${featherPx}px)`;
-    bmctx.drawImage(mask, 0, 0);
-    bmctx.filter = "none";
-
-    // 3) apply mask: keep only soft-rect region
-    octx.globalCompositeOperation = "destination-in";
-    octx.drawImage(blurredMask, 0, 0);
-    octx.globalCompositeOperation = "source-over";
-  } else {
-    // no feather → keep a hard rect
-    octx.globalCompositeOperation = "destination-in";
-    const hard = document.createElement("canvas");
-    hard.width = sw;
-    hard.height = sh;
-    const hctx = hard.getContext("2d")!;
-    hctx.fillStyle = "#fff";
-    hctx.fillRect(
-      Math.max(0, Math.floor(x - sx)),
-      Math.max(0, Math.floor(y - sy)),
-      Math.min(sw, Math.ceil(w)),
-      Math.min(sh, Math.ceil(h))
-    );
-    octx.drawImage(hard, 0, 0);
-    octx.globalCompositeOperation = "source-over";
-  }
-
-  // 4) paint result back in image coordinates
-  ctx.drawImage(off, sx, sy);
-}
-
 export function filterByScore(arr: FaceBox[], min: number): FaceBox[] {
   return arr.filter((f) => (typeof f.score === "number" ? f.score : 1) >= min);
 }
 
-export type FaceBox = {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  score?: number;
-};
-
-export function cssToCanvasRect(
-  img: HTMLImageElement,
-  canvas: HTMLCanvasElement,
-  r: { x: number; y: number; width: number; height: number }
-): FaceBox {
-  // FaceDetector reports CSS px; canvas draws in *internal* px
-  const scaleX = canvas.width / img.clientWidth;
-  const scaleY = canvas.height / img.clientHeight;
-  return {
-    x: r.x * scaleX,
-    y: r.y * scaleY,
-    w: r.width * scaleX,
-    h: r.height * scaleY,
-  };
-}
+import type { Box } from "@/types/detector-types";
+export type FaceBox = Box & { score?: number };
 
 export function grow(r: FaceBox, pad: number, W: number, H: number): FaceBox {
   const dx = r.w * pad,
@@ -150,4 +67,146 @@ export function grow(r: FaceBox, pad: number, W: number, H: number): FaceBox {
   const w = Math.min(W - x, r.w + 2 * dx);
   const h = Math.min(H - y, r.h + 2 * dy);
   return { ...r, x, y, w, h };
+}
+
+// ===== Small helpers (pure) =====
+export const clamp = (n: number, lo: number, hi: number) =>
+  Math.max(lo, Math.min(hi, n));
+
+export function cssToCanvasRect(
+  img: HTMLImageElement,
+  canvas: HTMLCanvasElement,
+  css: { x: number; y: number; width: number; height: number }
+): FaceBox {
+  const rect = img.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) {
+    // In test/JSDOM environments getBoundingClientRect may be 0x0.
+    // Fallback to a 1:1 mapping which preserves detection presence.
+    return {
+      x: Math.round(css.x),
+      y: Math.round(css.y),
+      w: Math.round(css.width),
+      h: Math.round(css.height),
+    };
+  }
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  return {
+    x: Math.round(css.x * sx),
+    y: Math.round(css.y * sy),
+    w: Math.round(css.width * sx),
+    h: Math.round(css.height * sy),
+  };
+}
+
+export function adjustUp(
+  r: FaceBox,
+  W: number,
+  H: number,
+  ratio = 0.12
+): FaceBox {
+  const shift = Math.round(r.h * ratio);
+  const y = clamp(r.y - shift, 0, H);
+  const h = clamp(r.h + shift, 1, H - y);
+  return { ...r, y, h };
+}
+
+export function drawDebugBox(ctx: CanvasRenderingContext2D, r: FaceBox) {
+  ctx.save();
+  ctx.lineWidth = 2;
+  ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+  ctx.restore();
+}
+
+// Blur inside an ellipse with optional feather — localized to the rect area
+export function blurPatchWithFeather(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  blurPx: number,
+  featherPx: number
+) {
+  const W = ctx.canvas.width,
+    H = ctx.canvas.height;
+  const pad = Math.ceil(Math.max(0, blurPx) * 1.5 + Math.max(0, featherPx) + 4);
+  const sx = clamp(Math.floor(x - pad), 0, W);
+  const sy = clamp(Math.floor(y - pad), 0, H);
+  const ex = clamp(Math.ceil(x + w + pad), 0, W);
+  const ey = clamp(Math.ceil(y + h + pad), 0, H);
+  const sw = ex - sx,
+    sh = ey - sy;
+  if (sw <= 0 || sh <= 0) return;
+
+  // copy source patch
+  const src = document.createElement("canvas");
+  src.width = sw;
+  src.height = sh;
+  const sctx = src.getContext("2d");
+  if (!sctx) return;
+  sctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+  // blur the patch
+  const blurred = document.createElement("canvas");
+  blurred.width = sw;
+  blurred.height = sh;
+  const bctx = blurred.getContext("2d");
+  if (!bctx) return;
+  bctx.filter = `blur(${Math.max(0, Math.round(blurPx))}px)`;
+  bctx.drawImage(src, 0, 0);
+  bctx.filter = "none";
+
+  // build an ellipse mask with optional feather
+  const mask = document.createElement("canvas");
+  mask.width = sw;
+  mask.height = sh;
+  const mctx = mask.getContext("2d");
+  if (!mctx) return;
+
+  const cx = x - sx + w / 2;
+  const cy = y - sy + h / 2;
+  const rx = Math.max(1, w / 2);
+  const ry = Math.max(1, h / 2);
+  mctx.save();
+  mctx.translate(cx, cy);
+  const R = Math.max(rx, ry);
+  mctx.scale(rx / R, ry / R);
+  if (featherPx <= 0) {
+    mctx.fillStyle = "rgba(0,0,0,1)";
+    mctx.beginPath();
+    mctx.arc(0, 0, R, 0, Math.PI * 2);
+    mctx.fill();
+  } else {
+    const inner = Math.max(0, R - featherPx);
+    const grad = mctx.createRadialGradient(0, 0, inner, 0, 0, R);
+    grad.addColorStop(0, "rgba(0,0,0,1)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    mctx.fillStyle = grad;
+    mctx.beginPath();
+    mctx.arc(0, 0, R, 0, Math.PI * 2);
+    mctx.fill();
+  }
+  mctx.restore();
+
+  // apply mask to blurred patch (keep only inside ellipse)
+  bctx.save();
+  bctx.globalCompositeOperation = "destination-in";
+  bctx.drawImage(mask, 0, 0);
+  bctx.restore();
+
+  // paint onto destination
+  ctx.drawImage(blurred, sx, sy);
+}
+
+export function isFaceApiNS(x: unknown): x is FaceApiCompatNS {
+  if (!x || typeof x !== "object") return false;
+  const o = x as Record<string, unknown>;
+  const hasDetect = typeof o["detectAllFaces"] === "function";
+  const hasOpts = typeof o["TinyFaceDetectorOptions"] === "function";
+  const nets = o["nets"] as Record<string, unknown> | undefined;
+  const hasNet =
+    !!nets && typeof nets === "object" && "tinyFaceDetector" in nets;
+  return hasDetect && hasOpts && hasNet;
 }
