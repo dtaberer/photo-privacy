@@ -20,11 +20,17 @@ export function setupOrt(options?: {
   if (typeof window !== "undefined" && window.__TEST__) return;
   if (initialized) return;
 
+  // Resolve the base path for ORT sidecar assets. Prefer Vite's BASE_URL so
+  // GitHub Pages subpaths like "/photo-privacy/" work, then fall back to origin.
+  const VITE_BASE =
+    (import.meta as unknown as { env?: Record<string, string> }).env?.BASE_URL ??
+    "/";
+  const basePrefix = VITE_BASE.endsWith("/") ? VITE_BASE : `${VITE_BASE}/`;
   const base =
     options?.basePath ??
     (typeof window !== "undefined"
-      ? `${window.location.origin}/ort-runtime/`
-      : "/ort-runtime/");
+      ? `${window.location.origin}${basePrefix}ort-runtime/`
+      : `${basePrefix}ort-runtime/`);
 
   ort.env.wasm.wasmPaths = base;
   ort.env.wasm.simd = options?.simd ?? true;
