@@ -11,6 +11,7 @@ import LicensePlateBlur from "./LicensePlateBlur";
 import FaceBlur from "./FaceBlur";
 import ControlPanel from "./ControlPanel";
 import Preview from "./Preview";
+import demoImage from "../assets/bubble-blower.jpg";
 import { FileLoader } from "./FileLoader";
 import PlateRedactor, { PlateRedactorHandle } from "./PlateRedactor";
 import {
@@ -61,12 +62,47 @@ export function PrivacyScrubber() {
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [origName, setOrigName] = useState<string | null>(null);
   const [canvasVisible, setCanvasVisible] = useState<boolean>(false);
+  const rightPaneRef = useRef<HTMLDivElement>(null);
+  const leftHeaderRef = useRef<HTMLDivElement>(null);
+  const [initialPreviewHeight, setInitialPreviewHeight] = useState<number>(0);
+  const demoPendingRef = useRef(false);
 
   const imgRef = useRef<HTMLImageElement>(null!);
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const faceRef = useRef<BlurHandler<Box> | null>(null);
   const plateRef = useRef<BlurHandler<Box> | null>(null);
   const plateRedactorRef = useRef<PlateRedactorHandle | null>(null);
+
+  useEffect(() => {
+    // Align preview placeholder height to right pane bottom on first load
+    const wrapper = rightPaneRef.current;
+    const headerEl = leftHeaderRef.current;
+    if (!wrapper) return;
+
+    const calc = () => {
+      const rightRect = wrapper?.getBoundingClientRect();
+      const headerRect = headerEl?.getBoundingClientRect();
+      if (!rightRect || !headerRect) return;
+      // Fill from the header's bottom to the right pane's bottom
+      const h = Math.max(0, Math.floor(rightRect.bottom - headerRect.bottom));
+      setInitialPreviewHeight(h);
+    };
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => calc());
+      ro.observe(wrapper);
+    }
+    window.addEventListener("resize", calc);
+    const id = window.setTimeout(calc, 0);
+    return () => {
+      window.clearTimeout(id);
+      window.removeEventListener("resize", calc);
+      try {
+        ro?.disconnect();
+      } catch {}
+    };
+  }, []);
 
   useEffect(() => {
     if (!previewUrl) return;
@@ -181,6 +217,26 @@ export function PrivacyScrubber() {
     downloadCanvas(out, filename, mime, 0.92);
   }, [origName]);
 
+  const onTryDemo = useCallback(() => {
+    setOrigName("demo.jpg");
+    if (previewUrl === demoImage) {
+      // If already showing demo image, just re-run detection
+      void onRefreshHandler();
+      return;
+    }
+    // Otherwise load the demo and refresh after the image loads
+    demoPendingRef.current = true;
+    setCanvasVisible(false);
+    setPreviewUrl(demoImage);
+  }, [onRefreshHandler, previewUrl]);
+
+  const onPreviewImageLoaded = useCallback(() => {
+    if (demoPendingRef.current) {
+      demoPendingRef.current = false;
+      void onRefreshHandler();
+    }
+  }, [onRefreshHandler]);
+
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const items = Array.from(e.clipboardData?.items ?? []);
@@ -240,6 +296,10 @@ export function PrivacyScrubber() {
           imgRef={imgRef}
           canvasVisible={canvasVisible}
           busy={busy}
+          initialHeight={initialPreviewHeight}
+          headerRef={leftHeaderRef}
+          onTryDemo={onTryDemo}
+          onImageLoaded={onPreviewImageLoaded}
         />
         {USE_MANUAL_REDACTOR && previewUrl && (
           <PlateRedactor
@@ -252,7 +312,7 @@ export function PrivacyScrubber() {
         )}
 
         <Col md={4}>
-          <div className="sticky-top sticky-offset-1">
+          <div ref={rightPaneRef} className="sticky-top sticky-offset-1">
             <Card className="shadow-sm border-0">
               <Card.Body>
                 <FileLoader
@@ -278,12 +338,10 @@ export function PrivacyScrubber() {
                         platesOn
                           ? ({
                               backgroundColor: "var(--bs-primary)",
-                              borderColor: "var(--bs-primary)",
                               color: "#fff",
                             } as React.CSSProperties)
                           : ({
                               backgroundColor: "#dee2e6",
-                              borderColor: "#ced4da",
                               color: "#6c757d",
                             } as React.CSSProperties)
                       }
@@ -309,12 +367,10 @@ export function PrivacyScrubber() {
                         facesOn
                           ? ({
                               backgroundColor: "var(--bs-primary)",
-                              borderColor: "var(--bs-primary)",
                               color: "#fff",
                             } as React.CSSProperties)
                           : ({
                               backgroundColor: "#dee2e6",
-                              borderColor: "#ced4da",
                               color: "#6c757d",
                             } as React.CSSProperties)
                       }

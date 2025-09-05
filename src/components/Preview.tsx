@@ -15,6 +15,8 @@ interface PreviewProps {
   badgeList: string[];
   imgRef?: React.RefObject<HTMLImageElement | null>;
   busy?: boolean;
+  initialHeight?: number;
+  headerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const Preview: React.FC<PreviewProps> = ({
@@ -29,6 +31,8 @@ const Preview: React.FC<PreviewProps> = ({
   badgeList,
   imgRef,
   busy,
+  initialHeight,
+  headerRef,
 }) => {
   if (!imgRef) return <div>No image to preview.</div>;
 
@@ -46,10 +50,20 @@ const Preview: React.FC<PreviewProps> = ({
     );
   };
 
+  const initialMode = !(imgSize.w && imgSize.h);
+
   return (
     <Col md={8}>
-      <Card className={`shadow-sm border-0 ${busy ? "cursor-busy" : ""}`}>
-        <Card.Header className="bg-light d-flex align-items-center justify-content-between">
+      <Card
+        className={`shadow-sm border-0 preview-card ${busy ? "cursor-busy" : ""} ${
+          initialMode ? "is-initial" : ""
+        }`}
+        style={initialMode ? ({ height: "84%" } as React.CSSProperties) : undefined}
+      >
+        <Card.Header
+          ref={headerRef as React.RefObject<HTMLDivElement>}
+          className="bg-light d-flex align-items-center justify-content-between"
+        >
           <div className="d-flex align-items-center gap-2 text-secondary">
             <FaImage className="text-secondary" />
             <span className="fw-semibold">{title}</span>
@@ -69,8 +83,12 @@ const Preview: React.FC<PreviewProps> = ({
         </Card.Header>
 
         <div
-          className="bg-body-tertiary position-relative"
-          style={imgSize.w && imgSize.h ? { aspectRatio: `${imgSize.w} / ${imgSize.h}` } : undefined}
+          className="bg-body-tertiary position-relative preview-stage"
+          style={
+            imgSize.w && imgSize.h
+              ? ({ aspectRatio: `${imgSize.w} / ${imgSize.h}` } as React.CSSProperties)
+              : ({ height: "100%" } as React.CSSProperties)
+          }
         >
           <img
             ref={imgRef}
@@ -100,7 +118,12 @@ const Preview: React.FC<PreviewProps> = ({
               />
             </div>
           )}
-          <canvas ref={canvasRef} className={`position-absolute top-0 start-0 w-100 h-100 fade-canvas ${canvasVisible ? "is-visible" : ""}`} />
+          <canvas
+            ref={canvasRef}
+            className={`position-absolute top-0 start-0 w-100 h-100 fade-canvas ${
+              canvasVisible ? "is-visible" : ""
+            }`}
+          />
         </div>
       </Card>
     </Col>
