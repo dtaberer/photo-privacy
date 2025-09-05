@@ -24,8 +24,8 @@ export function blurPatchWithMargin(
   h: number,
   strength0to100: number
 ) {
-  const px = Math.max(1, Math.round((strength0to100 / 100) * 40)); // map 0..100 → ~1..40px
-  const m = Math.ceil(px * 2); // margin to avoid edge transparency
+  const px = Math.max(1, Math.round((strength0to100 / 100) * 40));
+  const m = Math.ceil(px * 2);
 
   const sx = Math.max(0, Math.floor(x - m));
   const sy = Math.max(0, Math.floor(y - m));
@@ -33,7 +33,6 @@ export function blurPatchWithMargin(
   const sh = Math.min(srcImg.naturalHeight - sy, Math.ceil(h + 2 * m));
   if (sw <= 0 || sh <= 0) return;
 
-  // blur the expanded patch offscreen
   const off = document.createElement("canvas");
   off.width = sw;
   off.height = sh;
@@ -43,7 +42,6 @@ export function blurPatchWithMargin(
   octx.drawImage(srcImg, sx, sy, sw, sh, 0, 0, sw, sh);
   octx.filter = "none";
 
-  // paint back, clipped to the original box
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, w, h);
@@ -69,7 +67,6 @@ export function grow(r: FaceBox, pad: number, W: number, H: number): FaceBox {
   return { ...r, x, y, w, h };
 }
 
-// ===== Small helpers (pure) =====
 export const clamp = (n: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, n));
 
@@ -80,8 +77,6 @@ export function cssToCanvasRect(
 ): FaceBox {
   const rect = img.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) {
-    // In test/JSDOM environments getBoundingClientRect may be 0x0.
-    // Fallback to a 1:1 mapping which preserves detection presence.
     return {
       x: Math.round(css.x),
       y: Math.round(css.y),
@@ -118,7 +113,6 @@ export function drawDebugBox(ctx: CanvasRenderingContext2D, r: FaceBox) {
   ctx.restore();
 }
 
-// Blur inside an ellipse with optional feather — localized to the rect area
 export function blurPatchWithFeather(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,

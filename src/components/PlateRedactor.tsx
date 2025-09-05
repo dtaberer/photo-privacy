@@ -120,7 +120,7 @@ export const PlateRedactor = forwardRef<PlateRedactorHandle, Props>(function Pla
   }));
 
   return (
-    <div style={{ display: "grid", gap: 8 }}>
+    <div className="plate-redactor">
       <Canvas
         ref={maskRef}
         width={width}
@@ -131,10 +131,7 @@ export const PlateRedactor = forwardRef<PlateRedactorHandle, Props>(function Pla
         mode="paint"
         onChange={onMaskChange}
       />
-      <canvas
-        ref={outRef}
-        style={{ width, height, border: "1px solid #ddd", display: "block" }}
-      />
+      <canvas ref={outRef} className="canvas-output" style={{ width, height }} />
     </div>
   );
 });

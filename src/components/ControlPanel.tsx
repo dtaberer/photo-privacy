@@ -31,7 +31,6 @@ function ControlPanel({
   return (
     <Card className="shadow-sm border-0 mb-3">
       <Card.Body>
-        {/* Title row with count on the right */}
         <div className="d-flex align-items-center justify-content-between mb-2">
           <Card.Title as="h6" className="mb-0">
             {controlName}
@@ -44,15 +43,11 @@ function ControlPanel({
           </Badge>
         </div>
 
-        {/* Blur slider */}
         <div className="d-flex align-items-center justify-content-between my-2">
           <label htmlFor={blurId} className="mb-0">
             Blur Opacity
           </label>
-          <div
-            className="d-flex align-items-center"
-            style={{ gap: 8, minWidth: 260 }}
-          >
+          <div className="d-flex align-items-center control-inner">
             <Form.Range
               id={blurId}
               min={1}
@@ -62,24 +57,17 @@ function ControlPanel({
               disabled={busy}
               onChange={(e) => setBlurVal(Number(e.currentTarget.value))}
             />
-            <span
-              className="text-muted"
-              style={{ width: 56, textAlign: "right", whiteSpace: "nowrap" }}
-            >
+            <span className="text-muted value-label">
               {blurVal}px
             </span>
           </div>
         </div>
 
-        {/* Filter slider (0–100 UI mapped to 0–1 threshold) */}
         <div className="d-flex align-items-center justify-content-between my-2">
           <label htmlFor={confId} className="mb-0">
             Filter
           </label>
-          <div
-            className="d-flex align-items-center"
-            style={{ gap: 8, minWidth: 260 }}
-          >
+          <div className="d-flex align-items-center control-inner">
             <Form.Range
               id={confId}
               min={0}
@@ -89,24 +77,17 @@ function ControlPanel({
               disabled={busy}
               onChange={(e) => setThreshVal(Number(e.currentTarget.value) / 100)}
             />
-            <span
-              className="text-muted"
-              style={{ width: 56, textAlign: "right", whiteSpace: "nowrap" }}
-            >
+            <span className="text-muted value-label">
               {Math.round(confVal * 100)}%
             </span>
           </div>
         </div>
 
-        {/* Feather slider */}
         <div className="d-flex align-items-center justify-content-between my-2">
           <label htmlFor={featherId} className="mb-0">
             Feather
           </label>
-          <div
-            className="d-flex align-items-center"
-            style={{ gap: 8, minWidth: 260 }}
-          >
+          <div className="d-flex align-items-center control-inner">
             <Form.Range
               id={featherId}
               min={0}
@@ -116,10 +97,7 @@ function ControlPanel({
               disabled={busy}
               onChange={(e) => setFeatherVal(Number(e.currentTarget.value))}
             />
-            <span
-              className="text-muted"
-              style={{ width: 56, textAlign: "right", whiteSpace: "nowrap" }}
-            >
+            <span className="text-muted value-label">
               {featherVal}px
             </span>
           </div>

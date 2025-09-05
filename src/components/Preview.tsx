@@ -32,24 +32,13 @@ const Preview: React.FC<PreviewProps> = ({
 }) => {
   if (!imgRef) return <div>No image to preview.</div>;
 
-  // Match Bootstrap .btn-sm dimensions:
-  // padding: .25rem .5rem; font-size: .875rem; line-height: 1.5
-  const chipStyle: React.CSSProperties = {
-    padding: "0.25rem 0.5rem",
-    fontSize: ".875rem",
-    lineHeight: 1.5,
-  };
   const chipClass =
     "d-inline-flex align-items-center bg-opacity-10 text-secondary " +
     "border border-secondary border-opacity-25 rounded-2";
 
   return (
     <Col md={8}>
-      <Card
-        className="shadow-sm border-0"
-        style={{ cursor: busy ? "progress" : "default" }}
-      >
-        {/* Toolbar header */}
+      <Card className={`shadow-sm border-0 ${busy ? "cursor-busy" : ""}`}>
         <Card.Header className="bg-light d-flex align-items-center justify-content-between">
           <div className="d-flex align-items-center gap-2 text-secondary">
             <FaImage className="text-secondary" />
@@ -57,14 +46,12 @@ const Preview: React.FC<PreviewProps> = ({
           </div>
 
           <div className="d-flex align-items-center gap-2">
-            {/* Chips sized exactly like btn-sm */}
             <div className="d-flex align-items-center gap-1">
               {badgeList.map((b) => (
                 <Badge
                   key={b}
                   bg="secondary"
-                  className={chipClass}
-                  style={chipStyle}
+                  className={`${chipClass} preview-chip`}
                 >
                   {b}
                 </Badge>
@@ -79,14 +66,9 @@ const Preview: React.FC<PreviewProps> = ({
           </div>
         </Card.Header>
 
-        {/* Image + overlay canvas */}
         <div
           className="bg-body-tertiary position-relative"
-          style={
-            imgSize.w && imgSize.h
-              ? { aspectRatio: `${imgSize.w} / ${imgSize.h}` }
-              : undefined
-          }
+          style={imgSize.w && imgSize.h ? { aspectRatio: `${imgSize.w} / ${imgSize.h}` } : undefined}
         >
           <img
             ref={imgRef}
@@ -100,8 +82,6 @@ const Preview: React.FC<PreviewProps> = ({
               const w = e.currentTarget.naturalWidth;
               const h = e.currentTarget.naturalHeight;
               setImgSize({ w, h });
-
-              // Lock the overlay canvas to the image's intrinsic pixel size
               const c = canvasRef.current as HTMLCanvasElement | null;
               if (c) {
                 c.width = w;
@@ -118,11 +98,7 @@ const Preview: React.FC<PreviewProps> = ({
               />
             </div>
           )}
-          <canvas
-            ref={canvasRef}
-            className="position-absolute top-0 start-0 w-100 h-100"
-            style={{ visibility: canvasVisible ? "visible" : "hidden" }}
-          />
+          <canvas ref={canvasRef} className={`position-absolute top-0 start-0 w-100 h-100 ${canvasVisible ? "" : "canvas-hidden"}`} />
         </div>
       </Card>
     </Col>

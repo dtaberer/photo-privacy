@@ -3,3 +3,80 @@
 .cursor-busy * {
   cursor: progress !important; /* or 'wait' if you want the hourglass */
 }
+
+.sticky-offset-1 {
+  top: 1rem;
+}
+
+.preview-chip {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.canvas-hidden {
+  visibility: hidden;
+}
+
+.control-inner {
+  gap: 8px;
+  min-width: 260px;
+}
+
+.value-label {
+  width: 56px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.file-drop {
+  cursor: pointer;
+  min-height: 140px;
+}
+
+.pps-hero {
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 300px;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.plate-redactor {
+  display: grid;
+  gap: 8px;
+}
+
+.canvas-output {
+  border: 1px solid #ddd;
+  display: block;
+}
+
+.canvas-container {
+  position: relative;
+  user-select: none;
+  touch-action: none;
+}
+
+.canvas-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+}
+
+/* Action button hover polish extracted from component */
+.action-btn.btn-outline-secondary:not(:disabled):hover,
+.action-btn.btn-outline-secondary:not(:disabled):focus-visible {
+  color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+  background-color: rgba(var(--bs-primary-rgb), 0.06) !important;
+}
+.action-btn.btn-outline-secondary:not(:disabled):active {
+}

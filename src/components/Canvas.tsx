@@ -1,11 +1,4 @@
-import React, {
-
-useRef,
-useEffect,
-useCallback,
-forwardRef,
-useImperativeHandle,
-} from "react";
+import React, { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 
 export type Rect = { x: number; y: number; w: number; h: number };
 type Mode = "paint" | "erase";
@@ -362,34 +355,19 @@ useEffect(() => {
 }, [showGrid, width, height]);
 
 // Basic styling inlined to avoid external CSS file
-const containerStyle: React.CSSProperties = {
-    position: "relative",
-    width: `${width}px`,
-    height: `${height}px`,
-    userSelect: "none",
-    touchAction: "none",
-};
-
-const canvasStyle: React.CSSProperties = {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    display: "block",
-};
-
 return (
-    <div ref={containerRef} style={containerStyle}>
+    <div ref={containerRef} className="canvas-container" style={{ width: `${width}px`, height: `${height}px` }}>
         <canvas
             ref={imageCanvasRef}
             width={Math.max(1, Math.floor(width * dpr))}
             height={Math.max(1, Math.floor(height * dpr))}
-            style={canvasStyle}
+            className="canvas-layer"
         />
         <canvas
             ref={maskCanvasRef}
             width={Math.max(1, Math.floor(width * dpr))}
             height={Math.max(1, Math.floor(height * dpr))}
-            style={canvasStyle}
+            className="canvas-layer"
         />
     </div>
 );

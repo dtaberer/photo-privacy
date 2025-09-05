@@ -1,4 +1,3 @@
-// File: src/components/FaceBlur.tsx
 import { forwardRef, useImperativeHandle, useCallback, RefObject } from "react";
 import { FaceBlurConstants } from "./constants";
 import type { BlurHandler, PerformanceReport } from "@/types/detector-types";
@@ -11,10 +10,8 @@ import {
   isFaceApiNS,
 } from "./utils/face-blur-utils";
 
-// Use FaceBox from utils for consistency
 type FaceBox = UtilsFaceBox;
 
-// ===== Internal helper types (no behavior change) =====
 export type FaceDetectorBox =
   | { boundingBox: DOMRectReadOnly }
   | { x: number; y: number; width: number; height: number }
@@ -22,14 +19,8 @@ export type FaceDetectorBox =
 
 type FaceApiCompatNS = typeof import("face-api.js");
 
-// using isFaceApiNS imported from utils
-
-// ===== Module state =====
 let facesCache: FaceBox[] = [];
 
-// helpers imported from utils: clamp, cssToCanvasRect, adjustUp, blurPatchWithFeather
-
-// ===== Component =====
 interface FaceBlurProps {
   imgRef: RefObject<HTMLImageElement>;
   canvasRef: RefObject<HTMLCanvasElement>;
@@ -44,8 +35,6 @@ interface FaceBlurProps {
 
 export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
   ({ imgRef, canvasRef, opts }, ref) => {
-    // Prefer built-in FaceDetector if available
-
     const FD = (globalThis as unknown as {
       FaceDetector?: new (opts?: unknown) => {
         detect: (el: HTMLImageElement) => Promise<
@@ -64,22 +53,6 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       if (!img || !canvas) return;
       const t0 = performance.now();
       facesCache = [];
-
-      // Test-only shortcut to simulate detections deterministically
-      if (typeof process !== "undefined" && process.env?.VITEST_WORKER_ID) {
-        const expectDets = (globalThis as unknown as {
-          __EXPECT_DETS__?: boolean;
-        }).__EXPECT_DETS__;
-        if (expectDets) {
-          facesCache = [{ x: 100, y: 120, w: 80, h: 80, score: 1 }];
-          opts.setPerfReport({
-            count: facesCache.length,
-            total: 0,
-            timings: { preprocess: 0, run: 0, post: 0, total: 0 },
-          });
-          return;
-        }
-      }
 
       const blur = FaceBlurConstants.BLUR_DENSITY;
       const conf = clamp(
@@ -111,14 +84,13 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
           facesCache = [];
         }
 
-        // Best effort drawing that never throws the whole block
         try {
           const ctx = canvas.getContext("2d");
           const filtered = facesCache.filter(
             (base) => (base.score ?? 1) >= conf
           );
           for (const base of filtered) {
-            const r0 = base; // FaceDetector has no score; treat as 1.0
+            const r0 = base;
             const W = canvas.width,
               H = canvas.height;
             const rx = clamp(Math.round(r0.x - r0.w * padRatio), 0, W);
@@ -158,7 +130,6 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         return;
       }
 
-      // face-api.js fallback (dynamic)
       let faceapiMod: unknown;
       try {
         faceapiMod = await import("face-api.js");
@@ -166,16 +137,6 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         faceapiMod = undefined;
       }
       if (!isFaceApiNS(faceapiMod)) {
-        // In tests, provide a minimal fallback so handlers have data
-        if (typeof process !== "undefined" && process.env?.VITEST_WORKER_ID) {
-          facesCache = [{ x: 100, y: 120, w: 80, h: 80, score: 1 }];
-          opts.setPerfReport({
-            count: facesCache.length,
-            total: 0,
-            timings: { preprocess: 0, run: 0, post: 0, total: 0 },
-          });
-          return;
-        }
         opts.setPerfReport({
           count: 0,
           total: 0,
@@ -204,15 +165,6 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         }
       }
       if (!loaded) {
-        if (typeof process !== "undefined" && process.env?.VITEST_WORKER_ID) {
-          facesCache = [{ x: 100, y: 120, w: 80, h: 80, score: 1 }];
-          opts.setPerfReport({
-            count: facesCache.length,
-            total: 0,
-            timings: { preprocess: 0, run: 0, post: 0, total: 0 },
-          });
-          return;
-        }
         opts.setPerfReport({
           count: 0,
           total: 0,
@@ -336,15 +288,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       () => ({
         run,
         redraw,
-        getDetections: () => {
-          const expectDets = (globalThis as unknown as {
-            __EXPECT_DETS__?: boolean;
-          }).__EXPECT_DETS__;
-          if (expectDets && facesCache.length === 0) {
-            return [{ x: 100, y: 120, w: 80, h: 80 }];
-          }
-          return facesCache.slice();
-        },
+        getDetections: () => facesCache.slice(),
         reset: () => {
           facesCache = [];
         },

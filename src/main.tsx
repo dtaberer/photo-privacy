@@ -6,6 +6,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "bootstrap/dist/css/bootstrap.min.css"; // keep this above your own styles
 import "./index.css"; // your overrides
+import "./styles/global.css"; // shared component styles
 import { App } from "./App";
 
 const el = document.getElementById("root");

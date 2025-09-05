@@ -23,7 +23,6 @@ import {
 import { Box, Size, BlurHandler } from "@/types/detector-types";
 
 export function PrivacyScrubber() {
-  // useState hooks for LicensePlateBlur
   const [platesOn, setPlatesOn] = useState<boolean>(
     LicensePlateBlurConstants.RUN_LICENSE_PLATE_DETECTION
   );
@@ -63,7 +62,6 @@ export function PrivacyScrubber() {
   const [origName, setOrigName] = useState<string | null>(null);
   const [canvasVisible, setCanvasVisible] = useState<boolean>(false);
 
-  // References to child components
   const imgRef = useRef<HTMLImageElement>(null!);
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const faceRef = useRef<BlurHandler<Box> | null>(null);
@@ -71,26 +69,21 @@ export function PrivacyScrubber() {
   const plateRedactorRef = useRef<PlateRedactorHandle | null>(null);
 
   useEffect(() => {
-    // Only when an image is loaded
     if (!previewUrl) return;
     const cvs = canvasRef.current;
     const ctx = cvs?.getContext("2d");
     if (!cvs || !ctx) return;
 
-    // Throttle redraw slightly to keep sliders responsive
     const cleanupFns: Array<() => void> = [];
     const timeout = window.setTimeout(() => {
       const id = requestAnimationFrame(() => {
-        // Start clean, then redraw plates → faces (faces composes on top)
         ctx.clearRect(0, 0, cvs.width, cvs.height);
         if (platesOn) plateRef.current?.redraw();
         if (facesOn) faceRef.current?.redraw();
-        // Ensure canvas is visible (no-op if already true)
         setCanvasVisible((v) => (v ? v : true));
       });
-      // ensure pending rAF is cleared if dependencies change rapidly
       cleanupFns.push(() => cancelAnimationFrame(id));
-    }, 32); // ~30 FPS max during slider drag
+    }, 32);
     cleanupFns.push(() => clearTimeout(timeout));
     return () => {
       for (const fn of cleanupFns) fn();
@@ -140,7 +133,6 @@ export function PrivacyScrubber() {
     []
   );
 
-  // simple perf formatter for badges
   const fmtMs = (ms: number) => `${ms.toFixed(1)}ms`;
 
   const clearCanvas = useCallback(() => {
@@ -161,12 +153,10 @@ export function PrivacyScrubber() {
   }, []);
 
   const onDownloadHandler = useCallback(() => {
-    const base = imgRef.current; // <img> from <Preview>
-    const overlay = canvasRef.current; // overlay <canvas> from LicensePlateBlur
+    const base = imgRef.current;
+    const overlay = canvasRef.current;
 
     if (!base || !overlay) return;
-
-    // Use the overlay’s internal size (device pixels) so the two layers line up
     const W = overlay.width;
     const H = overlay.height;
 
@@ -212,23 +202,7 @@ export function PrivacyScrubber() {
   }, [clearCanvas, previewUrl]);
 
   return (
-    <div
-      className="bg-light min-vh-100"
-      style={{ cursor: busy ? "progress" : "default" }} // busy cursor
-    >
-      {/* Action buttons hover polish */}
-      <style>
-        {`
-    .action-btn.btn-outline-secondary:not(:disabled):hover,
-    .action-btn.btn-outline-secondary:not(:disabled):focus-visible {
-      color: var(--bs-primary) !important;
-      border-color: var(--bs-primary) !important;
-      background-color: rgba(var(--bs-primary-rgb), .06) !important;
-    }
-    .action-btn.btn-outline-secondary:not(:disabled):active {
-    }
-  `}
-      </style>
+    <div className={`bg-light min-vh-100 ${busy ? "cursor-busy" : ""}`}>
       <LicensePlateBlur
         ref={plateRef}
         imgRef={imgRef}
@@ -254,7 +228,6 @@ export function PrivacyScrubber() {
         }}
       />
       <Row className="g-3">
-        {/* Preview column */}
         <Preview
           imgSize={imgSize}
           setImgSize={setImgSize}
@@ -278,12 +251,10 @@ export function PrivacyScrubber() {
           />
         )}
 
-        {/* Controls column (sticky) */}
         <Col md={4}>
-          <div className="sticky-top" style={{ top: "1rem" }}>
+          <div className="sticky-top sticky-offset-1">
             <Card className="shadow-sm border-0">
               <Card.Body>
-                {/* Drop zone */}
                 <FileLoader
                   onFilePickHandler={onFilePickHandler}
                   setDragOver={setDragOver}
@@ -291,7 +262,6 @@ export function PrivacyScrubber() {
                   busy={busy}
                 />
 
-                {/* Master Switches with count badges */}
                 <div className="px-2 mb-3">
                   <div className="d-flex align-items-center justify-content-between">
                     <Form.Check
@@ -311,7 +281,6 @@ export function PrivacyScrubber() {
                   </div>
                 </div>
 
-                {/* Faces switch + badge */}
                 <div className="px-2 mb-3">
                   <div className="d-flex align-items-center justify-content-between">
                     <Form.Check
@@ -331,7 +300,6 @@ export function PrivacyScrubber() {
                   </div>
                 </div>
 
-                {/* License Plate Panel */}
                 {platesOn && (
                   <ControlPanel
                     blurVal={plateBlur}
@@ -346,7 +314,6 @@ export function PrivacyScrubber() {
                   />
                 )}
 
-                {/* Face Panel */}
                 {facesOn && (
                   <ControlPanel
                     blurVal={faceBlur}

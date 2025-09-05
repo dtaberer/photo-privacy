@@ -1,9 +1,4 @@
-import React, {
-  forwardRef,
-  useImperativeHandle,
-  useCallback,
-  useRef,
-} from "react";
+import React, { forwardRef, useImperativeHandle, useCallback, useRef } from "react";
 import { ort, createOrtSession, ortForceBasicWasm } from "../ort-setup";
 import {
   letterbox,
@@ -22,11 +17,9 @@ import type {
 import type { Tensor } from "onnxruntime-web";
 import { LicensePlateBlurConstants } from "./constants";
 
-// Internal session cache (component is effectively singleton)
 let plateSession: ort.InferenceSession | null = null;
 let plateInputName = "";
 
-// Keep confidence internally; public API exposes plain Box[]
 export type BoxWithConf = Box & { conf: number };
 let boxes: BoxWithConf[] = [];
 
@@ -52,7 +45,6 @@ async function ensurePlateSession(
   const buf = await resp.arrayBuffer();
   const sess = await createOrtSession(buf);
   plateSession = sess;
-  // Fallback to common input name used by many YOLO exports
   plateInputName =
     (sess as unknown as { inputNames?: string[] }).inputNames?.[0] ?? "images";
   return { plateSession, plateInputName };

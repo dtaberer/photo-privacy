@@ -42,8 +42,7 @@ export function FileLoader({
             dragOver
               ? "border border-2 border-primary bg-primary bg-opacity-10"
               : "border border-2 border-secondary-subtle bg-light-subtle"
-          }`}
-          style={{ cursor: "pointer", minHeight: 140 }}
+          } file-drop`}
         >
           <div className="text-secondary">
             <FaUpload className="mb-1 me-1 text-secondary" />
