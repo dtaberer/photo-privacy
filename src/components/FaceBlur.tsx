@@ -147,8 +147,12 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const faceapi: FaceApiCompatNS = faceapiMod as FaceApiCompatNS;
 
       // Try a couple of base paths for models
+      const BASE = (import.meta as unknown as { env?: Record<string, string> }).env?.BASE_URL ?? "/";
+      const bp = BASE.endsWith("/") ? BASE : `${BASE}/`;
       const bases = [
         FaceBlurConstants.MODELS_URL,
+        `${bp}models/face`,
+        `${bp}models`,
         "/models/face",
         "/models",
       ].filter((b): b is string => typeof b === "string" && b.length > 0);

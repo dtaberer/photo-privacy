@@ -1,6 +1,8 @@
 // Constants for Face and License Plate blurring
 
 import { Size } from "@/types/detector-types";
+const BASE = (import.meta as unknown as { env?: Record<string, string> }).env?.BASE_URL ?? "/";
+const basePath = BASE.endsWith("/") ? BASE : `${BASE}/`;
 
 export const USE_MANUAL_REDACTOR = false; // set to true to enable the manual redactor component
 export interface FaceBlurConstants {
@@ -42,7 +44,7 @@ export const FaceBlurConstants: FaceBlurConstants = {
   FEATHER_PX: 1,
   MAX_DETECTED_FACES: 50,
   MODEL_SIZE: 320,
-  MODELS_URL: "/models/face-api",
+  MODELS_URL: `${basePath}models/face-api`,
 };
 
 export const LicensePlateBlurConstants: LicensePlateBlurConstants = {
@@ -50,7 +52,7 @@ export const LicensePlateBlurConstants: LicensePlateBlurConstants = {
   CONFIDENCE_THRESHOLD: 0.02,
   RUN_LICENSE_PLATE_DETECTION: true,
   MODEL_SIZE: 800,
-  MODEL_URL: "/models/license-plate-finetune-v1n.onnx",
+  MODEL_URL: `${basePath}models/license-plate-finetune-v1n.onnx`,
   IOU_THRESHOLD: 0.1,
   PAD_RATIO: 0.01,
   FEATHER_PX: 1,

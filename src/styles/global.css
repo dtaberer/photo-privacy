@@ -192,9 +192,9 @@ label {
 
 /* Global CSS variables and resets (should be top-level, not nested) */
 :root {
-    --brand-primary: #4d85d7;
+    --brand-primary: #9bb9e4;
     --brand-primary-rgb: 37, 99, 235;
-    --brand-secondary: #0ea5e9;
+    --brand-secondary: #62aaea;
     --surface: #ffffff;
     --surface-2: #f8fafc;
     /* Global text colors */
@@ -217,7 +217,7 @@ label {
       0 2px 6px rgba(2, 6, 23, 0.2);
     --bs-form-range-thumb-focus-box-shadow: 0 0 0 0.25rem
       rgba(var(--brand-primary-rgb), 0.25);
-    --bs-form-range-thumb-disabled-bg: #94a3b8;
+    --bs-form-range-thumb-disabled-bg: #c7cdd5;
     --bs-form-range-track-height: 8px;
     --bs-form-range-track-bg: #e4ecf7;
 }
@@ -259,7 +259,7 @@ h6,
 .badge {
   font-weight: 600;
   letter-spacing: 0.02em;
-  background-color: #9eb5d9 !important;
+  background-color: #7193c9 !important;
   color: #fff !important;
   /* Center contents for all badges */
   display: inline-flex;
@@ -428,7 +428,7 @@ input.form-range.themed-range {
   /* Global slider thumb size (~15% smaller than 14px) */
   --bs-form-range-thumb-width: 12px !important;
   --bs-form-range-thumb-height: 12px !important;
-  --bs-form-range-thumb-bg: #226fdf !important;
+  --bs-form-range-thumb-bg: #5d9fff !important;
   --bs-form-range-thumb-border: 2px solid #d1e0f7 !important;
   --bs-form-range-thumb-box-shadow: 0 0 0 2px
       rgba(var(--brand-primary-rgb), 0.45),
@@ -586,6 +586,6 @@ input[type="range"].themed-range:focus-visible::-moz-range-thumb {
 }
 /* Specific override for form-switch toggles */
 .form-switch .form-check-input:checked {
-  background-color: #226fdf !important;
+  background-color: #7193c9 !important;
   border-color: #33517d !important;
 }

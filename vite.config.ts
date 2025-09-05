@@ -3,6 +3,9 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 
 export default defineConfig({
+  // Use relative asset paths so static hosting under a subpath (e.g., GitHub Pages)
+  // works without needing to hardcode the repository name.
+  base: "./",
   server: {
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",
