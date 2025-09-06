@@ -4,15 +4,16 @@ Fast, privacy‑first redaction for faces and license plates — runs entirely i
 
 ## Live Demo
 
-- Deploy this repo to GitHub Pages (workflow included) or Vercel/Netlify.
-- Once deployed, add your live URL here for quick sharing.
+Live Demo: https://dtaberer.github.io/photo-privacy
 
 ## 1) Install & Run (step‑by‑step)
 
 Prereqs
+
 - Node.js 20+ and npm 10+
 
 Install dependencies and fetch models/sidecars
+
 ```bash
 git clone https://github.com/dtaberer/photo-privacy.git
 cd photo-privacy
@@ -23,11 +24,13 @@ npm run ort:prep
 ```
 
 Start the dev server
+
 ```bash
 npm run dev
 ```
 
 Run the test suite
+
 ```bash
 npm test            # one‑shot
 npm run test:watch  # watch mode
@@ -81,6 +84,7 @@ Steps:
 3. Push to `main` or `master` — the deploy workflow publishes automatically.
 
 Alternatively, you can serve from `main:/docs`:
+
 ```bash
 npm run build
 git add -A docs
@@ -104,7 +108,7 @@ git push
 
 ## Tests
 
-New tests added for interaction and layout behavior:
+Tests added for interaction and layout behavior:
 
 - `src/__tests__/FileLoader.interaction.spec.tsx` — paste, drag‑drop, input change
 - `src/__tests__/Preview.initial.spec.tsx` — initial height/classes before image load
@@ -114,11 +118,9 @@ Run them locally with `npm test`.
 
 ## 4) Screenshots
 
-| Before | After |
-|---|---|
+| Before                                                                                                              | After                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/before.JPG" alt="Before" width="600"/> | <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/after.JPG" alt="After" width="600"/> |
-
-Tip: If these do not appear, ensure `docs/before.JPG` and `docs/after.JPG` exist on the `main` branch (case‑sensitive paths), or replace the URLs above with your own.
 
 ## Privacy
 
@@ -126,4 +128,11 @@ All detection runs on your device. Images never leave your machine. Models load 
 
 ## License
 
-Proprietary or personal — choose what fits your goals. If you want, I can add an OSS license (MIT/Apache‑2.0).
+Dual-licensed under either of:
+
+- Apache License, Version 2.0 (see LICENSE-APACHE)
+- MIT license (see LICENSE-MIT)
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this project by you, as defined in the Apache-2.0 license,
+shall be dual licensed as above, without any additional terms or conditions.
