@@ -112,11 +112,13 @@ New tests added for interaction and layout behavior:
 
 Run them locally with `npm test`.
 
-## 4) Screenshot
+## 4) Screenshots
 
-![App Screenshot](docs/screenshot.png)
+| Before | After |
+|---|---|
+| <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/before.JPG" alt="Before" width="600"/> | <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/after.JPG" alt="After" width="600"/> |
 
-Tip: Replace `docs/screenshot.png` with an actual screenshot of your deployed app so it renders on GitHub and in the site.
+Tip: If these do not appear, ensure `docs/before.JPG` and `docs/after.JPG` exist on the `main` branch (case‑sensitive paths), or replace the URLs above with your own.
 
 ## Privacy
 
