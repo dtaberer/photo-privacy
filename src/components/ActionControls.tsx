@@ -24,13 +24,13 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
       {/* Scrub first (left) */}
       <OverlayTrigger
         placement="bottom"
-        overlay={<Tooltip id="tt-refresh">Scrub Image</Tooltip>}
+        overlay={<Tooltip id="tt-refresh">Refresh</Tooltip>}
       >
         <Button
           className="action-btn"
           size="sm"
           variant="outline-secondary"
-          aria-label="Scrub Image"
+          aria-label="Refresh"
           onClick={onClickRefreshHandler}
           disabled={busy}
         >
