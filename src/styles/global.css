@@ -254,7 +254,7 @@ h6,
 .text-muted,
 .small,
 .form-text {
-  color: var(--text-muted) !important;
+  color: #337ccb !important;
 }
 .badge {
   font-weight: 600;
@@ -289,9 +289,9 @@ h6,
   padding: 7px 10px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #8ea3a6 !important;
-  background: rgba(170, 183, 205, 0.12) !important;
-  border: 1px solid #dedede !important;
+  color: #678aa0 !important;
+  background: rgba(185, 193, 208, 0.12) !important;
+  border: 1px solid #d6e1e7 !important;
   border-radius: 4px;
   min-width: 120px !important;
   max-width: 120px !important;

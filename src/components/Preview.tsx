@@ -3,6 +3,8 @@ import { Col, Card, Badge, Spinner } from "react-bootstrap";
 import { FaImage, FaBolt, FaMicrochip, FaLaptop } from "react-icons/fa";
 
 interface PreviewProps {
+  onClickRefreshHandler?: () => void;
+  onClickDownloadHandler?: () => void;
   imgSize: { w: number; h: number };
   setImgSize: React.Dispatch<React.SetStateAction<{ w: number; h: number }>>;
   canvasVisible: boolean;

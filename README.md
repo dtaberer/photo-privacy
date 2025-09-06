@@ -7,6 +7,34 @@ Fast, privacy‑first redaction for faces and license plates — runs entirely i
 - Deploy this repo to GitHub Pages (workflow included) or Vercel/Netlify.
 - Once deployed, add your live URL here for quick sharing.
 
+## 1) Install & Run (step‑by‑step)
+
+Prereqs
+- Node.js 20+ and npm 10+
+
+Install dependencies and fetch models/sidecars
+```bash
+git clone https://github.com/dtaberer/photo-privacy.git
+cd photo-privacy
+npm ci
+# (postinstall runs model + ORT preparation; if scripts were skipped, run:)
+npm run models:fetch
+npm run ort:prep
+```
+
+Start the dev server
+```bash
+npm run dev
+```
+
+Run the test suite
+```bash
+npm test            # one‑shot
+npm run test:watch  # watch mode
+npm run lint        # ESLint
+npm run typecheck   # TypeScript
+```
+
 ## Features
 
 - On‑device detection: no data leaves your machine
@@ -17,28 +45,25 @@ Fast, privacy‑first redaction for faces and license plates — runs entirely i
 - Accessible controls, keyboard‑friendly sliders, screen‑reader labels
 - Thorough tests (Vitest + Testing Library)
 
-## Tech Stack
+## 2) Technologies / Libraries
 
 - React 19 + Vite + TypeScript
 - onnxruntime‑web for plates; FaceDetector API or face‑api.js fallback
 - React‑Bootstrap for layout and controls
 - Vitest + @testing‑library for tests
 
-## Local Development
+## 3) How to Use
 
-```bash
-npm ci
-npm run dev
-```
-
-Useful scripts:
-
-- `npm run test` — run the test suite once
-- `npm run test:watch` — watch mode
-- `npm run lint` — ESLint
-- `npm run typecheck` — `tsc --noEmit`
-- `npm run dev` — Vite dev server
-- `npm run build` — production build to `dist/`
+- Load a photo:
+  - Drag & drop into the right panel, or
+  - Click “Drag & Drop” to choose a file, or
+  - Paste an image from the clipboard (Ctrl/Cmd+V)
+- Try the Demo: click the “Try the Demo” overlay in the preview to auto‑run detection and see tips
+- Adjust sliders:
+  - Blur Opacity: change blur intensity
+  - Feather: soften the edges (keeps full coverage; feathers outward)
+  - Filter: adjust sensitivity/threshold to include/exclude detections
+- Download: click “Download” to save the composited, redacted image
 
 ## Deploy Options
 
@@ -55,7 +80,14 @@ Steps:
 2. In GitHub: Settings → Pages → Build and deployment → Source: GitHub Actions.
 3. Push to `main` or `master` — the deploy workflow publishes automatically.
 
-Vite is configured with `base: "./"` so it works under a subpath.
+Alternatively, you can serve from `main:/docs`:
+```bash
+npm run build
+git add -A docs
+git commit -m "publish: docs"
+git push
+# Repo Settings → Pages → Source: Deploy from a branch → Branch: main, Folder: /docs
+```
 
 ### Vercel / Netlify
 
@@ -80,6 +112,12 @@ New tests added for interaction and layout behavior:
 
 Run them locally with `npm test`.
 
+## 4) Screenshot
+
+![App Screenshot](docs/screenshot.png)
+
+Tip: Replace `docs/screenshot.png` with an actual screenshot of your deployed app so it renders on GitHub and in the site.
+
 ## Privacy
 
 All detection runs on your device. Images never leave your machine. Models load from the same origin as the app and are cached locally by the browser.
@@ -87,4 +125,3 @@ All detection runs on your device. Images never leave your machine. Models load 
 ## License
 
 Proprietary or personal — choose what fits your goals. If you want, I can add an OSS license (MIT/Apache‑2.0).
-

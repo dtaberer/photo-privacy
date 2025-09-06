@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "screenshot": "node scripts/screenshot.mjs",
     "build:prod": "vite build",
     "build:verify": "node scripts/verify-ort-dist.mjs",
     "clean:vite": "node -e \"try{require('fs').rmSync('node_modules/.vite',{recursive:true,force:true})}catch(e){}\"",
@@ -60,6 +61,7 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2",
+    "playwright": "^1.47.2",
     "vitest": "^3.2.4"
   }
 }
