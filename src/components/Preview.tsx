@@ -1,11 +1,8 @@
 import React from "react";
 import { Col, Card, Badge, Spinner } from "react-bootstrap";
 import { FaImage, FaBolt, FaMicrochip, FaLaptop } from "react-icons/fa";
-import ActionControls from "./ActionControls";
 
 interface PreviewProps {
-  onClickRefreshHandler: () => void;
-  onClickDownloadHandler: () => void;
   imgSize: { w: number; h: number };
   setImgSize: React.Dispatch<React.SetStateAction<{ w: number; h: number }>>;
   canvasVisible: boolean;
@@ -17,11 +14,13 @@ interface PreviewProps {
   busy?: boolean;
   initialHeight?: number;
   headerRef?: React.RefObject<HTMLDivElement | null>;
+  onTryDemo?: () => void;
+  onImageLoaded?: () => void;
+  showDemoOverlay?: boolean;
+  overlay?: React.ReactNode;
 }
 
 const Preview: React.FC<PreviewProps> = ({
-  onClickRefreshHandler,
-  onClickDownloadHandler,
   imgSize,
   setImgSize,
   canvasVisible,
@@ -32,6 +31,10 @@ const Preview: React.FC<PreviewProps> = ({
   imgRef,
   busy,
   headerRef,
+  onTryDemo,
+  onImageLoaded,
+  showDemoOverlay,
+  overlay,
 }) => {
   if (!imgRef) return <div>No image to preview.</div>;
 
@@ -65,8 +68,8 @@ const Preview: React.FC<PreviewProps> = ({
           ref={headerRef as React.RefObject<HTMLDivElement>}
           className="bg-light d-flex align-items-center justify-content-between"
         >
-          <div className="d-flex align-items-center gap-2 text-secondary">
-            <FaImage className="text-secondary" />
+          <div className="d-flex align-items-center gap-2 text-muted">
+            <FaImage className="text-muted" />
             <span className="fw-semibold">{title}</span>
           </div>
 
@@ -74,12 +77,6 @@ const Preview: React.FC<PreviewProps> = ({
             <div className="d-flex align-items-center gap-1">
               {badgeList.map((b) => renderChip(b))}
             </div>
-
-            <ActionControls
-              onClickRefreshHandler={onClickRefreshHandler}
-              onClickDownloadHandler={onClickDownloadHandler}
-              busy={busy || !previewUrl}
-            />
           </div>
         </Card.Header>
 
@@ -110,8 +107,29 @@ const Preview: React.FC<PreviewProps> = ({
                 c.width = w;
                 c.height = h;
               }
+              onImageLoaded?.();
             }}
           />
+          {!previewUrl && (
+            <div className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center p-4">
+              <div className="mb-2 fw-semibold text-muted">No image loaded</div>
+              <div className="text-muted mb-3" style={{ maxWidth: 520 }}>
+                Drag & drop on the right, paste from clipboard, or try the demo.
+              </div>
+              {onTryDemo && (
+                <button type="button" className="btn btn-primary btn-sm" onClick={onTryDemo}>
+                  Try the Demo
+                </button>
+              )}
+            </div>
+          )}
+          {previewUrl && showDemoOverlay && onTryDemo && (
+            <div className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center p-4" style={{pointerEvents: 'none'}}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={onTryDemo} style={{ pointerEvents: 'auto' }}>
+                Try the Demo
+              </button>
+            </div>
+          )}
           {busy && (
             <div className="position-absolute top-50 start-50 translate-middle">
               <Spinner
@@ -127,6 +145,18 @@ const Preview: React.FC<PreviewProps> = ({
               canvasVisible ? "is-visible" : ""
             }`}
           />
+          {overlay && (
+            <div
+              className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center p-3"
+              style={{
+                pointerEvents: 'none',
+                background: 'rgba(0,0,0,0.45)',
+                backdropFilter: 'blur(1px)',
+              }}
+            >
+              <div style={{ pointerEvents: 'auto' }}>{overlay}</div>
+            </div>
+          )}
         </div>
       </Card>
     </Col>

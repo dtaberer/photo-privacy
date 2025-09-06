@@ -50,10 +50,10 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
     const run = useCallback(async () => {
       const img = imgRef.current;
       const canvas = canvasRef.current;
-      if (!img || !canvas) return;
+      if (!img || !canvas || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) return;
       const t0 = performance.now();
       facesCache = [];
-
+      // Initial pass uses constant density; interactive slider updates happen via redraw()
       const blur = FaceBlurConstants.BLUR_DENSITY;
       const conf = clamp(
         opts.confThresh ?? FaceBlurConstants.CONFIDENCE_THRESHOLD,
@@ -251,7 +251,10 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const canvas = canvasRef.current;
       const padRatio = FaceBlurConstants.PAD_RATIO;
 
-      if (!img || !canvas) return;
+      // Guard against redraw before image loads (e.g., when previewUrl changes)
+      if (!img || !canvas || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+        return;
+      }
       const ctx = canvas.getContext("2d");
 
       if (!ctx) return;

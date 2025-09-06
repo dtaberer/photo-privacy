@@ -11,7 +11,10 @@ import LicensePlateBlur from "./LicensePlateBlur";
 import FaceBlur from "./FaceBlur";
 import ControlPanel from "./ControlPanel";
 import Preview from "./Preview";
-// import demoImage from "../assets/bubble-blower.jpg";
+import ActionControls from "./ActionControls";
+import demoImage from "../assets/demo1.jpg";
+import demoImage2 from "../assets/demo2.jpg";
+import fallbackDemo2 from "../assets/demo2.jpg"; // fallback if demo2.jpg is not present
 import { FileLoader } from "./FileLoader";
 import PlateRedactor, { PlateRedactorHandle } from "./PlateRedactor";
 import {
@@ -65,13 +68,27 @@ export function PrivacyScrubber() {
   const rightPaneRef = useRef<HTMLDivElement>(null);
   const leftHeaderRef = useRef<HTMLDivElement>(null);
   const [initialPreviewHeight, setInitialPreviewHeight] = useState<number>(0);
-  //   const demoPendingRef = useRef(false);
+  const demoPendingRef = useRef(false);
+  const [showDemoOverlay, setShowDemoOverlay] = useState<boolean>(true);
+  const [demoMode, setDemoMode] = useState<boolean>(false);
+  const [demoStep, setDemoStep] = useState<number>(0); // 0 = intro, 1 = blur/feather tips, 2 = filter tips
+  const BASE =
+    (import.meta as unknown as { env?: Record<string, string> }).env
+      ?.BASE_URL ?? "/";
+  const basePath = BASE.endsWith("/") ? BASE : `${BASE}/`;
+  const demo2Url = `${basePath}demo2.jpg`;
 
   const imgRef = useRef<HTMLImageElement>(null!);
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const faceRef = useRef<BlurHandler<Box> | null>(null);
   const plateRef = useRef<BlurHandler<Box> | null>(null);
   const plateRedactorRef = useRef<PlateRedactorHandle | null>(null);
+
+  useEffect(() => {
+    // Preload demo image into the preview on first mount
+    setOrigName("demo.jpg");
+    setPreviewUrl((old) => old ?? demoImage);
+  }, []);
 
   useEffect(() => {
     // Align preview placeholder height to right pane bottom on first load
@@ -183,6 +200,13 @@ export function PrivacyScrubber() {
   }, []);
 
   const onFilePickHandler = useCallback((file: File): void => {
+    // Clear previous detections and overlays before loading a new image
+    faceRef.current?.reset?.();
+    plateRef.current?.reset?.();
+    setPerfFaces(PERFORMANCE_REPORT_ZEROS);
+    setPerfPlates(PERFORMANCE_REPORT_ZEROS);
+    setCanvasVisible(false);
+    clearCanvas();
     const url = URL.createObjectURL(file);
     setOrigName(file.name);
     setPreviewUrl((old) => {
@@ -219,6 +243,70 @@ export function PrivacyScrubber() {
 
     downloadCanvas(out, filename, mime, 0.92);
   }, [origName]);
+
+  const onTryDemo = useCallback(() => {
+    setShowDemoOverlay(false);
+    setDemoMode(true);
+    setDemoStep(0);
+    // reset previous run state
+    faceRef.current?.reset?.();
+    plateRef.current?.reset?.();
+    setPerfFaces(PERFORMANCE_REPORT_ZEROS);
+    setPerfPlates(PERFORMANCE_REPORT_ZEROS);
+    setCanvasVisible(false);
+    clearCanvas();
+    // If already showing demo image, just run detection; otherwise load then run
+    if (previewUrl === demoImage) {
+      void onRefreshHandler();
+    } else {
+      demoPendingRef.current = true;
+      setCanvasVisible(false);
+      setOrigName("demo.jpg");
+      setPreviewUrl(demoImage);
+    }
+  }, [onRefreshHandler, previewUrl]);
+
+  const onPreviewImageLoaded = useCallback(() => {
+    if (demoPendingRef.current) {
+      demoPendingRef.current = false;
+      void onRefreshHandler();
+    }
+  }, [onRefreshHandler]);
+
+  // When a detection run finishes, if we're in demo mode and looking at demo images, show next hints
+  useEffect(() => {
+    if (!demoMode) return;
+    if (!busy && canvasVisible && previewUrl === demoImage) {
+      setDemoStep(1);
+    }
+    if (!busy && canvasVisible && previewUrl === demoImage2) {
+      setDemoStep(2);
+    }
+  }, [busy, canvasVisible, previewUrl, demoMode]);
+
+  const onNextDemo = useCallback(() => {
+    setDemoStep(0);
+    demoPendingRef.current = true;
+    setCanvasVisible(false);
+    setOrigName("demo2.jpg");
+    // reset caches and perf for the new image
+    faceRef.current?.reset?.();
+    plateRef.current?.reset?.();
+    setPerfFaces(PERFORMANCE_REPORT_ZEROS);
+    setPerfPlates(PERFORMANCE_REPORT_ZEROS);
+    clearCanvas();
+    // Preload the image before swapping previewUrl to avoid broken image paints
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => setPreviewUrl(demo2Url);
+    img.onerror = () => setPreviewUrl(fallbackDemo2);
+    img.src = demo2Url;
+  }, [demo2Url]);
+
+  const onDemoDone = useCallback(() => {
+    setDemoMode(false);
+    setDemoStep(0);
+  }, []);
 
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
@@ -270,8 +358,6 @@ export function PrivacyScrubber() {
         <Preview
           imgSize={imgSize}
           setImgSize={setImgSize}
-          onClickRefreshHandler={onRefreshHandler}
-          onClickDownloadHandler={onDownloadHandler}
           canvasRef={canvasRef}
           title="Preview"
           previewUrl={previewUrl ?? null}
@@ -281,8 +367,57 @@ export function PrivacyScrubber() {
           busy={busy}
           initialHeight={initialPreviewHeight}
           headerRef={leftHeaderRef}
-          // onTryDemo={onTryDemo}
-          // onImageLoaded={onPreviewImageLoaded}
+          onTryDemo={onTryDemo}
+          onImageLoaded={onPreviewImageLoaded}
+          showDemoOverlay={showDemoOverlay}
+          overlay={
+            demoMode && demoStep === 1 ? (
+              <div
+                className="bg-light bg-opacity-75 rounded p-3 shadow-sm"
+                style={{ maxWidth: 680 }}
+              >
+                <div className="mb-2 fw-semibold">Tips</div>
+                <div className="text-muted mb-1">
+                  Use the <strong>Blur Opacity</strong> slider to change
+                  opacity.
+                </div>
+                <div className="text-muted mb-3">
+                  Use the <strong>Feather</strong> slider to blend the edges of
+                  the blurred areas.
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={onNextDemo}
+                >
+                  Next…
+                </button>
+              </div>
+            ) : demoMode && demoStep === 2 ? (
+              <div
+                className="bg-light bg-opacity-75 rounded p-3 shadow-sm"
+                style={{ maxWidth: 720 }}
+              >
+                <div className="mb-2 fw-semibold">Filter sensitivity</div>
+                <div className="text-muted mb-3">
+                  In more complex images with many targets at different
+                  distances, the <strong>Filter</strong> controls adjust
+                  sensitivity and reduce noise or misinterpretations. Try the{" "}
+                  <strong>Filter</strong> sliders for both{" "}
+                  <em>Face Redaction</em> and
+                  <em> License Plate Redaction</em> to set the correct
+                  threshold.
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-success btn-sm"
+                  onClick={onDemoDone}
+                >
+                  Ready to go!
+                </button>
+              </div>
+            ) : undefined
+          }
         />
         {USE_MANUAL_REDACTOR && previewUrl && (
           <PlateRedactor
@@ -304,6 +439,14 @@ export function PrivacyScrubber() {
                   dragOver={dragOver}
                   busy={busy}
                 />
+
+                <div className="mb-2 d-flex justify-content-center">
+                  <ActionControls
+                    onClickRefreshHandler={onRefreshHandler}
+                    onClickDownloadHandler={onDownloadHandler}
+                    busy={busy || !previewUrl}
+                  />
+                </div>
 
                 <div className="px-2 mb-3">
                   <div className="d-flex align-items-center justify-content-between stack-between-sm">

@@ -168,18 +168,20 @@ export function blurPatchWithFeather(
   const R = Math.max(rx, ry);
   mctx.scale(rx / R, ry / R);
   if (featherPx <= 0) {
+    // Solid ellipse exactly over the region
     mctx.fillStyle = "rgba(0,0,0,1)";
     mctx.beginPath();
     mctx.arc(0, 0, R, 0, Math.PI * 2);
     mctx.fill();
   } else {
-    const inner = Math.max(0, R - featherPx);
-    const grad = mctx.createRadialGradient(0, 0, inner, 0, 0, R);
+    // Keep full opacity up to the original ellipse (R), feather OUTSIDE to R+feather
+    const outer = R + featherPx;
+    const grad = mctx.createRadialGradient(0, 0, R, 0, 0, outer);
     grad.addColorStop(0, "rgba(0,0,0,1)");
     grad.addColorStop(1, "rgba(0,0,0,0)");
     mctx.fillStyle = grad;
     mctx.beginPath();
-    mctx.arc(0, 0, R, 0, Math.PI * 2);
+    mctx.arc(0, 0, outer, 0, Math.PI * 2);
     mctx.fill();
   }
   mctx.restore();

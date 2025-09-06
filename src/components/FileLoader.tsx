@@ -22,7 +22,7 @@ export function FileLoader({
   }, [onFilePickHandler]);
 
   return (
-    <Form.Group className="mb-3">
+    <Form.Group className="mb-2">
       <label
         className="w-100"
         onDragOver={(e) => {
@@ -44,8 +44,8 @@ export function FileLoader({
               : "border border-2 border-secondary-subtle bg-light-subtle"
           } file-drop`}
         >
-          <div className="text-secondary">
-            <FaUpload className="mb-1 me-1 text-secondary" />
+          <div className="text-muted">
+            <FaUpload className="mb-1 me-1 text-muted" />
             <div className="fw-semibold">Drag & Drop</div>
             <div className="small text-muted">or click to choose a file</div>
           </div>

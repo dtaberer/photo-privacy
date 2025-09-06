@@ -1,5 +1,11 @@
 import React from "react";
-import { Button, Stack } from "react-bootstrap";
+import {
+  Button,
+  ButtonGroup,
+  OverlayTrigger,
+  Tooltip,
+  Spinner,
+} from "react-bootstrap";
 import { FaDownload, FaSync } from "react-icons/fa";
 
 interface ActionControlsProps {
@@ -14,30 +20,54 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
   busy,
 }) => {
   return (
-    <Stack direction="horizontal" gap={2} className="flex-wrap">
-      <Button
-        className="action-btn"
-        size="sm"
-        variant="outline-secondary"
-        title="Download scrubbed"
-        aria-label="Download scrubbed"
-        onClick={onClickDownloadHandler}
-        disabled={busy}
+    <ButtonGroup aria-label="Preview actions" className="action-btn-group">
+      {/* Scrub first (left) */}
+      <OverlayTrigger
+        placement="bottom"
+        overlay={<Tooltip id="tt-refresh">Scrub Image</Tooltip>}
       >
-        <FaDownload />
-      </Button>
-      <Button
-        className="action-btn"
-        size="sm"
-        variant="outline-secondary"
-        title="Refresh"
-        aria-label="Refresh"
-        onClick={onClickRefreshHandler}
-        disabled={busy}
+        <Button
+          className="action-btn"
+          size="sm"
+          variant="outline-secondary"
+          aria-label="Scrub Image"
+          onClick={onClickRefreshHandler}
+          disabled={busy}
+        >
+          {busy ? (
+            <Spinner
+              as="span"
+              animation="border"
+              role="status"
+              aria-hidden
+              size="sm"
+              className="me-1"
+            />
+          ) : (
+            <FaSync className="me-1" />
+          )}
+          <span className="d-none d-sm-inline">Scrub Image</span>
+        </Button>
+      </OverlayTrigger>
+
+      {/* Download second (right) */}
+      <OverlayTrigger
+        placement="bottom"
+        overlay={<Tooltip id="tt-dl">Download scrubbed</Tooltip>}
       >
-        <FaSync />
-      </Button>
-    </Stack>
+        <Button
+          className="action-btn"
+          size="sm"
+          variant="outline-secondary"
+          aria-label="Download scrubbed"
+          onClick={onClickDownloadHandler}
+          disabled={busy}
+        >
+          <FaDownload className="me-1" />
+          <span className="d-none d-sm-inline">Download</span>
+        </Button>
+      </OverlayTrigger>
+    </ButtonGroup>
   );
 };
 

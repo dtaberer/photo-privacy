@@ -1,7 +1,9 @@
 // Constants for Face and License Plate blurring
 
 import { Size } from "@/types/detector-types";
-const BASE = (import.meta as unknown as { env?: Record<string, string> }).env?.BASE_URL ?? "/";
+const BASE =
+  (import.meta as unknown as { env?: Record<string, string> }).env?.BASE_URL ??
+  "/";
 const basePath = BASE.endsWith("/") ? BASE : `${BASE}/`;
 
 export const USE_MANUAL_REDACTOR = false; // set to true to enable the manual redactor component
@@ -37,7 +39,7 @@ export interface PrivacyScrubberConstants {
 // Used in FaceBlur.tsx and LicensePlateBlur.tsx
 export const FaceBlurConstants: FaceBlurConstants = {
   BLUR_DENSITY: 40,
-  CONFIDENCE_THRESHOLD: 0.02,
+  CONFIDENCE_THRESHOLD: 0.04,
   RUN_FACE_DETECTION: true,
   IOU_THRESHOLD: 0.1,
   PAD_RATIO: 0.1,
