@@ -199,21 +199,24 @@ export function PrivacyScrubber() {
     }
   }, []);
 
-  const onFilePickHandler = useCallback((file: File): void => {
-    // Clear previous detections and overlays before loading a new image
-    faceRef.current?.reset?.();
-    plateRef.current?.reset?.();
-    setPerfFaces(PERFORMANCE_REPORT_ZEROS);
-    setPerfPlates(PERFORMANCE_REPORT_ZEROS);
-    setCanvasVisible(false);
-    clearCanvas();
-    const url = URL.createObjectURL(file);
-    setOrigName(file.name);
-    setPreviewUrl((old) => {
-      if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
-      return url;
-    });
-  }, []);
+  const onFilePickHandler = useCallback(
+    (file: File): void => {
+      // Clear previous detections and overlays before loading a new image
+      faceRef.current?.reset?.();
+      plateRef.current?.reset?.();
+      setPerfFaces(PERFORMANCE_REPORT_ZEROS);
+      setPerfPlates(PERFORMANCE_REPORT_ZEROS);
+      setCanvasVisible(false);
+      clearCanvas();
+      const url = URL.createObjectURL(file);
+      setOrigName(file.name);
+      setPreviewUrl((old) => {
+        if (old?.startsWith("blob:")) URL.revokeObjectURL(old);
+        return url;
+      });
+    },
+    [clearCanvas]
+  );
 
   const onDownloadHandler = useCallback(() => {
     const base = imgRef.current;
@@ -264,7 +267,7 @@ export function PrivacyScrubber() {
       setOrigName("demo.jpg");
       setPreviewUrl(demoImage);
     }
-  }, [onRefreshHandler, previewUrl]);
+  }, [clearCanvas, onRefreshHandler, previewUrl]);
 
   const onPreviewImageLoaded = useCallback(() => {
     if (demoPendingRef.current) {
@@ -301,7 +304,7 @@ export function PrivacyScrubber() {
     img.onload = () => setPreviewUrl(demo2Url);
     img.onerror = () => setPreviewUrl(fallbackDemo2);
     img.src = demo2Url;
-  }, [demo2Url]);
+  }, [clearCanvas, demo2Url]);
 
   const onDemoDone = useCallback(() => {
     setDemoMode(false);
