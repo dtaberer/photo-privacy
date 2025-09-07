@@ -27,7 +27,6 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
   showScrubNudge,
   showDownloadNudge,
   onDownloadNudgeDone,
-  onScrubNudgeNext,
 }) => {
   const refreshBtnRef = React.useRef<HTMLButtonElement | null>(null);
   const downloadBtnRef = React.useRef<HTMLButtonElement | null>(null);
@@ -37,13 +36,13 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
       {/* Scrub first (left) */}
       <OverlayTrigger
         placement="bottom"
-        overlay={<Tooltip id="tt-refresh">Scrub Image</Tooltip>}
+        overlay={<Tooltip id="tt-refresh">Refresh</Tooltip>}
       >
         <Button
           className="action-btn"
           size="sm"
           variant="outline-secondary"
-          aria-label="Scrub Image"
+          aria-label="Refresh"
           onClick={onClickRefreshHandler}
           disabled={busy}
           ref={refreshBtnRef}
@@ -102,7 +101,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
         show={!!showDownloadNudge}
         placement="bottom"
       >
-        {({ placement, arrowProps, ...props }) => (
+        {({ arrowProps, ...props }) => (
           <div
             {...props}
             className="tooltip bs-tooltip-auto show"
