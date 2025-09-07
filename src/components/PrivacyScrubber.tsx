@@ -416,7 +416,7 @@ export function PrivacyScrubber() {
           badgeList={[...badgeList]}
           imgRef={imgRef}
           canvasVisible={canvasVisible}
-          busy={busy}
+          busy={busy && !!previewUrl}
           initialHeight={initialPreviewHeight}
           headerRef={leftHeaderRef}
           onTryDemo={onTryDemo}

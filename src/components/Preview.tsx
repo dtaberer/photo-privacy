@@ -81,7 +81,11 @@ const Preview: React.FC<PreviewProps> = ({
               <button
                 type="button"
                 className="btn btn-sm ms-2"
-                style={{ backgroundColor: "#337ccc", borderColor: "#337ccc", color: "#fff" }}
+                style={{
+                  backgroundColor: "#337ccc",
+                  borderColor: "#337ccc",
+                  color: "#fff",
+                }}
                 onClick={onTryDemo}
                 disabled={!!busy}
               >
@@ -128,7 +132,7 @@ const Preview: React.FC<PreviewProps> = ({
             }}
           />
           {!previewUrl && (
-            <div className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center p-4">
+            <div className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-start align-items-center text-center p-4 pt-5">
               <div className="mb-2 fw-semibold text-muted">No image loaded</div>
               <div className="text-muted mb-3" style={{ maxWidth: 520 }}>
                 Drag & drop on the right, paste from clipboard, or try the demo.
