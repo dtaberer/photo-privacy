@@ -447,7 +447,7 @@ export function PrivacyScrubber() {
                   <ActionControls
                     onClickRefreshHandler={onRefreshHandler}
                     onClickDownloadHandler={onDownloadHandler}
-                    busy={busy || !previewUrl}
+                    busy={busy && !!previewUrl}
                     showScrubNudge={showScrubNudge}
                     showDownloadNudge={demoMode && showDownloadNudge}
                     onScrubNudgeNext={() => {

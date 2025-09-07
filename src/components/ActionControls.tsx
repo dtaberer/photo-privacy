@@ -14,16 +14,18 @@ interface ActionControlsProps {
   onClickRefreshHandler: () => void;
   onClickDownloadHandler: () => void;
   busy?: boolean;
+  disabled?: boolean;
   showScrubNudge?: boolean;
   showDownloadNudge?: boolean;
-  onDownloadNudgeDone?: () => void;
   onScrubNudgeNext?: () => void;
+  onDownloadNudgeDone?: () => void;
 }
 
 export const ActionControls: React.FC<ActionControlsProps> = ({
   onClickRefreshHandler,
   onClickDownloadHandler,
   busy,
+  disabled,
   showScrubNudge,
   showDownloadNudge,
   onDownloadNudgeDone,
@@ -44,7 +46,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
           variant="outline-secondary"
           aria-label="Scrub Image"
           onClick={onClickRefreshHandler}
-          disabled={busy}
+          disabled={disabled ?? busy}
           ref={refreshBtnRef}
         >
           {busy ? (
@@ -89,7 +91,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
           variant="outline-secondary"
           aria-label="Download scrubbed"
           onClick={onClickDownloadHandler}
-          disabled={busy}
+          disabled={disabled ?? busy}
           ref={downloadBtnRef}
         >
           <FaDownload className="me-1" />
