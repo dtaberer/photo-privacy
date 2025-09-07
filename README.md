@@ -8,9 +8,9 @@ Live Demo: https://dtaberer.github.io/photo-privacy
 
 ## 1) Screenshots
 
-| Before                                                                                                              | After                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/src/assets/demo1.jpg" alt="Before (demo image)" width="600"/> | <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/src/assets/demo2.jpg" alt="After (sample)" width="600"/> |
+| Before                                                                                                                                 | After                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/src/assets/before.jpg" alt="Before (demo image)" width="600"/> | <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/src/assets/after.jpg" alt="After (sample)" width="600"/> |
 
 ## Privacy
 
