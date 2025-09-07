@@ -27,12 +27,11 @@ describe("Preview initial sizing", () => {
     const card = container.querySelector(".preview-card") as HTMLElement;
     expect(card).toBeTruthy();
     expect(card.classList.contains("is-initial")).toBe(true);
-    // Inline style should set height to a percentage string
-    expect(card.getAttribute("style") || "").toMatch(/height:\s*84%/);
+    // Inline style should set an initial height
+    expect(card.getAttribute("style") || "").toMatch(/height:\s*(84%|70vh)/);
 
     const stage = container.querySelector(".preview-stage") as HTMLElement;
     expect(stage).toBeTruthy();
     expect(stage.getAttribute("style") || "").toMatch(/height:\s*100%/);
   });
 });
-

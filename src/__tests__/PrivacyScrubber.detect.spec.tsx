@@ -125,7 +125,7 @@ describe("PrivacyScrubber detection triggers", () => {
     });
 
     // If UI requires pressing Refresh, do it
-    const refreshBtn = screen.queryByRole("button", { name: /refresh/i });
+    const refreshBtn = screen.queryByRole("button", { name: /refresh|scrub image/i });
     if (refreshBtn)
       await act(async () => {
         fireEvent.click(refreshBtn);

@@ -115,7 +115,7 @@ describe("PrivacyScrubber refresh flow", () => {
       imgEl.dispatchEvent(new Event("load"));
     });
 
-    const refreshBtn = screen.queryByRole("button", { name: /refresh/i });
+    const refreshBtn = screen.queryByRole("button", { name: /refresh|scrub image/i });
     if (refreshBtn)
       await act(async () => {
         fireEvent.click(refreshBtn);
