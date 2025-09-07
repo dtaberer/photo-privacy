@@ -18,8 +18,6 @@ interface PreviewProps {
   headerRef?: React.RefObject<HTMLDivElement | null>;
   onTryDemo?: () => void;
   onImageLoaded?: () => void;
-  showDemoOverlay?: boolean;
-  overlay?: React.ReactNode;
 }
 
 const Preview: React.FC<PreviewProps> = ({
@@ -35,8 +33,6 @@ const Preview: React.FC<PreviewProps> = ({
   headerRef,
   onTryDemo,
   onImageLoaded,
-  showDemoOverlay,
-  overlay,
 }) => {
   if (!imgRef) return <div>No image to preview.</div>;
 
@@ -73,6 +69,17 @@ const Preview: React.FC<PreviewProps> = ({
           <div className="d-flex align-items-center gap-2 text-muted">
             <FaImage className="text-muted" />
             <span className="fw-semibold">{title}</span>
+            {onTryDemo && (
+              <button
+                type="button"
+                className="btn btn-sm ms-2"
+                style={{ backgroundColor: "#337ccc", borderColor: "#337ccc", color: "#fff" }}
+                onClick={onTryDemo}
+                disabled={!!busy}
+              >
+                Demo
+              </button>
+            )}
           </div>
 
           <div className="d-flex align-items-center gap-2">
@@ -119,17 +126,15 @@ const Preview: React.FC<PreviewProps> = ({
                 Drag & drop on the right, paste from clipboard, or try the demo.
               </div>
               {onTryDemo && (
-                <button type="button" className="btn btn-primary btn-sm" onClick={onTryDemo}>
-                  Try the Demo
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  style={{ backgroundColor: "#337ccc", borderColor: "#337ccc", color: "#fff" }}
+                  onClick={onTryDemo}
+                >
+                  Demo
                 </button>
               )}
-            </div>
-          )}
-          {previewUrl && showDemoOverlay && onTryDemo && (
-            <div className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center p-4" style={{pointerEvents: 'none'}}>
-              <button type="button" className="btn btn-primary btn-sm" onClick={onTryDemo} style={{ pointerEvents: 'auto' }}>
-                Try the Demo
-              </button>
             </div>
           )}
           {busy && (
@@ -147,18 +152,6 @@ const Preview: React.FC<PreviewProps> = ({
               canvasVisible ? "is-visible" : ""
             }`}
           />
-          {overlay && (
-            <div
-              className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center align-items-center text-center p-3"
-              style={{
-                pointerEvents: 'none',
-                background: 'rgba(0,0,0,0.45)',
-                backdropFilter: 'blur(1px)',
-              }}
-            >
-              <div style={{ pointerEvents: 'auto' }}>{overlay}</div>
-            </div>
-          )}
         </div>
       </Card>
     </Col>

@@ -609,6 +609,14 @@ input[type="range"].themed-range:focus-visible::-moz-range-thumb {
   }
 }
 
+/* Tooltip styling: make background 25% transparent (≈75% opacity) */
+.tooltip {
+  /* Bootstrap reads this variable for tooltip background and arrow color */
+  --bs-tooltip-bg: rgba(45, 107, 179, 0.8); /* darker tone of #337ccc at 80% opacity (20% transparent) */
+  --bs-tooltip-color: #fff;
+  --bs-tooltip-font-size: 0.80rem;
+}
+
 /* Customize Bootstrap switch/checkbox checked state colors */
 .form-check-input:checked {
   background-color: #7aa4e1 !important;

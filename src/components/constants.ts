@@ -51,7 +51,7 @@ export const FaceBlurConstants: FaceBlurConstants = {
 
 export const LicensePlateBlurConstants: LicensePlateBlurConstants = {
   BLUR_DENSITY: 40,
-  CONFIDENCE_THRESHOLD: 0.02,
+  CONFIDENCE_THRESHOLD: 0.04,
   RUN_LICENSE_PLATE_DETECTION: true,
   MODEL_SIZE: 800,
   MODEL_URL: `${basePath}models/license-plate-finetune-v1n.onnx`,
@@ -72,3 +72,26 @@ export const PERFORMANCE_REPORT_ZEROS = {
     total: 0,
   },
 };
+
+export interface DemoSteps {
+  [index: number]: string;
+}
+
+export const DemoSteps: DemoSteps = [
+  "After loading your image, click the Scrub Image button to start the redaction process. \
+  This normally takes around 8-10 seconds to complete detection.",
+
+  "Select the 'Blur Opacity' to adjust the density and obscurity level of the blurred region. \
+  Try it out!",
+
+  "The Filter control changes the level of sensitivity of detection and is driven by confidence thresholds. \
+  It can drastically cut down the noise levels, but may also miss some distant or obscured subjects. \
+  Try it out!",
+
+  "The Feather control adjusts the softness of the edges of the redacted areas. \
+  Increasing the feathering can help blend the redacted areas more naturally into the background. \
+  Try it out!",
+
+  "When you are ready to download your redacted image, click the Download button. \
+  Your browser will prompt you to save the image file to your device.",
+];
