@@ -1,5 +1,5 @@
 import React, { memo, useId } from "react";
-import { Card, Form, Badge } from "react-bootstrap";
+import { Card, Form, Badge, Overlay, Tooltip } from "react-bootstrap";
 
 export type ControlPanelProps = {
   controlName: string;
@@ -11,6 +11,25 @@ export type ControlPanelProps = {
   featherVal: number;
   setFeatherVal: (v: number) => void;
   busy?: boolean;
+  showBlurNudge?: boolean;
+  onBlurInteract?: () => void;
+  // Optional: show a small Next link inside the Blur tooltip
+  blurNudgeNextLabel?: string;
+  onBlurNudgeNext?: () => void;
+  // Optional: custom text for Blur tooltip
+  blurNudgeText?: string;
+  // Optional: show tooltip for Filter slider
+  showFilterNudge?: boolean;
+  // Optional: add Next link to Filter tooltip
+  filterNudgeNextLabel?: string;
+  onFilterNudgeNext?: () => void;
+  // Optional: show tooltip for Feather slider
+  showFeatherNudge?: boolean;
+  // Optional: custom text for Feather tooltip
+  featherNudgeText?: string;
+  // Optional: add Next link to Feather tooltip
+  featherNudgeNextLabel?: string;
+  onFeatherNudgeNext?: () => void;
 };
 
 function ControlPanel({
@@ -23,10 +42,25 @@ function ControlPanel({
   featherVal,
   setFeatherVal,
   busy = false,
+  showBlurNudge = false,
+  onBlurInteract,
+  blurNudgeNextLabel,
+  onBlurNudgeNext,
+  blurNudgeText,
+  showFilterNudge,
+  filterNudgeNextLabel,
+  onFilterNudgeNext,
+  showFeatherNudge,
+  featherNudgeText,
+  featherNudgeNextLabel,
+  onFeatherNudgeNext,
 }: ControlPanelProps) {
   const blurId = useId();
   const confId = useId();
   const featherId = useId();
+  const blurRef = React.useRef<HTMLInputElement | null>(null);
+  const confRef = React.useRef<HTMLInputElement | null>(null);
+  const featherRef = React.useRef<HTMLInputElement | null>(null);
 
   return (
     <Card className="shadow-sm border-0 mb-3 control-panel-card">
@@ -55,8 +89,12 @@ function ControlPanel({
               step={1}
               value={blurVal}
               disabled={busy}
-              onChange={(e) => setBlurVal(Number(e.currentTarget.value))}
+              onChange={(e) => {
+                setBlurVal(Number(e.currentTarget.value));
+                onBlurInteract?.();
+              }}
               className="form-range themed-range"
+              ref={blurRef as React.RefObject<HTMLInputElement>}
               style={{
                 // @ts-expect-error CSS custom props for progress fill
                 "--min": 1,
@@ -67,6 +105,34 @@ function ControlPanel({
               }}
             />
           </div>
+          <Overlay target={blurRef.current} show={!!showBlurNudge} placement="bottom">
+            {(props) => (
+              <Tooltip id="tt-blur-nudge" {...props}>
+                <div>{
+                  blurNudgeText ?? (
+                    <span>
+                      Use the <strong>Blur Opacity</strong> slider to change opacity.
+                    </span>
+                  )
+                }</div>
+                {onBlurNudgeNext && (
+                  <div className="mt-1">
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm p-0 text-white text-decoration-none"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onBlurNudgeNext();
+                      }}
+                      >
+                      {blurNudgeNextLabel ?? "Next"}
+                    </button>
+                  </div>
+                )}
+              </Tooltip>
+            )}
+          </Overlay>
           <span className="value-badge">
             <span aria-hidden className="num">
               {blurVal}
@@ -94,6 +160,7 @@ function ControlPanel({
                 setThreshVal(Number(e.currentTarget.value) / 100)
               }
               className="form-range themed-range"
+              ref={confRef as React.RefObject<HTMLInputElement>}
               style={{
                 // @ts-expect-error CSS custom props for progress fill
                 "--min": 0,
@@ -104,6 +171,30 @@ function ControlPanel({
               }}
             />
           </div>
+          <Overlay target={confRef.current} show={!!showFilterNudge} placement="bottom">
+            {(props) => (
+              <Tooltip id="tt-filter-nudge" {...props}>
+                <div>
+                  Use the <strong>Filter</strong> slider to adjust detection sensitivity.
+                </div>
+                {onFilterNudgeNext && (
+                  <div className="mt-1">
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm p-0 text-white text-decoration-none"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onFilterNudgeNext();
+                      }}
+                    >
+                      {filterNudgeNextLabel ?? "next >>"}
+                    </button>
+                  </div>
+                )}
+              </Tooltip>
+            )}
+          </Overlay>
           <span className="value-badge">
             <span aria-hidden className="num">
               {Math.round(confVal * 100)}
@@ -131,6 +222,7 @@ function ControlPanel({
               disabled={busy}
               onChange={(e) => setFeatherVal(Number(e.currentTarget.value))}
               className="form-range themed-range"
+              ref={featherRef as React.RefObject<HTMLInputElement>}
               style={{
                 // @ts-expect-error CSS custom props for progress fill
                 "--min": 0,
@@ -140,6 +232,34 @@ function ControlPanel({
               }}
             />
           </div>
+          <Overlay target={featherRef.current} show={!!showFeatherNudge} placement="bottom">
+            {(props) => (
+              <Tooltip id="tt-feather-nudge" {...props}>
+                <div>
+                  {featherNudgeText ?? (
+                    <span>
+                      Use the <strong>Feather</strong> slider to blend edges of blurred areas.
+                    </span>
+                  )}
+                </div>
+                {onFeatherNudgeNext && (
+                  <div className="mt-1">
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm p-0 text-white text-decoration-none"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onFeatherNudgeNext();
+                      }}
+                    >
+                      {featherNudgeNextLabel ?? "next >>"}
+                    </button>
+                  </div>
+                )}
+              </Tooltip>
+            )}
+          </Overlay>
           <span className="value-badge">
             <span aria-hidden className="num">
               {Math.round(featherVal)}

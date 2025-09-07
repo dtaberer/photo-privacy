@@ -25,9 +25,9 @@ npm run ort:prep
 
 Start the dev server
 
-```bash
+````bash
 npm run dev
-```
+```Image"
 
 Run the test suite
 
@@ -36,7 +36,7 @@ npm test            # one‑shot
 npm run test:watch  # watch mode
 npm run lint        # ESLint
 npm run typecheck   # TypeScript
-```
+````
 
 ## Features
 
