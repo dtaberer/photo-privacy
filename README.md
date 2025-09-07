@@ -10,7 +10,7 @@ Live Demo: https://dtaberer.github.io/photo-privacy
 
 | Before                                                                                                              | After                                                                                                             |
 | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/before.JPG" alt="Before" width="600"/> | <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/after.JPG" alt="After" width="600"/> |
+| <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/src/assets/demo1.jpg" alt="Before (demo image)" width="600"/> | <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/src/assets/demo2.jpg" alt="After (sample)" width="600"/> |
 
 ## Privacy
 
@@ -35,9 +35,9 @@ npm run ort:prep
 
 Start the dev server
 
-````bash
+```bash
 npm run dev
-```Image"
+```
 
 Run the test suite
 
@@ -46,7 +46,7 @@ npm test            # one‑shot
 npm run test:watch  # watch mode
 npm run lint        # ESLint
 npm run typecheck   # TypeScript
-````
+```
 
 ## Features
 
