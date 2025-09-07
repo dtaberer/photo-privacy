@@ -1,5 +1,6 @@
 import React, { memo, useId } from "react";
 import { Card, Form, Badge, Overlay, Tooltip } from "react-bootstrap";
+import { DemoSteps } from "./constants";
 
 export type ControlPanelProps = {
   controlName: string;
@@ -105,16 +106,21 @@ function ControlPanel({
               }}
             />
           </div>
-          <Overlay target={blurRef.current} show={!!showBlurNudge} placement="bottom">
+          <Overlay
+            target={blurRef.current}
+            show={!!showBlurNudge}
+            placement="bottom"
+          >
             {(props) => (
               <Tooltip id="tt-blur-nudge" {...props}>
-                <div>{
-                  blurNudgeText ?? (
+                <div>
+                  {blurNudgeText ?? (
                     <span>
-                      Use the <strong>Blur Opacity</strong> slider to change opacity.
+                      For {controlName}
+                      <br /> {DemoSteps[1]}
                     </span>
-                  )
-                }</div>
+                  )}
+                </div>
                 {onBlurNudgeNext && (
                   <div className="mt-1">
                     <button
@@ -125,7 +131,7 @@ function ControlPanel({
                         e.stopPropagation();
                         onBlurNudgeNext();
                       }}
-                      >
+                    >
                       {blurNudgeNextLabel ?? "Next"}
                     </button>
                   </div>
@@ -151,7 +157,7 @@ function ControlPanel({
           <div className="control-slider">
             <Form.Range
               id={confId}
-              min={0}
+              min={1}
               max={100}
               step={1}
               value={Math.round(confVal * 100)}
@@ -171,11 +177,18 @@ function ControlPanel({
               }}
             />
           </div>
-          <Overlay target={confRef.current} show={!!showFilterNudge} placement="bottom">
+          <Overlay
+            target={confRef.current}
+            show={!!showFilterNudge}
+            placement="bottom"
+          >
             {(props) => (
               <Tooltip id="tt-filter-nudge" {...props}>
                 <div>
-                  Use the <strong>Filter</strong> slider to adjust detection sensitivity.
+                  <span>
+                    For {controlName}
+                    <br /> {DemoSteps[2]}
+                  </span>
                 </div>
                 {onFilterNudgeNext && (
                   <div className="mt-1">
@@ -217,7 +230,7 @@ function ControlPanel({
               id={featherId}
               min={0}
               max={100}
-              step={0.5}
+              step={1}
               value={featherVal}
               disabled={busy}
               onChange={(e) => setFeatherVal(Number(e.currentTarget.value))}
@@ -232,13 +245,19 @@ function ControlPanel({
               }}
             />
           </div>
-          <Overlay target={featherRef.current} show={!!showFeatherNudge} placement="bottom">
+          <Overlay
+            target={featherRef.current}
+            show={!!showFeatherNudge}
+            placement="bottom"
+          >
             {(props) => (
               <Tooltip id="tt-feather-nudge" {...props}>
                 <div>
                   {featherNudgeText ?? (
                     <span>
-                      Use the <strong>Feather</strong> slider to blend edges of blurred areas.
+                      For {controlName}
+                      <br />
+                      {DemoSteps[3]}
                     </span>
                   )}
                 </div>

@@ -6,7 +6,17 @@ Fast, privacy‑first redaction for faces and license plates — runs entirely i
 
 Live Demo: https://dtaberer.github.io/photo-privacy
 
-## 1) Install & Run (step‑by‑step)
+## 1) Screenshots
+
+| Before                                                                                                              | After                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/before.JPG" alt="Before" width="600"/> | <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/after.JPG" alt="After" width="600"/> |
+
+## Privacy
+
+All detection runs on your device. Images never leave your machine. Models load from the same origin as the app and are cached locally by the browser.
+
+## 2) Install & Run (step‑by‑step)
 
 Prereqs
 
@@ -48,14 +58,14 @@ npm run typecheck   # TypeScript
 - Accessible controls, keyboard‑friendly sliders, screen‑reader labels
 - Thorough tests (Vitest + Testing Library)
 
-## 2) Technologies / Libraries
+## 3) Technologies / Libraries
 
 - React 19 + Vite + TypeScript
 - onnxruntime‑web for plates; FaceDetector API or face‑api.js fallback
 - React‑Bootstrap for layout and controls
 - Vitest + @testing‑library for tests
 
-## 3) How to Use
+## 4) How to Use
 
 - Load a photo:
   - Drag & drop into the right panel, or
@@ -115,16 +125,6 @@ Tests added for interaction and layout behavior:
 - Existing: action buttons, controls, refresh/detect flows, slider behaviors
 
 Run them locally with `npm test`.
-
-## 4) Screenshots
-
-| Before                                                                                                              | After                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/before.JPG" alt="Before" width="600"/> | <img src="https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/after.JPG" alt="After" width="600"/> |
-
-## Privacy
-
-All detection runs on your device. Images never leave your machine. Models load from the same origin as the app and are cached locally by the browser.
 
 ## License
 

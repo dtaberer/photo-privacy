@@ -8,6 +8,7 @@ import {
   Overlay,
 } from "react-bootstrap";
 import { FaDownload, FaSync } from "react-icons/fa";
+import { DemoSteps } from "./constants";
 
 interface ActionControlsProps {
   onClickRefreshHandler: () => void;
@@ -30,18 +31,19 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
 }) => {
   const refreshBtnRef = React.useRef<HTMLButtonElement | null>(null);
   const downloadBtnRef = React.useRef<HTMLButtonElement | null>(null);
+
   return (
     <ButtonGroup aria-label="Preview actions" className="action-btn-group">
       {/* Scrub first (left) */}
       <OverlayTrigger
         placement="bottom"
-        overlay={<Tooltip id="tt-refresh">Refresh</Tooltip>}
+        overlay={<Tooltip id="tt-refresh">Scrub Image</Tooltip>}
       >
         <Button
           className="action-btn"
           size="sm"
           variant="outline-secondary"
-          aria-label="Refresh"
+          aria-label="Scrub Image"
           onClick={onClickRefreshHandler}
           disabled={busy}
           ref={refreshBtnRef}
@@ -61,27 +63,18 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
           <span className="d-none d-sm-inline">Scrub Image</span>
         </Button>
       </OverlayTrigger>
-      <Overlay target={refreshBtnRef.current} show={!!showScrubNudge} placement="bottom">
+      <Overlay
+        target={refreshBtnRef.current}
+        show={!!showScrubNudge}
+        placement="bottom"
+      >
         {(props) => (
-          <div {...props} className="tooltip bs-tooltip-auto show" role="tooltip">
-            <div className="tooltip-inner">
-              <div>After your image is loaded, press here to begin applying redactions.</div>
-              {onScrubNudgeNext && (
-                <div className="mt-1">
-                  <button
-                    type="button"
-                    className="btn btn-link btn-sm p-0 text-white text-decoration-none"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onScrubNudgeNext();
-                    }}
-                  >
-                    next &gt;&gt;
-                  </button>
-                </div>
-              )}
-            </div>
+          <div
+            {...props}
+            className="tooltip bs-tooltip-auto show"
+            role="tooltip"
+          >
+            <div className="tooltip-inner">{DemoSteps[0]}</div>
           </div>
         )}
       </Overlay>
@@ -89,7 +82,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
       {/* Download second (right) */}
       <OverlayTrigger
         placement="bottom"
-        overlay={<Tooltip id="tt-dl">Download scrubbed</Tooltip>}
+        overlay={<Tooltip id="tt-dl">Download Scrubbed Image</Tooltip>}
       >
         <Button
           className="action-btn"
@@ -104,9 +97,17 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
           <span className="d-none d-sm-inline">Download</span>
         </Button>
       </OverlayTrigger>
-      <Overlay target={downloadBtnRef.current} show={!!showDownloadNudge} placement="bottom">
+      <Overlay
+        target={downloadBtnRef.current}
+        show={!!showDownloadNudge}
+        placement="bottom"
+      >
         {({ placement, arrowProps, ...props }) => (
-          <div {...props} className="tooltip bs-tooltip-auto show" role="tooltip">
+          <div
+            {...props}
+            className="tooltip bs-tooltip-auto show"
+            role="tooltip"
+          >
             <div className="tooltip-arrow" {...arrowProps} />
             <div className="tooltip-inner">
               <div>Click to download your redacted image.</div>
