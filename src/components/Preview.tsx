@@ -59,7 +59,14 @@ const Preview: React.FC<PreviewProps> = ({
           busy ? "cursor-busy" : ""
         } ${initialMode ? "is-initial" : ""}`}
         style={
-          initialMode ? ({ height: "84%" } as React.CSSProperties) : undefined
+          initialMode
+            ? ({
+                height:
+                  typeof initialHeight === "number" && initialHeight > 0
+                    ? `${initialHeight}px`
+                    : "70vh",
+              } as React.CSSProperties)
+            : undefined
         }
       >
         <Card.Header
@@ -125,16 +132,7 @@ const Preview: React.FC<PreviewProps> = ({
               <div className="text-muted mb-3" style={{ maxWidth: 520 }}>
                 Drag & drop on the right, paste from clipboard, or try the demo.
               </div>
-              {onTryDemo && (
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  style={{ backgroundColor: "#337ccc", borderColor: "#337ccc", color: "#fff" }}
-                  onClick={onTryDemo}
-                >
-                  Demo
-                </button>
-              )}
+              {/* Empty-state demo button intentionally hidden; header contains the Demo button */}
             </div>
           )}
           {busy && (

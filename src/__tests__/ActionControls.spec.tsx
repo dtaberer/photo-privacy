@@ -15,7 +15,7 @@ describe("ActionControls", () => {
       />
     );
 
-    const refreshBtn = screen.getByLabelText(/refresh/i);
+    const refreshBtn = screen.getByLabelText(/refresh|scrub image/i);
     const downloadBtn = screen.getByLabelText(/download/i);
 
     fireEvent.click(refreshBtn);
