@@ -157,7 +157,7 @@ function ControlPanel({
           <div className="control-slider">
             <Form.Range
               id={confId}
-              min={1}
+              min={0}
               max={100}
               step={1}
               value={Math.round(confVal * 100)}
