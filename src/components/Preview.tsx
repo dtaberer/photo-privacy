@@ -30,6 +30,7 @@ const Preview: React.FC<PreviewProps> = ({
   badgeList,
   imgRef,
   busy,
+  initialHeight,
   headerRef,
   onTryDemo,
   onImageLoaded,
