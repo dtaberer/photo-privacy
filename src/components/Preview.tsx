@@ -16,7 +16,7 @@ interface PreviewProps {
   busy?: boolean;
   initialHeight?: number;
   headerRef?: React.RefObject<HTMLDivElement | null>;
-  onTryDemo?: () => void;
+  demoComponent?: React.ReactNode;
   onImageLoaded?: () => void;
 }
 
@@ -32,7 +32,7 @@ const Preview: React.FC<PreviewProps> = ({
   busy,
   initialHeight,
   headerRef,
-  onTryDemo,
+  demoComponent,
   onImageLoaded,
 }) => {
   if (!imgRef) return <div>No image to preview.</div>;
@@ -77,21 +77,7 @@ const Preview: React.FC<PreviewProps> = ({
           <div className="d-flex align-items-center gap-2 text-muted">
             <FaImage className="text-muted" />
             <span className="fw-semibold">{title}</span>
-            {onTryDemo && (
-              <button
-                type="button"
-                className="btn btn-sm ms-2"
-                style={{
-                  backgroundColor: "#337ccc",
-                  borderColor: "#337ccc",
-                  color: "#fff",
-                }}
-                onClick={onTryDemo}
-                disabled={!!busy}
-              >
-                Demo
-              </button>
-            )}
+            {demoComponent}
           </div>
 
           <div className="d-flex align-items-center gap-2">

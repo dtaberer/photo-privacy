@@ -12,6 +12,7 @@ import FaceBlur from "./FaceBlur";
 import ControlPanel from "./ControlPanel";
 import Preview from "./Preview";
 import ActionControls from "./ActionControls";
+import Demo from "./Demo";
 import demoImage from "../assets/demo1.jpg";
 import demoImage2 from "../assets/demo2.jpg";
 import { FileLoader } from "./FileLoader";
@@ -419,7 +420,7 @@ export function PrivacyScrubber() {
           busy={busy && !!previewUrl}
           initialHeight={initialPreviewHeight}
           headerRef={leftHeaderRef}
-          onTryDemo={onTryDemo}
+          demoComponent={<Demo onClick={onTryDemo} disabled={!!busy} />}
           onImageLoaded={onPreviewImageLoaded}
         />
         {USE_MANUAL_REDACTOR && previewUrl && (
