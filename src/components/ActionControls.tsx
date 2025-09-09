@@ -21,6 +21,15 @@ interface ActionControlsProps {
   onDownloadNudgeDone?: () => void;
 }
 
+interface OverlayInjectedProps {
+  arrowProps: Record<string, unknown>;
+  show?: boolean;
+  hasDoneInitialMeasure?: boolean;
+  placement?: string;
+  popper?: unknown;
+  [key: string]: unknown;
+}
+
 export const ActionControls: React.FC<ActionControlsProps> = ({
   onClickRefreshHandler,
   onClickDownloadHandler,
@@ -69,15 +78,26 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
         show={!!showScrubNudge}
         placement="bottom"
       >
-        {(props) => (
-          <div
-            {...props}
-            className="tooltip bs-tooltip-auto show"
-            role="tooltip"
-          >
-            <div className="tooltip-inner">{DemoSteps[0]}</div>
-          </div>
-        )}
+        {(props: OverlayInjectedProps) => {
+          const { arrowProps, ...overlayProps } = props;
+          delete overlayProps.show;
+          delete overlayProps.hasDoneInitialMeasure;
+          delete overlayProps.popper;
+          delete overlayProps.placement;
+          return (
+            <div
+              {...(overlayProps as Record<string, unknown>)}
+              className="tooltip bs-tooltip-auto show"
+              role="tooltip"
+            >
+              <div
+                className="tooltip-arrow"
+                {...(arrowProps as Record<string, unknown>)}
+              />
+              <div className="tooltip-inner">{DemoSteps[0]}</div>
+            </div>
+          );
+        }}
       </Overlay>
 
       {/* Download second (right) */}
@@ -103,33 +123,43 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
         show={!!showDownloadNudge}
         placement="bottom"
       >
-        {({ arrowProps, ...props }) => (
-          <div
-            {...props}
-            className="tooltip bs-tooltip-auto show"
-            role="tooltip"
-          >
-            <div className="tooltip-arrow" {...arrowProps} />
-            <div className="tooltip-inner">
-              <div>Click to download your redacted image.</div>
-              {onDownloadNudgeDone && (
-                <div className="mt-1">
-                  <button
-                    type="button"
-                    className="btn btn-link btn-sm p-0 text-white text-decoration-none"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onDownloadNudgeDone();
-                    }}
-                  >
-                    click here to start
-                  </button>
-                </div>
-              )}
+        {(props: OverlayInjectedProps) => {
+          const { arrowProps, ...overlayProps } = props;
+          delete overlayProps.show;
+          delete overlayProps.hasDoneInitialMeasure;
+          delete overlayProps.popper;
+          delete overlayProps.placement;
+          return (
+            <div
+              {...(overlayProps as Record<string, unknown>)}
+              className="tooltip bs-tooltip-auto show"
+              role="tooltip"
+            >
+              <div
+                className="tooltip-arrow"
+                {...(arrowProps as Record<string, unknown>)}
+              />
+              <div className="tooltip-inner">
+                <div>Click to download your redacted image.</div>
+                {onDownloadNudgeDone && (
+                  <div className="mt-1">
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm p-0 text-white text-decoration-none"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onDownloadNudgeDone();
+                      }}
+                    >
+                      click here to start
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        }}
       </Overlay>
     </ButtonGroup>
   );
