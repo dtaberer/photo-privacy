@@ -55,7 +55,7 @@ export function filterByScore(arr: FaceBox[], min: number): FaceBox[] {
 }
 
 import type { Box } from "@/types/detector-types";
-export type FaceBox = Box & { score?: number };
+export type FaceBox = Box & { score?: number; id: string; visible: boolean };
 
 export function grow(r: FaceBox, pad: number, W: number, H: number): FaceBox {
   const dx = r.w * pad,
@@ -78,6 +78,8 @@ export function cssToCanvasRect(
   const rect = img.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) {
     return {
+      id: "",
+      visible: true,
       x: Math.round(css.x),
       y: Math.round(css.y),
       w: Math.round(css.width),
@@ -87,6 +89,9 @@ export function cssToCanvasRect(
   const sx = canvas.width / rect.width;
   const sy = canvas.height / rect.height;
   return {
+    id: "",
+    visible: true,
+    // use Math.round to avoid subpixel coords which can cause gaps when drawing
     x: Math.round(css.x * sx),
     y: Math.round(css.y * sy),
     w: Math.round(css.width * sx),
@@ -98,7 +103,7 @@ export function adjustUp(
   r: FaceBox,
   W: number,
   H: number,
-  ratio = 0.12
+  ratio = 0.14
 ): FaceBox {
   const shift = Math.round(r.h * ratio);
   const y = clamp(r.y - shift, 0, H);
