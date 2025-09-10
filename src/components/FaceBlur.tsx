@@ -2,7 +2,7 @@ import { forwardRef, useImperativeHandle, useCallback, RefObject } from "react";
 import { FaceBlurConstants } from "./constants";
 import type { BlurHandler, PerformanceReport } from "@/types/detector-types";
 import type { FaceBox as UtilsFaceBox } from "./utils/face-blur-utils";
-import { nanoid } from "nanoid";
+import { v4 as uuidv4 } from "uuid";
 
 import {
   clamp,
@@ -42,7 +42,7 @@ const newFaceBox = (
   h: number,
   score?: number
 ): UtilsFaceBox => {
-  return { id: nanoid(10), x, y, w, h, score, visible: true };
+  return { id: uuidv4(), x, y, w, h, score, visible: true };
 };
 
 export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
