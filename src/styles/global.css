@@ -271,6 +271,12 @@ h6,
   font-weight: 600;
   letter-spacing: 0.01em;
 }
+
+.btn,
+.demo-btn {
+  font-size: 0.7rem;
+}
+
 .text-secondary {
   --bs-text-opacity: 1;
   color: rgb(48, 104, 151) !important;
@@ -386,8 +392,7 @@ h6,
   background-color: rgba(var(--brand-primary-rgb), 0.08) !important;
   border-color: var(--brand-primary) !important;
 }
-.action-btn.btn-outline-secondary:not(:disabled):active {
-}
+
 .action-btn:focus-visible {
   box-shadow: 0 0 0 0.2rem rgba(var(--brand-primary-rgb), 0.25) !important;
 }
@@ -612,10 +617,11 @@ input[type="range"].themed-range:focus-visible::-moz-range-thumb {
 /* Tooltip styling: make background 25% transparent (≈75% opacity) */
 .tooltip {
   /* Bootstrap reads this variable for tooltip background and arrow color */
-  --bs-tooltip-bg: rgb(
+  --bs-tooltip-bga: rgb(
     0,
     20,
-    44
+    44,
+    0.8
   ); /* darker tone of #337ccc at 80% opacity (20% transparent) */
   --bs-tooltip-color: #fff;
   --bs-tooltip-font-size: 0.7rem;
