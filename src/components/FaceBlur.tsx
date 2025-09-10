@@ -35,6 +35,16 @@ interface FaceBlurProps {
   };
 }
 
+const newFaceBox = (
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  score?: number
+): UtilsFaceBox => {
+  return { id: nanoid(10), x, y, w, h, score, visible: true };
+};
+
 export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
   ({ imgRef, canvasRef, opts }, ref) => {
     const FD = (
@@ -110,12 +120,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
             const ry = clamp(Math.round(r0.y - r0.h * padRatio), 0, H);
             const rw = clamp(Math.round(r0.w * (1 + 2 * padRatio)), 1, W - rx);
             const rh = clamp(Math.round(r0.h * (1 + 2 * padRatio)), 1, H - ry);
-            const r = adjustUp(
-              { x: rx, y: ry, w: rw, h: rh, visible: true, id: nanoid(10) },
-              W,
-              H,
-              0.12
-            );
+            const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
 
             if (ctx) {
               blurPatchWithFeather(
@@ -215,15 +220,16 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
 
       const sx = canvas.width / (img.naturalWidth || canvas.width);
       const sy = canvas.height / (img.naturalHeight || canvas.height);
-      facesCache = detections.map((d) => ({
-        x: Math.round(d.box.x * sx),
-        y: Math.round(d.box.y * sy),
-        w: Math.round(d.box.width * sx),
-        h: Math.round(d.box.height * sy),
-        score: d.score ?? 1,
-        visible: true,
-        id: nanoid(10),
-      }));
+
+      facesCache = detections.map((d) =>
+        newFaceBox(
+          Math.round(d.box.x * sx),
+          Math.round(d.box.y * sy),
+          Math.round(d.box.width * sx),
+          Math.round(d.box.height * sy),
+          d.score
+        )
+      );
 
       // Draw now using cached faces (if a 2D context is available)
       const ctx = canvas.getContext("2d");
@@ -235,12 +241,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         const ry = clamp(Math.round(base.y - base.h * padRatio), 0, H);
         const rw = clamp(Math.round(base.w * (1 + 2 * padRatio)), 1, W - rx);
         const rh = clamp(Math.round(base.h * (1 + 2 * padRatio)), 1, H - ry);
-        const r = adjustUp(
-          { x: rx, y: ry, w: rw, h: rh, visible: true, id: nanoid(10) },
-          W,
-          H,
-          0.12
-        );
+        const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
 
         if (ctx) {
           blurPatchWithFeather(
@@ -302,12 +303,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         const ry = clamp(Math.round(base.y - base.h * padRatio), 0, H);
         const rw = clamp(Math.round(base.w * (1 + 2 * padRatio)), 1, W - rx);
         const rh = clamp(Math.round(base.h * (1 + 2 * padRatio)), 1, H - ry);
-        const r = adjustUp(
-          { x: rx, y: ry, w: rw, h: rh, visible: true, id: nanoid(10) },
-          W,
-          H,
-          0.12
-        );
+        const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
 
         blurPatchWithFeather(
           ctx,
