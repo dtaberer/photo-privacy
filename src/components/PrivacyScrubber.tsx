@@ -438,18 +438,18 @@ export function PrivacyScrubber() {
                     onBlurInteract={
                       !demo.demoMode ? demo.hidePlateBlurNudge : undefined
                     }
-                    blurNudgeNextLabel="next >>"
+                    blurNudgeNextLabel="continue..."
                     blurNudgeText={DemoSteps[demo.demoStep]}
                     onBlurNudgeNext={demo.onPlateBlurNext}
                     showFilterNudge={
                       demo.demoMode && demo.nudgeFlags.showPlateFilterNudge
                     }
-                    filterNudgeNextLabel="next >>"
+                    filterNudgeNextLabel="continue..."
                     onFilterNudgeNext={demo.onPlateFilterNext}
                     showFeatherNudge={
                       demo.demoMode && demo.nudgeFlags.showPlateFeatherNudge
                     }
-                    featherNudgeNextLabel="next >>"
+                    featherNudgeNextLabel="continue..."
                     onFeatherNudgeNext={demo.onPlateFeatherNext}
                   />
                 )}
@@ -471,12 +471,12 @@ export function PrivacyScrubber() {
                     onBlurInteract={
                       !demo.demoMode ? demo.hideFaceBlurNudge : undefined
                     }
-                    blurNudgeNextLabel="next >>"
+                    blurNudgeNextLabel="continue..."
                     onBlurNudgeNext={demo.onFaceBlurNext}
                     showFilterNudge={
                       demo.demoMode && demo.nudgeFlags.showFaceFilterNudge
                     }
-                    filterNudgeNextLabel="next >>"
+                    filterNudgeNextLabel="continue..."
                     onFilterNudgeNext={demo.onFaceFilterNext}
                     showFeatherNudge={
                       demo.demoMode && demo.nudgeFlags.showFaceFeatherNudge

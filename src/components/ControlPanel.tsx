@@ -150,14 +150,14 @@ function ControlPanel({
                       <div className="mt-1">
                         <button
                           type="button"
-                          className="btn btn-link btn-sm p-0 text-white text-decoration-none"
+                          className="btn btn-sm btn-warning text-blue text-decoration-none"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             onBlurNudgeNext();
                           }}
                         >
-                          {blurNudgeNextLabel ?? "next >>"}
+                          {blurNudgeNextLabel ?? "continue..."}
                         </button>
                       </div>
                     )}
@@ -237,14 +237,14 @@ function ControlPanel({
                       <div className="mt-1">
                         <button
                           type="button"
-                          className="btn btn-link btn-sm p-0 text-white text-decoration-none"
+                          className="btn btn-sm btn-warning text-blue text-decoration-none"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             onFilterNudgeNext();
                           }}
                         >
-                          {filterNudgeNextLabel ?? "next >>"}
+                          {filterNudgeNextLabel ?? "continue..."}
                         </button>
                       </div>
                     )}
@@ -326,14 +326,14 @@ function ControlPanel({
                       <div className="mt-1">
                         <button
                           type="button"
-                          className="btn btn-link btn-sm p-0 text-white text-decoration-none"
+                          className="btn btn-sm btn-warning text-blue text-decoration-none"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             onFeatherNudgeNext();
                           }}
                         >
-                          {featherNudgeNextLabel ?? "next >>"}
+                          {featherNudgeNextLabel ?? "continue..."}
                         </button>
                       </div>
                     )}

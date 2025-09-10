@@ -1,8 +1,10 @@
 import { forwardRef, useImperativeHandle, useCallback, RefObject } from "react";
 import { FaceBlurConstants } from "./constants";
 import type { BlurHandler, PerformanceReport } from "@/types/detector-types";
-import type { FaceBox as UtilsFaceBox } from "./utils/face-blur-utils";
-import { v4 as uuidv4 } from "uuid";
+import {
+  newFaceBox,
+  type FaceBox as UtilsFaceBox,
+} from "./utils/face-blur-utils";
 
 import {
   clamp,
@@ -34,16 +36,6 @@ interface FaceBlurProps {
     setPerfReport: React.Dispatch<React.SetStateAction<PerformanceReport>>;
   };
 }
-
-const newFaceBox = (
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  score?: number
-): UtilsFaceBox => {
-  return { id: uuidv4(), x, y, w, h, score, visible: true };
-};
 
 export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
   ({ imgRef, canvasRef, opts }, ref) => {

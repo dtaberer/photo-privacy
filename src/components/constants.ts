@@ -82,15 +82,15 @@ export const DemoSteps: DemoSteps = [
   This normally takes around 8-10 seconds to complete detection.",
 
   "Select the 'Blur Opacity' to adjust the density and obscurity level of the blurred region. \
-  Try it out!",
+  Try it!",
 
   "The Filter control changes the level of sensitivity of detection and is driven by confidence thresholds. \
   It can drastically cut down the noise levels, but may also miss some distant or obscured subjects. \
-  Try it out!",
+  Try it!",
 
   "The Feather control adjusts the softness of the edges of the redacted areas. \
   Increasing the feathering can help blend the redacted areas more naturally into the background. \
-  Try it out!",
+  Try it!",
 
   "When you are ready to download your redacted image, click the Download button. \
   Your browser will prompt you to save the image file to your device.",

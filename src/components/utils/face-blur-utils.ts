@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from "uuid";
+
 interface FaceApiCompatNS {
   nets: { tinyFaceDetector: { loadFromUri: (base: string) => Promise<void> } };
   TinyFaceDetectorOptions: new (opts: {
@@ -57,6 +59,16 @@ export function filterByScore(arr: FaceBox[], min: number): FaceBox[] {
 import type { Box } from "@/types/detector-types";
 export type FaceBox = Box & { score?: number; id: string; visible: boolean };
 
+export const newFaceBox = (
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  score?: number
+): FaceBox => {
+  return { id: uuidv4(), x, y, w, h, score, visible: true };
+};
+
 export function grow(r: FaceBox, pad: number, W: number, H: number): FaceBox {
   const dx = r.w * pad,
     dy = r.h * pad;
@@ -77,26 +89,22 @@ export function cssToCanvasRect(
 ): FaceBox {
   const rect = img.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) {
-    return {
-      id: "",
-      visible: true,
-      x: Math.round(css.x),
-      y: Math.round(css.y),
-      w: Math.round(css.width),
-      h: Math.round(css.height),
-    };
+    return newFaceBox(
+      Math.round(css.x),
+      Math.round(css.y),
+      Math.round(css.width),
+      Math.round(css.height)
+    );
   }
+
   const sx = canvas.width / rect.width;
   const sy = canvas.height / rect.height;
-  return {
-    id: "",
-    visible: true,
-    // use Math.round to avoid subpixel coords which can cause gaps when drawing
-    x: Math.round(css.x * sx),
-    y: Math.round(css.y * sy),
-    w: Math.round(css.width * sx),
-    h: Math.round(css.height * sy),
-  };
+  return newFaceBox(
+    Math.round(css.x * sx),
+    Math.round(css.y * sy),
+    Math.round(css.width * sx),
+    Math.round(css.height * sy)
+  );
 }
 
 export function adjustUp(
@@ -108,7 +116,7 @@ export function adjustUp(
   const shift = Math.round(r.h * ratio);
   const y = clamp(r.y - shift, 0, H);
   const h = clamp(r.h + shift, 1, H - y);
-  return { ...r, y, h };
+  return newFaceBox(r.x, y, r.w, h, r.score);
 }
 
 export function drawDebugBox(ctx: CanvasRenderingContext2D, r: FaceBox) {
