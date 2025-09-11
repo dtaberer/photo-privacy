@@ -1,8 +1,53 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import demoImageSrc from "../../assets/demo1.jpg";
 import demoImage2Src from "../../assets/demo2.jpg";
 export const demoImage = demoImageSrc;
 export const demoImage2 = demoImage2Src;
+
+export const enum StepStates {
+  Inactive,
+  Active,
+  Done,
+}
+
+export const enum StepsEnum {
+  Scrub,
+  FaceBlur,
+  FaceFilter,
+  FaceFeather,
+  PlateBlur,
+  PlateFilter,
+  PlateFeather,
+  Download,
+}
+
+export const StepText: Partial<Record<StepsEnum, string>> = {
+  [StepsEnum.Scrub]:
+    "After loading your image, click the Scrub Image button to start the redaction process. \
+  This normally takes around 8-10 seconds to complete detection.",
+
+  [StepsEnum.FaceBlur]:
+    "Select the 'Blur Opacity' to adjust the density and obscurity level of the blurred region. \
+  Try it!",
+
+  [StepsEnum.FaceFilter]:
+    "The Filter control changes the level of sensitivity of detection and is driven by confidence thresholds. \
+  It can drastically cut down the noise levels, but may also miss some distant or obscured subjects. \
+  Try it!",
+
+  [StepsEnum.FaceFeather]:
+    "The Feather control adjusts the softness of the edges of the redacted areas. \
+  Increasing the feathering can help blend the redacted areas more naturally into the background. \
+  Try it!",
+
+  [StepsEnum.Download]:
+    "When you are ready to download your redacted image, click the Download button. \
+  Your browser will prompt you to save the image file to your device.",
+};
+
+StepText[StepsEnum.PlateBlur] = StepText[StepsEnum.FaceBlur];
+StepText[StepsEnum.PlateFilter] = StepText[StepsEnum.FaceFilter];
+StepText[StepsEnum.PlateFeather] = StepText[StepsEnum.FaceFeather];
 
 interface DemoParams {
   previewUrl: string | null;
@@ -19,34 +64,13 @@ interface DemoParams {
   resetDetections: () => void;
 }
 
-interface NudgeFlags {
-  showScrubNudge: boolean;
-  showFaceBlurNudge: boolean;
-  showFaceFilterNudge: boolean;
-  showFaceFeatherNudge: boolean;
-  showPlateBlurNudge: boolean;
-  showPlateFilterNudge: boolean;
-  showPlateFeatherNudge: boolean;
-  showDownloadNudge: boolean;
-}
-
 export interface UseDemoReturn {
   demoMode: boolean;
   demoStep: number;
-  nudgeFlags: NudgeFlags;
   onTryDemo: () => void;
-  onPreviewImageLoaded: () => void;
   resetDemo: () => void;
-  onScrubNudgeNext: () => void;
-  onDownloadNudgeDone: () => void;
-  hideFaceBlurNudge: () => void;
-  hidePlateBlurNudge: () => void;
-  onPlateBlurNext: () => void;
-  onPlateFilterNext: () => void;
-  onPlateFeatherNext: () => void;
-  onFaceBlurNext: () => void;
-  onFaceFilterNext: () => void;
-  onFaceFeatherNext: () => void;
+  onDemoStepNext: () => void;
+  demoStepsArray: StepStates[];
 }
 
 export function useDemo({
@@ -59,36 +83,19 @@ export function useDemo({
   setCanvasVisible,
   setFacesOn,
   setPlatesOn,
-  busy,
-  canvasVisible,
   resetDetections,
 }: DemoParams): UseDemoReturn {
   const [demoMode, setDemoMode] = useState(false);
   const [demoStep, setDemoStep] = useState(0);
-  const [showScrubNudge, setShowScrubNudge] = useState(false);
-  const [showFaceBlurNudge, setShowFaceBlurNudge] = useState(false);
-  const [showFaceFilterNudge, setShowFaceFilterNudge] = useState(false);
-  const [showFaceFeatherNudge, setShowFaceFeatherNudge] = useState(false);
-  const [showPlateBlurNudge, setShowPlateBlurNudge] = useState(false);
-  const [showPlateFilterNudge, setShowPlateFilterNudge] = useState(false);
-  const [showPlateFeatherNudge, setShowPlateFeatherNudge] = useState(false);
-  const [showDownloadNudge, setShowDownloadNudge] = useState(false);
-  const [plateDemoImageLoaded, setPlateDemoImageLoaded] = useState(false);
-
+  const [demoStepsArray, setDemoStepsArray] = useState<StepStates[]>(
+    new Array(8).fill(StepStates.Inactive)
+  );
   const demoPendingRef = useRef(false);
 
   const resetDemo = useCallback(() => {
     setDemoMode(false);
     setDemoStep(0);
-    setShowScrubNudge(false);
-    setShowFaceBlurNudge(false);
-    setShowFaceFilterNudge(false);
-    setShowFaceFeatherNudge(false);
-    setShowPlateBlurNudge(false);
-    setShowPlateFilterNudge(false);
-    setShowPlateFeatherNudge(false);
-    setShowDownloadNudge(false);
-    setPlateDemoImageLoaded(false);
+    setDemoStepsArray(new Array(8).fill(StepStates.Inactive));
   }, []);
 
   const onTryDemo = useCallback(() => {
@@ -99,149 +106,62 @@ export function useDemo({
     clearCanvas();
     setFacesOn(true);
     setPlatesOn(true);
-    setShowScrubNudge(true);
-    setShowFaceBlurNudge(false);
-    setShowFaceFilterNudge(false);
-    setShowFaceFeatherNudge(false);
-    setShowPlateBlurNudge(false);
-    setShowPlateFilterNudge(false);
-    setShowPlateFeatherNudge(false);
-    setShowDownloadNudge(false);
+
     if (previewUrl === demoImage) {
-      const img = imgRef.current;
-      setPlateDemoImageLoaded(!!(img && img.complete && img.naturalWidth > 0));
+      if (
+        imgRef.current &&
+        imgRef.current.complete &&
+        imgRef.current.naturalWidth > 0
+      )
+        setDemoStepsArray((prev) => {
+          const newArray = [...prev];
+          newArray[StepsEnum.Scrub] = StepStates.Active;
+          return newArray;
+        });
+
       runDetection();
     } else {
       demoPendingRef.current = true;
-      setCanvasVisible(false);
       setOrigName("demo.jpg");
       setPreviewUrl(demoImage);
     }
   }, [
-    previewUrl,
     resetDetections,
     setCanvasVisible,
     clearCanvas,
     setFacesOn,
     setPlatesOn,
+    previewUrl,
+    imgRef,
     runDetection,
     setOrigName,
     setPreviewUrl,
-    imgRef,
   ]);
 
-  const onPreviewImageLoaded = useCallback(() => {
-    if (demoPendingRef.current) {
-      demoPendingRef.current = false;
-      runDetection();
-    }
-    if (demoMode) {
-      setPlateDemoImageLoaded(true);
-    }
-  }, [runDetection, demoMode]);
+  const onDemoStepNext = useCallback(() => {
+    setDemoStepsArray((prev) => {
+      // Compute the next step index based on *current* demoStep
+      const nextStep = demoStep + 1;
 
-  const onScrubNudgeNext = useCallback(() => {
-    setShowScrubNudge(false);
-    setShowFaceBlurNudge(true);
-  }, []);
+      const newArray = [...prev];
+      newArray[demoStep] = StepStates.Done;
+      if (nextStep < newArray.length) {
+        newArray[nextStep] = StepStates.Active;
+      }
+      return newArray;
+    });
 
-  const onDownloadNudgeDone = useCallback(() => {
-    resetDemo();
-  }, [resetDemo]);
-
-  const onPlateBlurNext = useCallback(() => {
-    setShowPlateBlurNudge(false);
-    setShowPlateFilterNudge(true);
-  }, []);
-
-  const onPlateFilterNext = useCallback(() => {
-    setShowPlateFilterNudge(false);
-    setShowPlateFeatherNudge(true);
-  }, []);
-
-  const onPlateFeatherNext = useCallback(() => {
-    setShowPlateFeatherNudge(false);
-    setShowFaceBlurNudge(true);
-  }, []);
-
-  const onFaceBlurNext = useCallback(() => {
-    setShowFaceBlurNudge(false);
-    setShowFaceFilterNudge(true);
-  }, []);
-
-  const onFaceFilterNext = useCallback(() => {
-    setShowFaceFilterNudge(false);
-    setShowFaceFeatherNudge(true);
-  }, []);
-
-  const onFaceFeatherNext = useCallback(() => {
-    setShowFaceFeatherNudge(false);
-    setShowDownloadNudge(true);
-  }, []);
-
-  const hideFaceBlurNudge = useCallback(() => setShowFaceBlurNudge(false), []);
-  const hidePlateBlurNudge = useCallback(
-    () => setShowPlateBlurNudge(false),
-    []
-  );
-
-  useEffect(() => {
-    if (busy) {
-      setShowFaceBlurNudge(false);
-      setShowScrubNudge(false);
-    }
-  }, [busy]);
-
-  useEffect(() => {
-    if (!demoMode) return;
-    if (plateDemoImageLoaded && !busy) {
-      setShowScrubNudge(false);
-      setShowFaceBlurNudge(false);
-      setShowFaceFilterNudge(false);
-      setShowFaceFeatherNudge(false);
-      setShowPlateFilterNudge(false);
-      setShowPlateFeatherNudge(false);
-      setShowDownloadNudge(false);
-      setShowPlateBlurNudge(true);
-    }
-  }, [demoMode, plateDemoImageLoaded, busy]);
-
-  useEffect(() => {
-    if (!demoMode) return;
-    if (!busy && canvasVisible && previewUrl === demoImage) {
-      setDemoStep(1);
-    }
-    if (!busy && canvasVisible && previewUrl === demoImage2) {
-      setDemoStep(2);
-    }
-  }, [busy, canvasVisible, previewUrl, demoMode]);
+    // advance the step counter
+    setDemoStep((s) => s + 1);
+  }, [demoStep]);
 
   return {
     demoMode,
     demoStep,
-    nudgeFlags: {
-      showScrubNudge,
-      showFaceBlurNudge,
-      showFaceFilterNudge,
-      showFaceFeatherNudge,
-      showPlateBlurNudge,
-      showPlateFilterNudge,
-      showPlateFeatherNudge,
-      showDownloadNudge,
-    },
     onTryDemo,
-    onPreviewImageLoaded,
     resetDemo,
-    onScrubNudgeNext,
-    onDownloadNudgeDone,
-    hideFaceBlurNudge,
-    hidePlateBlurNudge,
-    onPlateBlurNext,
-    onPlateFilterNext,
-    onPlateFeatherNext,
-    onFaceBlurNext,
-    onFaceFilterNext,
-    onFaceFeatherNext,
+    onDemoStepNext,
+    demoStepsArray,
   };
 }
 

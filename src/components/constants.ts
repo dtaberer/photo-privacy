@@ -45,13 +45,13 @@ export const FaceBlurConstants: FaceBlurConstants = {
   PAD_RATIO: 0.1,
   FEATHER_PX: 1,
   MAX_DETECTED_FACES: 50,
-  MODEL_SIZE: 320,
+  MODEL_SIZE: 416,
   MODELS_URL: `${basePath}models/face-api`,
 };
 
 export const LicensePlateBlurConstants: LicensePlateBlurConstants = {
   BLUR_DENSITY: 40,
-  CONFIDENCE_THRESHOLD: 0.04,
+  CONFIDENCE_THRESHOLD: 0.02,
   RUN_LICENSE_PLATE_DETECTION: true,
   MODEL_SIZE: 800,
   MODEL_URL: `${basePath}models/license-plate-finetune-v1n.onnx`,

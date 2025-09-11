@@ -8,17 +8,15 @@ import {
   Overlay,
 } from "react-bootstrap";
 import { FaDownload, FaSync } from "react-icons/fa";
-import { DemoSteps } from "./constants";
+import { StepStates, StepsEnum, StepText } from "./demo/useDemo";
 
 interface ActionControlsProps {
   onClickRefreshHandler: () => void;
   onClickDownloadHandler: () => void;
   busy?: boolean;
   disabled?: boolean;
-  showScrubNudge?: boolean;
-  showDownloadNudge?: boolean;
-  onScrubNudgeNext?: () => void;
-  onDownloadNudgeDone?: () => void;
+  onDemoStepNext?: () => void;
+  demoStepsArray?: StepStates[];
 }
 
 interface OverlayInjectedProps {
@@ -35,9 +33,8 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
   onClickDownloadHandler,
   busy,
   disabled,
-  showScrubNudge,
-  showDownloadNudge,
-  onDownloadNudgeDone,
+  onDemoStepNext,
+  demoStepsArray,
 }) => {
   const refreshBtnRef = React.useRef<HTMLButtonElement | null>(null);
   const downloadBtnRef = React.useRef<HTMLButtonElement | null>(null);
@@ -75,7 +72,12 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
       </OverlayTrigger>
       <Overlay
         target={refreshBtnRef.current}
-        show={!!showScrubNudge}
+        show={
+          !!(
+            (demoStepsArray ?? false) &&
+            demoStepsArray?.[StepsEnum.Scrub] === StepStates.Active
+          )
+        }
         placement="bottom"
       >
         {(props: OverlayInjectedProps) => {
@@ -94,7 +96,27 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
                 className="tooltip-arrow"
                 {...(arrowProps as Record<string, unknown>)}
               />
-              <div className="tooltip-inner">{DemoSteps[0]}</div>
+              <div className="tooltip-inner">
+                <div>{StepText[StepsEnum.Scrub]}</div>
+                {demoStepsArray?.[StepsEnum.Scrub] === StepStates.Active && (
+                  <div className="mt-1">
+                    {!busy && (
+                      <button
+                        type="button"
+                        disabled={!!busy}
+                        className="btn btn-sm btn-warning text-blue text-decoration-none"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDemoStepNext?.();
+                        }}
+                      >
+                        continue...
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           );
         }}
@@ -120,7 +142,12 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
       </OverlayTrigger>
       <Overlay
         target={downloadBtnRef.current}
-        show={!!showDownloadNudge}
+        show={
+          !!(
+            (demoStepsArray ?? false) &&
+            demoStepsArray?.[StepsEnum.Download] === StepStates.Active
+          )
+        }
         placement="bottom"
       >
         {(props: OverlayInjectedProps) => {
@@ -141,7 +168,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
               />
               <div className="tooltip-inner">
                 <div>Click to download your redacted image.</div>
-                {onDownloadNudgeDone && (
+                {demoStepsArray?.[StepsEnum.Download] === StepStates.Active && (
                   <div className="mt-1">
                     <button
                       type="button"
@@ -149,7 +176,7 @@ export const ActionControls: React.FC<ActionControlsProps> = ({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        onDownloadNudgeDone();
+                        onDemoStepNext?.();
                       }}
                     >
                       Got it!

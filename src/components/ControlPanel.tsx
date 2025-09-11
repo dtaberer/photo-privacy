@@ -1,6 +1,7 @@
 import React, { memo, useId } from "react";
 import { Card, Form, Badge, Overlay } from "react-bootstrap";
 import { DemoSteps } from "./constants";
+import { StepsEnum, StepText } from "./demo/useDemo";
 
 export type ControlPanelProps = {
   controlName: string;
@@ -12,25 +13,10 @@ export type ControlPanelProps = {
   featherVal: number;
   setFeatherVal: (v: number) => void;
   busy?: boolean;
-  showBlurNudge?: boolean;
-  onBlurInteract?: () => void;
-  // Optional: show a small Next link inside the Blur tooltip
-  blurNudgeNextLabel?: string;
-  onBlurNudgeNext?: () => void;
-  // Optional: custom text for Blur tooltip
-  blurNudgeText?: string;
-  // Optional: show tooltip for Filter slider
-  showFilterNudge?: boolean;
-  // Optional: add Next link to Filter tooltip
-  filterNudgeNextLabel?: string;
-  onFilterNudgeNext?: () => void;
-  // Optional: show tooltip for Feather slider
-  showFeatherNudge?: boolean;
-  // Optional: custom text for Feather tooltip
-  featherNudgeText?: string;
-  // Optional: add Next link to Feather tooltip
-  featherNudgeNextLabel?: string;
-  onFeatherNudgeNext?: () => void;
+  onDemoStepNext?: () => void;
+  showDemoTextForBlur?: boolean | false;
+  showDemoTextForFilter?: boolean | false;
+  showDemoTextForFeather?: boolean | false;
 };
 
 interface OverlayInjectedProps {
@@ -52,18 +38,10 @@ function ControlPanel({
   featherVal,
   setFeatherVal,
   busy = false,
-  showBlurNudge = false,
-  onBlurInteract,
-  blurNudgeNextLabel,
-  onBlurNudgeNext,
-  blurNudgeText,
-  showFilterNudge,
-  filterNudgeNextLabel,
-  onFilterNudgeNext,
-  showFeatherNudge,
-  featherNudgeText,
-  featherNudgeNextLabel,
-  onFeatherNudgeNext,
+  onDemoStepNext,
+  showDemoTextForBlur,
+  showDemoTextForFilter,
+  showDemoTextForFeather,
 }: ControlPanelProps) {
   const blurId = useId();
   const confId = useId();
@@ -101,7 +79,6 @@ function ControlPanel({
               disabled={busy}
               onChange={(e) => {
                 setBlurVal(Number(e.currentTarget.value));
-                onBlurInteract?.();
               }}
               className="form-range themed-range"
               ref={blurRef as React.RefObject<HTMLInputElement>}
@@ -117,7 +94,7 @@ function ControlPanel({
           </div>
           <Overlay
             target={blurRef.current}
-            show={!!showBlurNudge}
+            show={!!showDemoTextForBlur}
             placement="top"
           >
             {(props: OverlayInjectedProps) => {
@@ -139,28 +116,26 @@ function ControlPanel({
                   />
                   <div className="tooltip-inner">
                     <div>
-                      {blurNudgeText ?? (
+                      {
                         <span>
                           For {controlName}
-                          <br /> {DemoSteps[1]}
+                          <br /> {StepText[StepsEnum.FaceBlur]}
                         </span>
-                      )}
+                      }
                     </div>
-                    {onBlurNudgeNext && (
-                      <div className="mt-1">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-warning text-blue text-decoration-none"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onBlurNudgeNext();
-                          }}
-                        >
-                          {blurNudgeNextLabel ?? "continue..."}
-                        </button>
-                      </div>
-                    )}
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-warning text-blue text-decoration-none"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDemoStepNext?.();
+                        }}
+                      >
+                        continue...
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -206,7 +181,7 @@ function ControlPanel({
           </div>
           <Overlay
             target={confRef.current}
-            show={!!showFilterNudge}
+            show={showDemoTextForFilter}
             placement="top"
           >
             {(props: OverlayInjectedProps) => {
@@ -230,24 +205,22 @@ function ControlPanel({
                     <div>
                       <span>
                         For {controlName}
-                        <br /> {DemoSteps[2]}
+                        <br /> {DemoSteps[StepsEnum.FaceFilter]}
                       </span>
                     </div>
-                    {onFilterNudgeNext && (
-                      <div className="mt-1">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-warning text-blue text-decoration-none"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onFilterNudgeNext();
-                          }}
-                        >
-                          {filterNudgeNextLabel ?? "continue..."}
-                        </button>
-                      </div>
-                    )}
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-warning text-blue text-decoration-none"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDemoStepNext?.();
+                        }}
+                      >
+                        continue...
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -292,7 +265,7 @@ function ControlPanel({
           </div>
           <Overlay
             target={featherRef.current}
-            show={!!showFeatherNudge}
+            show={!!showDemoTextForFeather}
             placement="top"
           >
             {(props: OverlayInjectedProps) => {
@@ -314,29 +287,26 @@ function ControlPanel({
                   />
                   <div className="tooltip-inner">
                     <div>
-                      {featherNudgeText ?? (
-                        <span>
-                          For {controlName}
-                          <br />
-                          {DemoSteps[3]}
-                        </span>
-                      )}
+                      <span>
+                        For {controlName}
+                        <br />
+                        {StepText[StepsEnum.FaceFeather]}
+                      </span>
                     </div>
-                    {onFeatherNudgeNext && (
-                      <div className="mt-1">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-warning text-blue text-decoration-none"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onFeatherNudgeNext();
-                          }}
-                        >
-                          {featherNudgeNextLabel ?? "continue..."}
-                        </button>
-                      </div>
-                    )}
+
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-warning text-blue text-decoration-none"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDemoStepNext?.();
+                        }}
+                      >
+                        continue...
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

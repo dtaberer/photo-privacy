@@ -12,7 +12,7 @@ import FaceBlur from "./FaceBlur";
 import ControlPanel from "./ControlPanel";
 import Preview from "./Preview";
 import ActionControls from "./ActionControls";
-import { useDemo, demoImage } from "./demo/useDemo";
+import { useDemo, demoImage, StepStates, StepsEnum } from "./demo/useDemo";
 import { FileLoader } from "./FileLoader";
 import PlateRedactor, { PlateRedactorHandle } from "./PlateRedactor";
 import {
@@ -21,7 +21,6 @@ import {
   IMAGE_SIZE,
   LicensePlateBlurConstants,
   USE_MANUAL_REDACTOR,
-  DemoSteps,
 } from "./constants";
 import { Box, Size, BlurHandler } from "@/types/detector-types";
 
@@ -153,16 +152,14 @@ export function PrivacyScrubber() {
 
   const onRefreshHandler = useCallback(async () => {
     // Hide Face tooltip while processing runs
-    setBusy(true);
     const img = imgRef?.current;
     const cvs = canvasRef.current;
 
-    if (!cvs || !img) {
-      setBusy(false);
-      return;
-    }
+    if (!cvs || !img) return;
 
     try {
+      setCanvasVisible(false);
+      setBusy(true);
       await plateRef.current?.run();
       void plateRedactorRef.current?.prefillFromDetections(
         plateRef.current?.getDetections?.() ?? []
@@ -175,8 +172,8 @@ export function PrivacyScrubber() {
         `Detection error: ${e instanceof Error ? e.message : String(e)}`
       );
     } finally {
-      setCanvasVisible(true);
       setBusy(false);
+      setCanvasVisible(true);
       // No-op for Plate tooltip; it's shown on image load for the demo
     }
   }, [facesOn]);
@@ -325,7 +322,6 @@ export function PrivacyScrubber() {
           initialHeight={initialPreviewHeight}
           headerRef={leftHeaderRef}
           onTryDemo={demo.onTryDemo}
-          onImageLoaded={demo.onPreviewImageLoaded}
           demoMode={demo.demoMode}
         />
         {USE_MANUAL_REDACTOR && previewUrl && (
@@ -354,12 +350,9 @@ export function PrivacyScrubber() {
                     onClickRefreshHandler={onRefreshHandler}
                     onClickDownloadHandler={onDownloadHandler}
                     busy={busy && !!previewUrl}
-                    showScrubNudge={demo.nudgeFlags.showScrubNudge}
-                    showDownloadNudge={
-                      demo.demoMode && demo.nudgeFlags.showDownloadNudge
-                    }
-                    onScrubNudgeNext={demo.onScrubNudgeNext}
-                    onDownloadNudgeDone={demo.onDownloadNudgeDone}
+                    disabled={!previewUrl || busy}
+                    onDemoStepNext={demo.onDemoStepNext}
+                    demoStepsArray={demo.demoStepsArray}
                   />
                 </div>
 
@@ -432,25 +425,19 @@ export function PrivacyScrubber() {
                     setThreshVal={setPlateConf}
                     featherVal={plateFeather}
                     setFeatherVal={setPlateFeather}
-                    showBlurNudge={
-                      demo.demoMode && demo.nudgeFlags.showPlateBlurNudge
+                    onDemoStepNext={demo.onDemoStepNext}
+                    showDemoTextForBlur={
+                      demo.demoStepsArray[StepsEnum.PlateBlur] ===
+                      StepStates.Active
                     }
-                    onBlurInteract={
-                      !demo.demoMode ? demo.hidePlateBlurNudge : undefined
+                    showDemoTextForFilter={
+                      demo.demoStepsArray[StepsEnum.PlateFilter] ===
+                      StepStates.Active
                     }
-                    blurNudgeNextLabel="continue..."
-                    blurNudgeText={DemoSteps[demo.demoStep]}
-                    onBlurNudgeNext={demo.onPlateBlurNext}
-                    showFilterNudge={
-                      demo.demoMode && demo.nudgeFlags.showPlateFilterNudge
+                    showDemoTextForFeather={
+                      demo.demoStepsArray[StepsEnum.PlateFeather] ===
+                      StepStates.Active
                     }
-                    filterNudgeNextLabel="continue..."
-                    onFilterNudgeNext={demo.onPlateFilterNext}
-                    showFeatherNudge={
-                      demo.demoMode && demo.nudgeFlags.showPlateFeatherNudge
-                    }
-                    featherNudgeNextLabel="continue..."
-                    onFeatherNudgeNext={demo.onPlateFeatherNext}
                   />
                 )}
 
@@ -465,23 +452,19 @@ export function PrivacyScrubber() {
                     setThreshVal={setFaceConf}
                     featherVal={faceFeather}
                     setFeatherVal={setFaceFeather}
-                    showBlurNudge={
-                      demo.demoMode && demo.nudgeFlags.showFaceBlurNudge
+                    onDemoStepNext={demo.onDemoStepNext}
+                    showDemoTextForBlur={
+                      demo.demoStepsArray[StepsEnum.FaceBlur] ===
+                      StepStates.Active
                     }
-                    onBlurInteract={
-                      !demo.demoMode ? demo.hideFaceBlurNudge : undefined
+                    showDemoTextForFilter={
+                      demo.demoStepsArray[StepsEnum.FaceFilter] ===
+                      StepStates.Active
                     }
-                    blurNudgeNextLabel="continue..."
-                    onBlurNudgeNext={demo.onFaceBlurNext}
-                    showFilterNudge={
-                      demo.demoMode && demo.nudgeFlags.showFaceFilterNudge
+                    showDemoTextForFeather={
+                      demo.demoStepsArray[StepsEnum.FaceFeather] ===
+                      StepStates.Active
                     }
-                    filterNudgeNextLabel="continue..."
-                    onFilterNudgeNext={demo.onFaceFilterNext}
-                    showFeatherNudge={
-                      demo.demoMode && demo.nudgeFlags.showFaceFeatherNudge
-                    }
-                    onFeatherNudgeNext={demo.onFaceFeatherNext}
                   />
                 )}
               </Card.Body>

@@ -17,7 +17,6 @@ interface PreviewProps {
   initialHeight?: number;
   headerRef?: React.RefObject<HTMLDivElement | null>;
   onTryDemo?: () => void;
-  onImageLoaded?: () => void;
   demoMode?: boolean;
 }
 
@@ -34,7 +33,6 @@ const Preview: React.FC<PreviewProps> = ({
   initialHeight,
   headerRef,
   onTryDemo,
-  onImageLoaded,
   demoMode,
 }) => {
   if (!imgRef) return <div>No image to preview.</div>;
@@ -130,7 +128,6 @@ const Preview: React.FC<PreviewProps> = ({
                 c.width = w;
                 c.height = h;
               }
-              onImageLoaded?.();
             }}
           />
           {!previewUrl && (
