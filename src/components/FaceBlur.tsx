@@ -13,6 +13,7 @@ import {
   blurPatchWithFeather,
   isFaceApiNS,
 } from "./utils/face-blur-utils";
+import { loadFaceModel, detectFaces } from "./utils/face-detector-onnx";
 
 type FaceBox = UtilsFaceBox;
 
@@ -143,6 +144,83 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
           },
         });
         return;
+      }
+
+      try {
+        console.log("Loading ONNX model...");
+        await loadFaceModel(FaceBlurConstants.MODEL_URL);
+        console.log("Using ONNX face detection model");
+        const off = document.createElement("canvas");
+        off.width = img.naturalWidth;
+        off.height = img.naturalHeight;
+        const offCtx = off.getContext("2d");
+        if (!offCtx) throw new Error("no 2d context");
+        offCtx.drawImage(img, 0, 0, off.width, off.height);
+        const imageData = offCtx.getImageData(0, 0, off.width, off.height);
+        const t1 = performance.now();
+        const boxes = await detectFaces(imageData, conf);
+        const t2 = performance.now();
+
+        const sx = canvas.width / off.width;
+        const sy = canvas.height / off.height;
+        facesCache = boxes
+          .slice(0, FaceBlurConstants.MAX_DETECTED_FACES)
+          .map((b) =>
+            newFaceBox(
+              Math.round(b.x * sx),
+              Math.round(b.y * sy),
+              Math.round(b.w * sx),
+              Math.round(b.h * sy),
+              b.score
+            )
+          );
+
+        const ctx = canvas.getContext("2d");
+        const filtered = facesCache.filter((b) => (b.score ?? 1) >= conf);
+        for (const base of filtered) {
+          const W = canvas.width,
+            H = canvas.height;
+          const rx = clamp(Math.round(base.x - base.w * padRatio), 0, W);
+          const ry = clamp(Math.round(base.y - base.h * padRatio), 0, H);
+          const rw = clamp(Math.round(base.w * (1 + 2 * padRatio)), 1, W - rx);
+          const rh = clamp(Math.round(base.h * (1 + 2 * padRatio)), 1, H - ry);
+          const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
+
+          if (ctx) {
+            blurPatchWithFeather(
+              ctx,
+              img,
+              r.x,
+              r.y,
+              r.w,
+              r.h,
+              blur,
+              FaceBlurConstants.FEATHER_PX
+            );
+          }
+        }
+        const t3 = performance.now();
+        opts.setPerfReport({
+          count: filtered.length,
+          total: t3 - t0,
+          timings: {
+            preprocess: t1 - t0,
+            run: t2 - t1,
+            post: t3 - t2,
+            total: t3 - t0,
+          },
+        });
+        return;
+      } catch (e: unknown) {
+        console.error("Failed to load ONNX model");
+        console.error("Falling back to face-api.js");
+        console.log(
+          "error: ",
+          e,
+          (e as Error)?.stack,
+          FaceBlurConstants.MODEL_URL
+        );
+        /* fall back to face-api.js */
       }
 
       let faceapiMod: unknown;

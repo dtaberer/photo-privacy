@@ -17,6 +17,7 @@ export interface FaceBlurConstants {
   MAX_DETECTED_FACES: number; // safety limit
   MODEL_SIZE: number; // model input size (width and height)
   MODELS_URL: string; // base URL for face-api models
+  MODEL_URL: string; // full URL for ONNX face detection model
 }
 
 export interface LicensePlateBlurConstants {
@@ -47,6 +48,7 @@ export const FaceBlurConstants: FaceBlurConstants = {
   MAX_DETECTED_FACES: 50,
   MODEL_SIZE: 416,
   MODELS_URL: `${basePath}models/face-api`,
+  MODEL_URL: `${basePath}models/face/yolov11n-face.onnx`,
 };
 
 export const LicensePlateBlurConstants: LicensePlateBlurConstants = {
