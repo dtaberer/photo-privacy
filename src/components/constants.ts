@@ -42,21 +42,21 @@ export const FaceBlurConstants: FaceBlurConstants = {
   CONFIDENCE_THRESHOLD: 0.04,
   RUN_FACE_DETECTION: true,
   IOU_THRESHOLD: 0.1,
-  PAD_RATIO: 0.1,
+  PAD_RATIO: 0.14,
   FEATHER_PX: 1,
   MAX_DETECTED_FACES: 50,
-  MODEL_SIZE: 320,
+  MODEL_SIZE: 416,
   MODELS_URL: `${basePath}models/face-api`,
 };
 
 export const LicensePlateBlurConstants: LicensePlateBlurConstants = {
   BLUR_DENSITY: 40,
-  CONFIDENCE_THRESHOLD: 0.04,
+  CONFIDENCE_THRESHOLD: 0.02,
   RUN_LICENSE_PLATE_DETECTION: true,
   MODEL_SIZE: 800,
   MODEL_URL: `${basePath}models/license-plate-finetune-v1n.onnx`,
   IOU_THRESHOLD: 0.1,
-  PAD_RATIO: 0.01,
+  PAD_RATIO: 0.14,
   FEATHER_PX: 1,
 };
 
@@ -82,15 +82,15 @@ export const DemoSteps: DemoSteps = [
   This normally takes around 8-10 seconds to complete detection.",
 
   "Select the 'Blur Opacity' to adjust the density and obscurity level of the blurred region. \
-  Try it out!",
+  Try it!",
 
   "The Filter control changes the level of sensitivity of detection and is driven by confidence thresholds. \
   It can drastically cut down the noise levels, but may also miss some distant or obscured subjects. \
-  Try it out!",
+  Try it!",
 
   "The Feather control adjusts the softness of the edges of the redacted areas. \
   Increasing the feathering can help blend the redacted areas more naturally into the background. \
-  Try it out!",
+  Try it!",
 
   "When you are ready to download your redacted image, click the Download button. \
   Your browser will prompt you to save the image file to your device.",

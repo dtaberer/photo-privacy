@@ -1,6 +1,7 @@
 import React, { memo, useId } from "react";
-import { Card, Form, Badge, Overlay, Tooltip } from "react-bootstrap";
+import { Card, Form, Badge, Overlay } from "react-bootstrap";
 import { DemoSteps } from "./constants";
+import { StepsEnum, StepText } from "./demo/useDemo";
 
 export type ControlPanelProps = {
   controlName: string;
@@ -12,26 +13,20 @@ export type ControlPanelProps = {
   featherVal: number;
   setFeatherVal: (v: number) => void;
   busy?: boolean;
-  showBlurNudge?: boolean;
-  onBlurInteract?: () => void;
-  // Optional: show a small Next link inside the Blur tooltip
-  blurNudgeNextLabel?: string;
-  onBlurNudgeNext?: () => void;
-  // Optional: custom text for Blur tooltip
-  blurNudgeText?: string;
-  // Optional: show tooltip for Filter slider
-  showFilterNudge?: boolean;
-  // Optional: add Next link to Filter tooltip
-  filterNudgeNextLabel?: string;
-  onFilterNudgeNext?: () => void;
-  // Optional: show tooltip for Feather slider
-  showFeatherNudge?: boolean;
-  // Optional: custom text for Feather tooltip
-  featherNudgeText?: string;
-  // Optional: add Next link to Feather tooltip
-  featherNudgeNextLabel?: string;
-  onFeatherNudgeNext?: () => void;
+  onDemoStepNext?: () => void;
+  showDemoTextForBlur?: boolean | false;
+  showDemoTextForFilter?: boolean | false;
+  showDemoTextForFeather?: boolean | false;
 };
+
+interface OverlayInjectedProps {
+  arrowProps: Record<string, unknown>;
+  show?: boolean;
+  hasDoneInitialMeasure?: boolean;
+  placement?: string;
+  popper?: unknown;
+  [key: string]: unknown;
+}
 
 function ControlPanel({
   controlName,
@@ -43,18 +38,10 @@ function ControlPanel({
   featherVal,
   setFeatherVal,
   busy = false,
-  showBlurNudge = false,
-  onBlurInteract,
-  blurNudgeNextLabel,
-  onBlurNudgeNext,
-  blurNudgeText,
-  showFilterNudge,
-  filterNudgeNextLabel,
-  onFilterNudgeNext,
-  showFeatherNudge,
-  featherNudgeText,
-  featherNudgeNextLabel,
-  onFeatherNudgeNext,
+  onDemoStepNext,
+  showDemoTextForBlur,
+  showDemoTextForFilter,
+  showDemoTextForFeather,
 }: ControlPanelProps) {
   const blurId = useId();
   const confId = useId();
@@ -92,7 +79,6 @@ function ControlPanel({
               disabled={busy}
               onChange={(e) => {
                 setBlurVal(Number(e.currentTarget.value));
-                onBlurInteract?.();
               }}
               className="form-range themed-range"
               ref={blurRef as React.RefObject<HTMLInputElement>}
@@ -108,36 +94,52 @@ function ControlPanel({
           </div>
           <Overlay
             target={blurRef.current}
-            show={!!showBlurNudge}
-            placement="bottom"
+            show={!!showDemoTextForBlur}
+            placement="top"
           >
-            {(props) => (
-              <Tooltip id="tt-blur-nudge" {...props}>
-                <div>
-                  {blurNudgeText ?? (
-                    <span>
-                      For {controlName}
-                      <br /> {DemoSteps[1]}
-                    </span>
-                  )}
-                </div>
-                {onBlurNudgeNext && (
-                  <div className="mt-1">
-                    <button
-                      type="button"
-                      className="btn btn-link btn-sm p-0 text-white text-decoration-none"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBlurNudgeNext();
-                      }}
-                    >
-                      {blurNudgeNextLabel ?? "Next"}
-                    </button>
+            {(props: OverlayInjectedProps) => {
+              const { arrowProps, ...overlayProps } = props;
+              delete overlayProps.show;
+              delete overlayProps.hasDoneInitialMeasure;
+              delete overlayProps.popper;
+              delete overlayProps.placement;
+              return (
+                <div
+                  id="tt-blur-nudge"
+                  {...(overlayProps as Record<string, unknown>)}
+                  className="tooltip bs-tooltip-auto show"
+                  role="tooltip"
+                >
+                  <div
+                    className="tooltip-arrow"
+                    {...(arrowProps as Record<string, unknown>)}
+                  />
+                  <div className="tooltip-inner">
+                    <div>
+                      {
+                        <span>
+                          For {controlName}
+                          <br /> {StepText[StepsEnum.FaceBlur]}
+                        </span>
+                      }
+                    </div>
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-warning text-blue text-decoration-none"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDemoStepNext?.();
+                        }}
+                      >
+                        continue...
+                      </button>
+                    </div>
                   </div>
-                )}
-              </Tooltip>
-            )}
+                </div>
+              );
+            }}
           </Overlay>
           <span className="value-badge">
             <span aria-hidden className="num">
@@ -179,34 +181,50 @@ function ControlPanel({
           </div>
           <Overlay
             target={confRef.current}
-            show={!!showFilterNudge}
-            placement="bottom"
+            show={showDemoTextForFilter}
+            placement="top"
           >
-            {(props) => (
-              <Tooltip id="tt-filter-nudge" {...props}>
-                <div>
-                  <span>
-                    For {controlName}
-                    <br /> {DemoSteps[2]}
-                  </span>
-                </div>
-                {onFilterNudgeNext && (
-                  <div className="mt-1">
-                    <button
-                      type="button"
-                      className="btn btn-link btn-sm p-0 text-white text-decoration-none"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onFilterNudgeNext();
-                      }}
-                    >
-                      {filterNudgeNextLabel ?? "next >>"}
-                    </button>
+            {(props: OverlayInjectedProps) => {
+              const { arrowProps, ...overlayProps } = props;
+              delete overlayProps.show;
+              delete overlayProps.hasDoneInitialMeasure;
+              delete overlayProps.popper;
+              delete overlayProps.placement;
+              return (
+                <div
+                  id="tt-filter-nudge"
+                  {...(overlayProps as Record<string, unknown>)}
+                  className="tooltip bs-tooltip-auto show"
+                  role="tooltip"
+                >
+                  <div
+                    className="tooltip-arrow"
+                    {...(arrowProps as Record<string, unknown>)}
+                  />
+                  <div className="tooltip-inner">
+                    <div>
+                      <span>
+                        For {controlName}
+                        <br /> {DemoSteps[StepsEnum.FaceFilter]}
+                      </span>
+                    </div>
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-warning text-blue text-decoration-none"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDemoStepNext?.();
+                        }}
+                      >
+                        continue...
+                      </button>
+                    </div>
                   </div>
-                )}
-              </Tooltip>
-            )}
+                </div>
+              );
+            }}
           </Overlay>
           <span className="value-badge">
             <span aria-hidden className="num">
@@ -247,37 +265,52 @@ function ControlPanel({
           </div>
           <Overlay
             target={featherRef.current}
-            show={!!showFeatherNudge}
-            placement="bottom"
+            show={!!showDemoTextForFeather}
+            placement="top"
           >
-            {(props) => (
-              <Tooltip id="tt-feather-nudge" {...props}>
-                <div>
-                  {featherNudgeText ?? (
-                    <span>
-                      For {controlName}
-                      <br />
-                      {DemoSteps[3]}
-                    </span>
-                  )}
-                </div>
-                {onFeatherNudgeNext && (
-                  <div className="mt-1">
-                    <button
-                      type="button"
-                      className="btn btn-link btn-sm p-0 text-white text-decoration-none"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onFeatherNudgeNext();
-                      }}
-                    >
-                      {featherNudgeNextLabel ?? "next >>"}
-                    </button>
+            {(props: OverlayInjectedProps) => {
+              const { arrowProps, ...overlayProps } = props;
+              delete overlayProps.show;
+              delete overlayProps.hasDoneInitialMeasure;
+              delete overlayProps.popper;
+              delete overlayProps.placement;
+              return (
+                <div
+                  id="tt-feather-nudge"
+                  {...(overlayProps as Record<string, unknown>)}
+                  className="tooltip bs-tooltip-auto show"
+                  role="tooltip"
+                >
+                  <div
+                    className="tooltip-arrow"
+                    {...(arrowProps as Record<string, unknown>)}
+                  />
+                  <div className="tooltip-inner">
+                    <div>
+                      <span>
+                        For {controlName}
+                        <br />
+                        {StepText[StepsEnum.FaceFeather]}
+                      </span>
+                    </div>
+
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-warning text-blue text-decoration-none"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDemoStepNext?.();
+                        }}
+                      >
+                        continue...
+                      </button>
+                    </div>
                   </div>
-                )}
-              </Tooltip>
-            )}
+                </div>
+              );
+            }}
           </Overlay>
           <span className="value-badge">
             <span aria-hidden className="num">

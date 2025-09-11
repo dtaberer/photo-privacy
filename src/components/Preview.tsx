@@ -17,7 +17,7 @@ interface PreviewProps {
   initialHeight?: number;
   headerRef?: React.RefObject<HTMLDivElement | null>;
   onTryDemo?: () => void;
-  onImageLoaded?: () => void;
+  demoMode?: boolean;
 }
 
 const Preview: React.FC<PreviewProps> = ({
@@ -33,7 +33,7 @@ const Preview: React.FC<PreviewProps> = ({
   initialHeight,
   headerRef,
   onTryDemo,
-  onImageLoaded,
+  demoMode,
 }) => {
   if (!imgRef) return <div>No image to preview.</div>;
 
@@ -77,7 +77,7 @@ const Preview: React.FC<PreviewProps> = ({
           <div className="d-flex align-items-center gap-2 text-muted">
             <FaImage className="text-muted" />
             <span className="fw-semibold">{title}</span>
-            {onTryDemo && (
+            {onTryDemo && !demoMode && (
               <button
                 type="button"
                 className="btn btn-sm ms-2"
@@ -128,7 +128,6 @@ const Preview: React.FC<PreviewProps> = ({
                 c.width = w;
                 c.height = h;
               }
-              onImageLoaded?.();
             }}
           />
           {!previewUrl && (

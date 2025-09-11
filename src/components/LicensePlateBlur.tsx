@@ -1,4 +1,9 @@
-import React, { forwardRef, useImperativeHandle, useCallback, useRef } from "react";
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useCallback,
+  useRef,
+} from "react";
 import { ort, createOrtSession, ortForceBasicWasm } from "../ort-setup";
 import {
   letterbox,

@@ -1,7 +1,11 @@
 import { forwardRef, useImperativeHandle, useCallback, RefObject } from "react";
 import { FaceBlurConstants } from "./constants";
 import type { BlurHandler, PerformanceReport } from "@/types/detector-types";
-import type { FaceBox as UtilsFaceBox } from "./utils/face-blur-utils";
+import {
+  newFaceBox,
+  type FaceBox as UtilsFaceBox,
+} from "./utils/face-blur-utils";
+
 import {
   clamp,
   cssToCanvasRect,
@@ -35,22 +39,33 @@ interface FaceBlurProps {
 
 export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
   ({ imgRef, canvasRef, opts }, ref) => {
-    const FD = (globalThis as unknown as {
-      FaceDetector?: new (opts?: unknown) => {
-        detect: (el: HTMLImageElement) => Promise<
-          Array<
-            | { boundingBox: DOMRectReadOnly }
-            | { x: number; y: number; width: number; height: number }
-            | { box: { x: number; y: number; width: number; height: number } }
-          >
-        >;
-      };
-    }).FaceDetector;
+    const FD = (
+      globalThis as unknown as {
+        FaceDetector?: new (opts?: unknown) => {
+          detect: (
+            el: HTMLImageElement
+          ) => Promise<
+            Array<
+              | { boundingBox: DOMRectReadOnly }
+              | { x: number; y: number; width: number; height: number }
+              | { box: { x: number; y: number; width: number; height: number } }
+            >
+          >;
+        };
+      }
+    ).FaceDetector;
 
     const run = useCallback(async () => {
       const img = imgRef.current;
       const canvas = canvasRef.current;
-      if (!img || !canvas || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) return;
+      if (
+        !img ||
+        !canvas ||
+        !img.complete ||
+        img.naturalWidth === 0 ||
+        img.naturalHeight === 0
+      )
+        return;
       const t0 = performance.now();
       facesCache = [];
       // Initial pass uses constant density; interactive slider updates happen via redraw()
@@ -75,9 +90,9 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
             const bb =
               "boundingBox" in f
                 ? f.boundingBox
-                : ("box" in f
-                    ? f.box
-                    : { x: f.x, y: f.y, width: f.width, height: f.height });
+                : "box" in f
+                ? f.box
+                : { x: f.x, y: f.y, width: f.width, height: f.height };
             return cssToCanvasRect(img, canvas, bb);
           });
         } catch {
@@ -97,7 +112,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
             const ry = clamp(Math.round(r0.y - r0.h * padRatio), 0, H);
             const rw = clamp(Math.round(r0.w * (1 + 2 * padRatio)), 1, W - rx);
             const rh = clamp(Math.round(r0.h * (1 + 2 * padRatio)), 1, H - ry);
-            const r = adjustUp({ x: rx, y: ry, w: rw, h: rh }, W, H, 0.12);
+            const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
 
             if (ctx) {
               blurPatchWithFeather(
@@ -147,7 +162,9 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const faceapi: FaceApiCompatNS = faceapiMod as FaceApiCompatNS;
 
       // Try a couple of base paths for models
-      const BASE = (import.meta as unknown as { env?: Record<string, string> }).env?.BASE_URL ?? "/";
+      const BASE =
+        (import.meta as unknown as { env?: Record<string, string> }).env
+          ?.BASE_URL ?? "/";
       const bp = BASE.endsWith("/") ? BASE : `${BASE}/`;
       const bases = [
         FaceBlurConstants.MODELS_URL,
@@ -195,13 +212,16 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
 
       const sx = canvas.width / (img.naturalWidth || canvas.width);
       const sy = canvas.height / (img.naturalHeight || canvas.height);
-      facesCache = detections.map((d) => ({
-        x: Math.round(d.box.x * sx),
-        y: Math.round(d.box.y * sy),
-        w: Math.round(d.box.width * sx),
-        h: Math.round(d.box.height * sy),
-        score: d.score ?? 1,
-      }));
+
+      facesCache = detections.map((d) =>
+        newFaceBox(
+          Math.round(d.box.x * sx),
+          Math.round(d.box.y * sy),
+          Math.round(d.box.width * sx),
+          Math.round(d.box.height * sy),
+          d.score
+        )
+      );
 
       // Draw now using cached faces (if a 2D context is available)
       const ctx = canvas.getContext("2d");
@@ -213,7 +233,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         const ry = clamp(Math.round(base.y - base.h * padRatio), 0, H);
         const rw = clamp(Math.round(base.w * (1 + 2 * padRatio)), 1, W - rx);
         const rh = clamp(Math.round(base.h * (1 + 2 * padRatio)), 1, H - ry);
-        const r = adjustUp({ x: rx, y: ry, w: rw, h: rh }, W, H, 0.12);
+        const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
 
         if (ctx) {
           blurPatchWithFeather(
@@ -252,7 +272,13 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const padRatio = FaceBlurConstants.PAD_RATIO;
 
       // Guard against redraw before image loads (e.g., when previewUrl changes)
-      if (!img || !canvas || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+      if (
+        !img ||
+        !canvas ||
+        !img.complete ||
+        img.naturalWidth === 0 ||
+        img.naturalHeight === 0
+      ) {
         return;
       }
       const ctx = canvas.getContext("2d");
@@ -269,7 +295,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         const ry = clamp(Math.round(base.y - base.h * padRatio), 0, H);
         const rw = clamp(Math.round(base.w * (1 + 2 * padRatio)), 1, W - rx);
         const rh = clamp(Math.round(base.h * (1 + 2 * padRatio)), 1, H - ry);
-        const r = adjustUp({ x: rx, y: ry, w: rw, h: rh }, W, H, 0.12);
+        const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
 
         blurPatchWithFeather(
           ctx,

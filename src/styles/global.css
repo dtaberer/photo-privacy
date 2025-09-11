@@ -192,49 +192,49 @@ label {
 
 /* Global CSS variables and resets (should be top-level, not nested) */
 :root {
-    --brand-primary: #337ccc;
-    --brand-primary-rgb: 113, 147, 201; /* keep requested rgb */
-    --brand-secondary: #a0b3c4;
-    --surface: #ffffff;
-    --surface-2: #f8fafc;
-    /* Global text colors */
-    --text-strong: #4f586c;
-    --text-muted: #3b434e;
-    --radius-lg: 12px;
-    --radius-md: 8px;
-    --shadow-sm: 0 2px 10px rgba(2, 6, 23, 0.06);
-    --shadow-md: 0 8px 30px rgba(2, 6, 23, 0.08);
-    --font-sans: "Inter", "Source Sans 3", "Segoe UI", Roboto, Helvetica, Arial,
-      sans-serif;
+  --brand-primary: #337ccc;
+  --brand-primary-rgb: 113, 147, 201; /* keep requested rgb */
+  --brand-secondary: #a0b3c4;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  /* Global text colors */
+  --text-strong: #4f586c;
+  --text-muted: #3b434e;
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --shadow-sm: 0 2px 10px rgba(2, 6, 23, 0.06);
+  --shadow-md: 0 8px 30px rgba(2, 6, 23, 0.08);
+  --font-sans: "Inter", "Source Sans 3", "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
 
-    /* Bootstrap 5 form-range defaults (global fallback) */
-    --bs-form-range-thumb-width: 22px;
-    --bs-form-range-thumb-height: 22px;
-    --bs-form-range-thumb-bg: var(--brand-primary);
-    --bs-form-range-thumb-border: 2px solid #fff;
-    --bs-form-range-thumb-box-shadow: 0 0 0 2px
-        rgba(var(--brand-primary-rgb), 0.45),
-      0 2px 6px rgba(2, 6, 23, 0.2);
-    --bs-form-range-thumb-focus-box-shadow: 0 0 0 0.25rem
-      rgba(var(--brand-primary-rgb), 0.25);
-    --bs-form-range-thumb-disabled-bg: #c7cdd5;
-    --bs-form-range-track-height: 8px;
-    --bs-form-range-track-bg: #e4ecf7;
+  /* Bootstrap 5 form-range defaults (global fallback) */
+  --bs-form-range-thumb-width: 22px;
+  --bs-form-range-thumb-height: 22px;
+  --bs-form-range-thumb-bg: var(--brand-primary);
+  --bs-form-range-thumb-border: 2px solid #fff;
+  --bs-form-range-thumb-box-shadow: 0 0 0 2px
+      rgba(var(--brand-primary-rgb), 0.45),
+    0 2px 6px rgba(2, 6, 23, 0.2);
+  --bs-form-range-thumb-focus-box-shadow: 0 0 0 0.25rem
+    rgba(var(--brand-primary-rgb), 0.25);
+  --bs-form-range-thumb-disabled-bg: #c7cdd5;
+  --bs-form-range-track-height: 8px;
+  --bs-form-range-track-bg: #e4ecf7;
 }
 
 /* Typography baseline */
 html {
-    -webkit-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 body {
-    font-family: var(--font-sans);
-    color: var(--text-strong);
-    /* Approx. 11pt at 96dpi -> ~14.7px; 14.7/16 ≈ 0.917rem */
-    font-size: 0.917rem;
-    line-height: 1.55;
-    letter-spacing: 0.01rem;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans);
+  color: var(--text-strong);
+  /* Approx. 11pt at 96dpi -> ~14.7px; 14.7/16 ≈ 0.917rem */
+  font-size: 0.917rem;
+  line-height: 1.55;
+  letter-spacing: 0.01rem;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Headings and titles */
@@ -271,6 +271,12 @@ h6,
   font-weight: 600;
   letter-spacing: 0.01em;
 }
+
+.btn,
+.demo-btn {
+  font-size: 0.7rem;
+}
+
 .text-secondary {
   --bs-text-opacity: 1;
   color: rgb(48, 104, 151) !important;
@@ -304,7 +310,7 @@ h6,
 
 /* Smaller control panel titles (requested "h8") */
 .control-panel-card .card-title {
-  font-size: 0.80rem;
+  font-size: 0.8rem;
 }
 .badge-chip:hover {
   background: rgba(var(--brand-primary-rgb), 0.14);
@@ -356,7 +362,9 @@ h6,
   background: transparent;
   border: 0;
 }
-.action-btn-group .btn { line-height: 1.25; }
+.action-btn-group .btn {
+  line-height: 1.25;
+}
 .action-btn {
   border: 1px solid #b8cfe8 !important;
   color: #337ccc !important;
@@ -365,7 +373,7 @@ h6,
   display: inline-flex;
   align-items: center;
   line-height: 1.25;
-  font-size: 0.80rem;
+  font-size: 0.8rem;
   gap: 6px;
   border-radius: var(--radius-md);
 }
@@ -384,8 +392,7 @@ h6,
   background-color: rgba(var(--brand-primary-rgb), 0.08) !important;
   border-color: var(--brand-primary) !important;
 }
-.action-btn.btn-outline-secondary:not(:disabled):active {
-}
+
 .action-btn:focus-visible {
   box-shadow: 0 0 0 0.2rem rgba(var(--brand-primary-rgb), 0.25) !important;
 }
@@ -494,9 +501,7 @@ input[type="range"].themed-range::-webkit-slider-thumb {
   background: var(--bs-form-range-thumb-bg, var(--brand-primary)) !important;
   border: var(--bs-form-range-thumb-border, 0) !important;
   box-shadow: var(--bs-form-range-thumb-box-shadow, none) !important;
-  margin-top: calc(
-    (var(--bs-form-range-thumb-height) - var(--track)) / -2
-  );
+  margin-top: calc((var(--bs-form-range-thumb-height) - var(--track)) / -2);
   transition: transform 0.1s ease-out, box-shadow 0.1s ease-out,
     background-color 0.2s ease;
 }
@@ -539,9 +544,9 @@ input[type="range"].themed-range::-moz-range-thumb {
   background: var(--bs-form-range-thumb-bg, var(--brand-primary)) !important;
   border: var(--bs-form-range-thumb-border, 0) !important;
   box-shadow: var(
-      --bs-form-range-thumb-box-shadow,
-      0 0 0 0 rgba(0, 0, 0, 0)
-    ) !important;
+    --bs-form-range-thumb-box-shadow,
+    0 0 0 0 rgba(0, 0, 0, 0)
+  ) !important;
   transition: transform 0.1s ease-out, box-shadow 0.1s ease-out,
     background-color 0.2s ease;
 }
@@ -612,9 +617,14 @@ input[type="range"].themed-range:focus-visible::-moz-range-thumb {
 /* Tooltip styling: make background 25% transparent (≈75% opacity) */
 .tooltip {
   /* Bootstrap reads this variable for tooltip background and arrow color */
-  --bs-tooltip-bg: rgba(45, 107, 179, 0.8); /* darker tone of #337ccc at 80% opacity (20% transparent) */
+  --bs-tooltip-bga: rgb(
+    0,
+    20,
+    44,
+    0.8
+  ); /* darker tone of #337ccc at 80% opacity (20% transparent) */
   --bs-tooltip-color: #fff;
-  --bs-tooltip-font-size: 0.80rem;
+  --bs-tooltip-font-size: 0.7rem;
 }
 
 /* Customize Bootstrap switch/checkbox checked state colors */

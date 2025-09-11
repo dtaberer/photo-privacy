@@ -12,8 +12,7 @@ import FaceBlur from "./FaceBlur";
 import ControlPanel from "./ControlPanel";
 import Preview from "./Preview";
 import ActionControls from "./ActionControls";
-import demoImage from "../assets/demo1.jpg";
-import demoImage2 from "../assets/demo2.jpg";
+import { useDemo, demoImage, StepStates, StepsEnum } from "./demo/useDemo";
 import { FileLoader } from "./FileLoader";
 import PlateRedactor, { PlateRedactorHandle } from "./PlateRedactor";
 import {
@@ -22,7 +21,6 @@ import {
   IMAGE_SIZE,
   LicensePlateBlurConstants,
   USE_MANUAL_REDACTOR,
-  DemoSteps,
 } from "./constants";
 import { Box, Size, BlurHandler } from "@/types/detector-types";
 
@@ -68,31 +66,6 @@ export function PrivacyScrubber() {
   const rightPaneRef = useRef<HTMLDivElement>(null);
   const leftHeaderRef = useRef<HTMLDivElement>(null);
   const [initialPreviewHeight, setInitialPreviewHeight] = useState<number>(0);
-  const demoPendingRef = useRef(false);
-  const [demoMode, setDemoMode] = useState<boolean>(false);
-  const [demoStep, setDemoStep] = useState<number>(0); // 0 = intro, 1 = blur/feather tips, 2 = filter tips
-  const [showScrubNudge, setShowScrubNudge] = useState<boolean>(false);
-  // Show Face "Blur Opacity" tooltip only when processing has finished
-  const [showFaceBlurNudge, setShowFaceBlurNudge] = useState<boolean>(false);
-  // For Demo: After Face Blur tooltip, show Face Filter tooltip
-  const [showFaceFilterNudge, setShowFaceFilterNudge] =
-    useState<boolean>(false);
-  // For Demo: After Face Filter tooltip, show Face Feather tooltip
-  const [showFaceFeatherNudge, setShowFaceFeatherNudge] =
-    useState<boolean>(false);
-  // For Demo: Show License Plate blur tooltip first, then Face blur tooltip
-  const [showPlateBlurNudge, setShowPlateBlurNudge] = useState<boolean>(false);
-  // For Demo: After Blur tooltip, show the Filter tooltip on the Plate control
-  const [showPlateFilterNudge, setShowPlateFilterNudge] =
-    useState<boolean>(false);
-  // For Demo: After Filter tooltip, show the Feather tooltip on the Plate control
-  const [showPlateFeatherNudge, setShowPlateFeatherNudge] =
-    useState<boolean>(false);
-  // Track when the demo image is fully loaded for Plate tooltip gating
-  const [plateDemoImageLoaded, setPlateDemoImageLoaded] =
-    useState<boolean>(false);
-  // For Demo: Show Download tooltip when advancing from Face Feather
-  const [showDownloadNudge, setShowDownloadNudge] = useState<boolean>(false);
 
   const imgRef = useRef<HTMLImageElement>(null!);
   const canvasRef = useRef<HTMLCanvasElement>(null!);
@@ -179,17 +152,14 @@ export function PrivacyScrubber() {
 
   const onRefreshHandler = useCallback(async () => {
     // Hide Face tooltip while processing runs
-    setShowFaceBlurNudge(false);
-    setBusy(true);
     const img = imgRef?.current;
     const cvs = canvasRef.current;
 
-    if (!cvs || !img) {
-      setBusy(false);
-      return;
-    }
+    if (!cvs || !img) return;
 
     try {
+      setCanvasVisible(false);
+      setBusy(true);
       await plateRef.current?.run();
       void plateRedactorRef.current?.prefillFromDetections(
         plateRef.current?.getDetections?.() ?? []
@@ -202,9 +172,8 @@ export function PrivacyScrubber() {
         `Detection error: ${e instanceof Error ? e.message : String(e)}`
       );
     } finally {
-      setCanvasVisible(true);
       setBusy(false);
-      setShowScrubNudge(false);
+      setCanvasVisible(true);
       // No-op for Plate tooltip; it's shown on image load for the demo
     }
   }, [facesOn]);
@@ -224,28 +193,36 @@ export function PrivacyScrubber() {
     }
   }, []);
 
+  const resetDetections = useCallback(() => {
+    faceRef.current?.reset?.();
+    plateRef.current?.reset?.();
+    setPerfFaces(PERFORMANCE_REPORT_ZEROS);
+    setPerfPlates(PERFORMANCE_REPORT_ZEROS);
+  }, []);
+
+  const demo = useDemo({
+    previewUrl,
+    setPreviewUrl: (url: string) => setPreviewUrl(url),
+    setOrigName: (name: string) => setOrigName(name),
+    clearCanvas,
+    runDetection: onRefreshHandler,
+    imgRef,
+    setCanvasVisible,
+    setFacesOn,
+    setPlatesOn,
+    busy,
+    canvasVisible,
+    resetDetections,
+  });
+
+  const { resetDemo } = demo;
+
   const onFilePickHandler = useCallback(
     (file: File): void => {
-      // Clear previous detections and overlays before loading a new image
-      faceRef.current?.reset?.();
-      plateRef.current?.reset?.();
-      setPerfFaces(PERFORMANCE_REPORT_ZEROS);
-      setPerfPlates(PERFORMANCE_REPORT_ZEROS);
+      resetDetections();
       setCanvasVisible(false);
       clearCanvas();
-      setDemoMode(false);
-      setDemoStep(0);
-      setShowScrubNudge(false);
-      setShowFaceBlurNudge(false);
-      setShowFaceFilterNudge(false);
-      setShowFaceFeatherNudge(false);
-      setShowPlateBlurNudge(false);
-      setShowPlateFilterNudge(false);
-      setShowPlateFeatherNudge(false);
-      setShowDownloadNudge(false);
-      setPlateDemoImageLoaded(false);
-      setShowDownloadNudge(false);
-      setShowDownloadNudge(false);
+      resetDemo();
       const url = URL.createObjectURL(file);
       setOrigName(file.name);
       setPreviewUrl((old) => {
@@ -253,7 +230,7 @@ export function PrivacyScrubber() {
         return url;
       });
     },
-    [clearCanvas]
+    [clearCanvas, resetDetections, resetDemo]
   );
 
   const onDownloadHandler = useCallback(() => {
@@ -284,81 +261,6 @@ export function PrivacyScrubber() {
 
     downloadCanvas(out, filename, mime, 0.92);
   }, [origName]);
-
-  const onTryDemo = useCallback(() => {
-    setDemoMode(true);
-    setDemoStep(0);
-    // reset previous run state
-    faceRef.current?.reset?.();
-    plateRef.current?.reset?.();
-    setPerfFaces(PERFORMANCE_REPORT_ZEROS);
-    setPerfPlates(PERFORMANCE_REPORT_ZEROS);
-    setCanvasVisible(false);
-    clearCanvas();
-    // Ensure detectors are on during demo
-    setFacesOn(true);
-    setPlatesOn(true);
-    // Start demo with only the "Scrub Image" tooltip visible
-    setShowScrubNudge(true);
-    setShowFaceBlurNudge(false);
-    setShowFaceFilterNudge(false);
-    setShowFaceFeatherNudge(false);
-    setShowPlateBlurNudge(false);
-    setShowPlateFilterNudge(false);
-    setShowPlateFeatherNudge(false);
-    setShowDownloadNudge(false);
-    // If already showing demo image, just run detection; otherwise load then run
-    if (previewUrl === demoImage) {
-      // If image already present, record its load state; tooltip will show after busy=false
-      const img = imgRef.current;
-      setPlateDemoImageLoaded(!!(img && img.complete && img.naturalWidth > 0));
-      void onRefreshHandler();
-    } else {
-      demoPendingRef.current = true;
-      setCanvasVisible(false);
-      setOrigName("demo.jpg");
-      setPreviewUrl(demoImage);
-    }
-  }, [clearCanvas, onRefreshHandler, previewUrl]);
-
-  const onPreviewImageLoaded = useCallback(() => {
-    if (demoPendingRef.current) {
-      demoPendingRef.current = false;
-      void onRefreshHandler();
-    }
-    // Demo-only: just record that the image is fully loaded; actual tooltip
-    // display will wait until busy === false
-    if (demoMode) {
-      setPlateDemoImageLoaded(true);
-    }
-  }, [onRefreshHandler, demoMode]);
-
-  // Demo-only: Show Plate "Blur Opacity" tooltip only after image loaded and busy === false
-  useEffect(() => {
-    if (!demoMode) return;
-    if (plateDemoImageLoaded && !busy) {
-      // Hide all other tooltips; show only Plate Blur tooltip
-      setShowScrubNudge(false);
-      setShowFaceBlurNudge(false);
-      setShowFaceFilterNudge(false);
-      setShowFaceFeatherNudge(false);
-      setShowPlateFilterNudge(false);
-      setShowPlateFeatherNudge(false);
-      setShowDownloadNudge(false);
-      setShowPlateBlurNudge(true);
-    }
-  }, [demoMode, plateDemoImageLoaded, busy]);
-
-  // When a detection run finishes, if we're in demo mode and looking at demo images, show next hints
-  useEffect(() => {
-    if (!demoMode) return;
-    if (!busy && canvasVisible && previewUrl === demoImage) {
-      setDemoStep(1);
-    }
-    if (!busy && canvasVisible && previewUrl === demoImage2) {
-      setDemoStep(2);
-    }
-  }, [busy, canvasVisible, previewUrl, demoMode]);
 
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
@@ -419,8 +321,8 @@ export function PrivacyScrubber() {
           busy={busy && !!previewUrl}
           initialHeight={initialPreviewHeight}
           headerRef={leftHeaderRef}
-          onTryDemo={onTryDemo}
-          onImageLoaded={onPreviewImageLoaded}
+          onTryDemo={demo.onTryDemo}
+          demoMode={demo.demoMode}
         />
         {USE_MANUAL_REDACTOR && previewUrl && (
           <PlateRedactor
@@ -448,26 +350,9 @@ export function PrivacyScrubber() {
                     onClickRefreshHandler={onRefreshHandler}
                     onClickDownloadHandler={onDownloadHandler}
                     busy={busy && !!previewUrl}
-                    showScrubNudge={showScrubNudge}
-                    showDownloadNudge={demoMode && showDownloadNudge}
-                    onScrubNudgeNext={() => {
-                      if (!demoMode) return;
-                      setShowScrubNudge(false);
-                      setShowFaceBlurNudge(true);
-                    }}
-                    onDownloadNudgeDone={() => {
-                      // Hide all nudges and exit demo mode
-                      setShowScrubNudge(false);
-                      setShowFaceBlurNudge(false);
-                      setShowFaceFilterNudge(false);
-                      setShowFaceFeatherNudge(false);
-                      setShowPlateBlurNudge(false);
-                      setShowPlateFilterNudge(false);
-                      setShowPlateFeatherNudge(false);
-                      setShowDownloadNudge(false);
-                      setDemoMode(false);
-                      setDemoStep(0);
-                    }}
+                    disabled={!previewUrl || busy}
+                    onDemoStepNext={demo.onDemoStepNext}
+                    demoStepsArray={demo.demoStepsArray}
                   />
                 </div>
 
@@ -540,28 +425,19 @@ export function PrivacyScrubber() {
                     setThreshVal={setPlateConf}
                     featherVal={plateFeather}
                     setFeatherVal={setPlateFeather}
-                    showBlurNudge={demoMode && showPlateBlurNudge}
-                    onBlurInteract={
-                      !demoMode ? () => setShowPlateBlurNudge(false) : undefined
+                    onDemoStepNext={demo.onDemoStepNext}
+                    showDemoTextForBlur={
+                      demo.demoStepsArray[StepsEnum.PlateBlur] ===
+                      StepStates.Active
                     }
-                    blurNudgeNextLabel="next >>"
-                    blurNudgeText={DemoSteps[demoStep]}
-                    onBlurNudgeNext={() => {
-                      setShowPlateBlurNudge(false);
-                      setShowPlateFilterNudge(true);
-                    }}
-                    showFilterNudge={demoMode && showPlateFilterNudge}
-                    filterNudgeNextLabel="next >>"
-                    onFilterNudgeNext={() => {
-                      setShowPlateFilterNudge(false);
-                      setShowPlateFeatherNudge(true);
-                    }}
-                    showFeatherNudge={demoMode && showPlateFeatherNudge}
-                    featherNudgeNextLabel="next >>"
-                    onFeatherNudgeNext={() => {
-                      setShowPlateFeatherNudge(false);
-                      setShowFaceBlurNudge(true);
-                    }}
+                    showDemoTextForFilter={
+                      demo.demoStepsArray[StepsEnum.PlateFilter] ===
+                      StepStates.Active
+                    }
+                    showDemoTextForFeather={
+                      demo.demoStepsArray[StepsEnum.PlateFeather] ===
+                      StepStates.Active
+                    }
                   />
                 )}
 
@@ -576,27 +452,19 @@ export function PrivacyScrubber() {
                     setThreshVal={setFaceConf}
                     featherVal={faceFeather}
                     setFeatherVal={setFaceFeather}
-                    showBlurNudge={demoMode && showFaceBlurNudge}
-                    onBlurInteract={
-                      !demoMode ? () => setShowFaceBlurNudge(false) : undefined
+                    onDemoStepNext={demo.onDemoStepNext}
+                    showDemoTextForBlur={
+                      demo.demoStepsArray[StepsEnum.FaceBlur] ===
+                      StepStates.Active
                     }
-                    blurNudgeNextLabel="next >>"
-                    onBlurNudgeNext={() => {
-                      setShowFaceBlurNudge(false);
-                      setShowFaceFilterNudge(true);
-                    }}
-                    showFilterNudge={demoMode && showFaceFilterNudge}
-                    filterNudgeNextLabel="next >>"
-                    onFilterNudgeNext={() => {
-                      setShowFaceFilterNudge(false);
-                      setShowFaceFeatherNudge(true);
-                    }}
-                    showFeatherNudge={demoMode && showFaceFeatherNudge}
-                    featherNudgeNextLabel="next >>"
-                    onFeatherNudgeNext={() => {
-                      setShowFaceFeatherNudge(false);
-                      setShowDownloadNudge(true);
-                    }}
+                    showDemoTextForFilter={
+                      demo.demoStepsArray[StepsEnum.FaceFilter] ===
+                      StepStates.Active
+                    }
+                    showDemoTextForFeather={
+                      demo.demoStepsArray[StepsEnum.FaceFeather] ===
+                      StepStates.Active
+                    }
                   />
                 )}
               </Card.Body>

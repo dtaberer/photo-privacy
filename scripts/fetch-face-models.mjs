@@ -9,7 +9,8 @@ const FILES = [
   "tiny_face_detector_model-weights_manifest.json",
   "tiny_face_detector_model.bin",
 ];
-const DEST_DIR = path.join(process.cwd(), "public", "models");
+
+const DEST_DIR = path.join(process.cwd(), "public", "models", "face-api");
 const FORCE = process.env.FORCE_DOWNLOAD === "1";
 
 async function ensureDir(p) {
