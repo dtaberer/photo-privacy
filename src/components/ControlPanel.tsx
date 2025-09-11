@@ -1,6 +1,5 @@
 import React, { memo, useId } from "react";
 import { Card, Form, Badge, Overlay } from "react-bootstrap";
-import { DemoSteps } from "./constants";
 import { StepsEnum, StepText } from "./demo/useDemo";
 
 export type ControlPanelProps = {
@@ -205,7 +204,7 @@ function ControlPanel({
                     <div>
                       <span>
                         For {controlName}
-                        <br /> {DemoSteps[StepsEnum.FaceFilter]}
+                        <br /> {StepText[StepsEnum.FaceFilter]}
                       </span>
                     </div>
                     <div className="mt-1">
