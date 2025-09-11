@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { FaceBlurConstants } from "@/components/constants";
 
 interface FaceApiCompatNS {
   nets: { tinyFaceDetector: { loadFromUri: (base: string) => Promise<void> } };
@@ -111,7 +112,7 @@ export function adjustUp(
   r: FaceBox,
   W: number,
   H: number,
-  ratio = 0.14
+  ratio = FaceBlurConstants.PAD_RATIO
 ): FaceBox {
   const shift = Math.round(r.h * ratio);
   const y = clamp(r.y - shift, 0, H);

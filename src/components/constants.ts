@@ -42,7 +42,7 @@ export const FaceBlurConstants: FaceBlurConstants = {
   CONFIDENCE_THRESHOLD: 0.04,
   RUN_FACE_DETECTION: true,
   IOU_THRESHOLD: 0.1,
-  PAD_RATIO: 0.1,
+  PAD_RATIO: 0.14,
   FEATHER_PX: 1,
   MAX_DETECTED_FACES: 50,
   MODEL_SIZE: 416,
@@ -56,7 +56,7 @@ export const LicensePlateBlurConstants: LicensePlateBlurConstants = {
   MODEL_SIZE: 800,
   MODEL_URL: `${basePath}models/license-plate-finetune-v1n.onnx`,
   IOU_THRESHOLD: 0.1,
-  PAD_RATIO: 0.01,
+  PAD_RATIO: 0.14,
   FEATHER_PX: 1,
 };
 
