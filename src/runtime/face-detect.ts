@@ -1,5 +1,10 @@
-// src/components/utils/face-detector-onnx.ts
 import * as ort from "onnxruntime-web";
+import { createOrtSession } from "@/ort-setup";
+
+type MaybeViteImportMeta = ImportMeta & { env?: { DEV?: boolean } };
+const __DEV__ =
+  typeof import.meta !== "undefined" &&
+  (import.meta as MaybeViteImportMeta).env?.DEV === true;
 
 export type FaceBox = {
   x: number;
@@ -18,7 +23,7 @@ type LetterboxInfo = {
   resizedH: number; // floor(h * scale)
 };
 
-const MODEL_INPUT_SIZE = 640; // your ONNX expects 640x640 (per error)
+let MODEL_INPUT_SIZE = 640; // default; may be overridden by model metadata
 
 let session: ort.InferenceSession | null = null;
 
@@ -27,10 +32,66 @@ export async function loadFaceModel(
   modelUrl: string
 ): Promise<ort.InferenceSession> {
   if (!session) {
-    session = await ort.InferenceSession.create(modelUrl, {
-      executionProviders: ["wasm"], // or "webgl"
+    // Fetch bytes explicitly to fail fast on 404/HTML and avoid protobuf errors
+    const res = await fetch(modelUrl, { cache: "no-store" });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error(
+        `[face-detect] Failed to fetch model: ${res.status} ${res.statusText} @ ${modelUrl}`,
+        text?.slice(0, 200)
+      );
+      throw new Error(`Model HTTP ${res.status} @ ${modelUrl}`);
+    }
+    const ctype = res.headers.get("content-type") || "";
+    if (/text\/(html|plain)/i.test(ctype)) {
+      const text = await res.text().catch(() => "");
+      console.error(
+        `[face-detect] Model URL returned text content-type (${ctype}). Is the path correct?`,
+        text.slice(0, 200)
+      );
+      throw new Error(`Bad content-type for model: ${ctype}`);
+    }
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.byteLength < 8 * 1024) {
+      console.error(
+        `[face-detect] Model seems too small (${bytes.byteLength} bytes). Check that "${modelUrl}" points to a real .onnx file under public/.`
+      );
+      throw new Error(`Model file too small: ${bytes.byteLength} bytes`);
+    }
+    session = await createOrtSession(bytes, {
+      executionProviders: ["wasm"],
       graphOptimizationLevel: "all",
     });
+    try {
+      // Infer S from first input dims if available
+      const inName = session.inputNames?.[0];
+      if (inName) {
+        const im = session.inputMetadata as unknown as
+          | Record<
+              string,
+              { dimensions?: readonly number[] | readonly (number | null)[] }
+            >
+          | undefined;
+        const meta = im?.[inName];
+        const dims = meta?.dimensions as readonly (number | null)[] | undefined;
+        // Expect [N, C, S, S] or dynamic N; pick the last two when equal
+        if (Array.isArray(dims) && dims.length >= 4) {
+          const h = dims[dims.length - 2];
+          const w = dims[dims.length - 1];
+          const S = typeof h === "number" && h === w ? h : undefined;
+          if (typeof S === "number" && Number.isFinite(S) && S > 0) {
+            MODEL_INPUT_SIZE = S;
+            if (__DEV__) {
+              console.log(
+                `[face-detect] Using model input size S=${MODEL_INPUT_SIZE} from ONNX metadata (input: ${inName}).`
+              );
+            }
+          }
+        }
+      }
+    } catch {
+      // non-fatal; keep default
+    }
   }
   return session;
 }
@@ -52,6 +113,13 @@ export async function detectFaces(
 
   const results = await sess.run({ [inputName]: tensor });
   const out = getTensor(results, outputName);
+  // Dev-only debug: log output dims to help verify head expectations
+  if (__DEV__) {
+    console.log(
+      `[face-detect] run: output dims for "${outputName}":`,
+      JSON.stringify(out.dims)
+    );
+  }
 
   const raw = decodeYoloOutput(out, info, origW, origH, threshold);
   return nms(raw, 0.45);
@@ -102,14 +170,21 @@ function preprocessLetterbox(
   const letter = dctx.getImageData(0, 0, target, target);
   const d: Uint8ClampedArray = letter.data;
 
-  // Convert to NCHW float32 [0,1]
+  // Convert to NCHW float32 [0,1] — CHW layout expected for [1,3,S,S]
   const f = new Float32Array(target * target * 3);
-  for (let i = 0; i < target * target; i++) {
-    const base = i * 4;
-    const dstIdx = i * 3;
-    f[dstIdx + 0] = d[base + 0] / 255;
-    f[dstIdx + 1] = d[base + 1] / 255;
-    f[dstIdx + 2] = d[base + 2] / 255;
+  const area = target * target;
+  for (let y = 0; y < target; y++) {
+    for (let x = 0; x < target; x++) {
+      const idx = y * target + x; // pixel index in the padded SxS image
+      const base = idx * 4; // RGBA
+      const r = (d[base + 0] ?? 0) / 255;
+      const g = (d[base + 1] ?? 0) / 255;
+      const b = (d[base + 2] ?? 0) / 255;
+      // CHW planes
+      f[0 * area + idx] = r;
+      f[1 * area + idx] = g;
+      f[2 * area + idx] = b;
+    }
   }
 
   const tensor = new ort.Tensor("float32", f, [1, 3, target, target]);
@@ -212,41 +287,218 @@ function decodeYoloOutput(
   const maxLen = data.length;
   const read = (i: number, k: number): number => {
     const idx = order === "N_ATTR" || order === "NE" ? i * E + k : k * N + i;
-    return idx >= 0 && idx < maxLen ? data[idx] : 0;
+    return idx >= 0 && idx < maxLen ? data[idx]! : 0;
   };
 
   const boxes: FaceBox[] = [];
-  const { target, scale, padX, padY } = info;
+  const { scale, padX, padY, target } = info;
+
+  // If N matches common YOLO stride grids, treat outputs as raw predictions and decode
+  const strides = [8, 16, 32];
+  const shapes = strides.map((s) => Math.round(target / s));
+  const expectedN = shapes.reduce((acc, g) => acc + g * g, 0);
+  if (N === expectedN) {
+    // Try DFL (YOLOv8/YOLOv11) first: E ≈ 4*reg_max + 1 + C (objectness + classes)
+    const detectRegMax = (E: number): number | null => {
+      const candidates = [16, 32, 8, 4];
+      for (const r of candidates) {
+        const rem = E - 4 * r;
+        if (rem >= 1 && rem <= 5 /* obj + small class count */) return r;
+        if (rem === 1 /* class-only */) return r; // some exports omit objectness
+      }
+      return null;
+    };
+
+    const regMax = detectRegMax(E);
+    const hasDFL = !!regMax;
+    if (__DEV__) {
+      console.log(
+        `[face-detect] decode path: ${
+          hasDFL ? "DFL" : "center-size"
+        } (order=${order}, N=${N}, E=${E}, regMax=${
+          regMax ?? "-"
+        }, strides=${strides.join(",")})`
+      );
+    }
+
+    let i = 0;
+    for (let s = 0; s < shapes.length; s++) {
+      const g = shapes[s]!;
+      const stride = strides[s]!;
+      for (let y = 0; y < g; y++) {
+        for (let x = 0; x < g; x++, i++) {
+          if (hasDFL) {
+            const r = regMax!;
+            const rem = E - 4 * r;
+            let conf = 1;
+            if (rem >= 2) {
+              const obj = sigmoid(read(i, 4 * r));
+              let best = 0;
+              for (let c = 4 * r + 1; c < E; c++) {
+                const cls = sigmoid(read(i, c));
+                if (cls > best) best = cls;
+              }
+              conf = obj * best;
+            } else if (rem === 1) {
+              // single-class, no explicit objectness
+              conf = sigmoid(read(i, 4 * r));
+            }
+            if (conf < threshold) continue;
+
+            // DFL expectation per side
+            const exp = (start: number, count: number) => {
+              // numerically stable softmax expectation
+              let m = -Infinity;
+              for (let k = 0; k < count; k++)
+                m = Math.max(m, read(i, start + k));
+              let den = 0;
+              const probs = new Array<number>(count);
+              for (let k = 0; k < count; k++) {
+                const v = Math.exp(read(i, start + k) - m);
+                probs[k] = v;
+                den += v;
+              }
+              let ex = 0;
+              if (den > 0) {
+                for (let k = 0; k < count; k++) ex += (k * probs[k]!) / den;
+              }
+              return ex;
+            };
+
+            const px = x + 0.5;
+            const py = y + 0.5;
+            const dl = exp(0 * r, r);
+            const dt = exp(1 * r, r);
+            const dr = exp(2 * r, r);
+            const db = exp(3 * r, r);
+
+            const x0m = (px - dl) * stride;
+            const y0m = (py - dt) * stride;
+            const x1m = (px + dr) * stride;
+            const y1m = (py + db) * stride;
+
+            const x0 = (x0m - padX) / scale;
+            const y0 = (y0m - padY) / scale;
+            const x1 = (x1m - padX) / scale;
+            const y1 = (y1m - padY) / scale;
+
+            const bx0 = clamp(x0, 0, origW);
+            const by0 = clamp(y0, 0, origH);
+            const bx1 = clamp(x1, 0, origW);
+            const by1 = clamp(y1, 0, origH);
+            const bw = Math.max(0, bx1 - bx0);
+            const bh = Math.max(0, by1 - by0);
+            if (bw > 1 && bh > 1)
+              boxes.push({ x: bx0, y: by0, w: bw, h: bh, score: conf });
+          } else {
+            // YOLOv5/7-style center/size decode
+            const tx = read(i, 0);
+            const ty = read(i, 1);
+            const tw = read(i, 2);
+            const th = read(i, 3);
+            let conf = sigmoid(read(i, 4));
+            if (E > 5) {
+              let best = 0;
+              for (let c = 5; c < E; c++) {
+                const cls = sigmoid(read(i, c));
+                if (cls > best) best = cls;
+              }
+              conf *= best;
+            }
+            if (conf < threshold) continue;
+
+            const cx = (sigmoid(tx) * 2 - 0.5 + x) * stride;
+            const cy = (sigmoid(ty) * 2 - 0.5 + y) * stride;
+            const w = (sigmoid(tw) * 2) ** 2 * stride;
+            const h = (sigmoid(th) * 2) ** 2 * stride;
+
+            const x0 = (cx - w / 2 - padX) / scale;
+            const y0 = (cy - h / 2 - padY) / scale;
+            const x1 = (cx + w / 2 - padX) / scale;
+            const y1 = (cy + h / 2 - padY) / scale;
+
+            const bx0 = clamp(x0, 0, origW);
+            const by0 = clamp(y0, 0, origH);
+            const bx1 = clamp(x1, 0, origW);
+            const by1 = clamp(y1, 0, origH);
+            const bw = Math.max(0, bx1 - bx0);
+            const bh = Math.max(0, by1 - by0);
+            if (bw > 1 && bh > 1)
+              boxes.push({ x: bx0, y: by0, w: bw, h: bh, score: conf });
+          }
+        }
+      }
+    }
+    return boxes;
+  } else {
+    if (__DEV__) {
+      console.log(
+        `[face-detect] decode path: attr/NE fallback (order=${order}, N=${N}, E=${E})`
+      );
+    }
+  }
 
   for (let i = 0; i < N; i++) {
-    const cx = read(i, 0);
-    const cy = read(i, 1);
-    const w = read(i, 2);
-    const h = read(i, 3);
-    let score = read(i, 4);
+    let score = sigmoid(read(i, 4));
 
     // If extra attributes look like class probs (not 10-landmark layout), multiply best class
     const attrCount = E - 5;
     if (attrCount > 0 && attrCount !== 10) {
       let best = 0;
       for (let c = 5; c < E; c++) {
-        const v = read(i, c);
+        const v = sigmoid(read(i, c));
         if (v > best) best = v;
       }
       score *= best;
     }
     if (score < threshold) continue;
 
-    // Model-space box (on 640x640): convert cx,cy,w,h -> x,y,w,h
-    const mx = cx - w / 2;
-    const my = cy - h / 2;
+    // Infer whether outputs are xyxy or cx,cy,w,h by simple heuristics
+    const v0 = read(i, 0);
+    const v1 = read(i, 1);
+    const v2 = read(i, 2);
+    const v3 = read(i, 3);
 
-    // Un-letterbox back to original pixels
-    const x0 = (mx - padX) / scale;
-    const y0 = (my - padY) / scale;
-    const x1 = (mx + w - padX) / scale;
-    const y1 = (my + h - padY) / scale;
-
+    let x0 = 0;
+    let y0 = 0;
+    let x1 = 0;
+    let y1 = 0;
+    if (v2 >= v0 && v3 >= v1) {
+      // Looks like xyxy
+      let x0p = v0;
+      let y0p = v1;
+      let x1p = v2;
+      let y1p = v3;
+      if (Math.max(x0p, y0p, x1p, y1p) <= 1) {
+        x0p *= target;
+        y0p *= target;
+        x1p *= target;
+        y1p *= target;
+      }
+      x0 = (x0p - padX) / scale;
+      y0 = (y0p - padY) / scale;
+      x1 = (x1p - padX) / scale;
+      y1 = (y1p - padY) / scale;
+    } else {
+      // Assume cx,cy,w,h
+      let cx = v0;
+      let cy = v1;
+      let w = v2;
+      let h = v3;
+      if (Math.max(cx, cy, w, h) <= 1) {
+        cx *= target;
+        cy *= target;
+        w *= target;
+        h *= target;
+      }
+      const mx = cx - w / 2;
+      const my = cy - h / 2;
+      x0 = (mx - padX) / scale;
+      y0 = (my - padY) / scale;
+      x1 = (mx + w - padX) / scale;
+      y1 = (my + h - padY) / scale;
+    }
+    // Clamp to original image size
     const bx0 = clamp(x0, 0, origW);
     const by0 = clamp(y0, 0, origH);
     const bx1 = clamp(x1, 0, origW);
@@ -291,4 +543,8 @@ function iou(a: FaceBox, b: FaceBox): number {
   const inter = w * h;
   const uni = a.w * a.h + b.w * b.h - inter;
   return uni > 0 ? inter / uni : 0;
+}
+
+function sigmoid(x: number): number {
+  return 1 / (1 + Math.exp(-x));
 }

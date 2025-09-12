@@ -40,7 +40,7 @@ export interface PrivacyScrubberConstants {
 // Used in FaceBlur.tsx and LicensePlateBlur.tsx
 export const FaceBlurConstants: FaceBlurConstants = {
   BLUR_DENSITY: 40,
-  CONFIDENCE_THRESHOLD: 0.04,
+  CONFIDENCE_THRESHOLD: 0.35,
   RUN_FACE_DETECTION: true,
   IOU_THRESHOLD: 0.1,
   PAD_RATIO: 0.14,

@@ -158,7 +158,6 @@ export function PrivacyScrubber() {
     if (!cvs || !img) return;
 
     try {
-      setCanvasVisible(false);
       setBusy(true);
       await plateRef.current?.run();
       void plateRedactorRef.current?.prefillFromDetections(
