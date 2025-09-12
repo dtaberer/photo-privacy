@@ -94,6 +94,10 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
       if (runningRef.current) return;
       runningRef.current = true;
       try {
+        // Yield to the browser so UI (spinner) can paint before heavy sync work
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve())
+        );
         const img = imgRef.current;
         const canvas = canvasRef.current;
         if (!img || !canvas) return;

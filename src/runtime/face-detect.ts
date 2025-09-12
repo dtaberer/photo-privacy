@@ -1,5 +1,6 @@
 import * as ort from "onnxruntime-web";
 import { createOrtSession } from "@/ort-setup";
+import { FaceBlurConstants } from "@/components/constants";
 
 type MaybeViteImportMeta = ImportMeta & { env?: { DEV?: boolean } };
 const __DEV__ =
@@ -121,8 +122,84 @@ export async function detectFaces(
     );
   }
 
-  const raw = decodeYoloOutput(out, info, origW, origH, threshold);
-  return nms(raw, 0.45);
+  let raw = decodeYoloOutput(out, info, origW, origH, threshold);
+
+  // Optional TTA: run on horizontally flipped image and fuse
+  if (FaceBlurConstants.TTA_FLIP) {
+    const flipped = flipImageDataHorizontal(imageData);
+    const { tensor: ttaTensor, info: infoFlip } = preprocessLetterbox(
+      flipped,
+      MODEL_INPUT_SIZE
+    );
+    const ttaRes = await sess.run({ [inputName]: ttaTensor });
+    const outFlip = getTensor(ttaRes, outputName);
+    let rawFlip = decodeYoloOutput(outFlip, infoFlip, origW, origH, threshold);
+    // Mirror x back to original orientation
+    rawFlip = rawFlip.map((b) => ({
+      x: Math.max(0, origW - (b.x + b.w)),
+      y: b.y,
+      w: b.w,
+      h: b.h,
+      score: b.score,
+    }));
+    raw = fuseClusters(
+      [...raw, ...rawFlip],
+      0.5,
+      Math.min(0.5, Math.max(0.1, FaceBlurConstants.NMS_CENTER - 0.05)),
+      600
+    );
+  }
+  // Pre-filter: drop tiny or extreme aspect-ratio boxes (common false positives)
+  const minSide = Math.max(
+    16,
+    Math.floor(
+      Math.max(0.005, FaceBlurConstants.PREFILTER_MIN_SIDE_RATIO) *
+        Math.min(origW, origH)
+    )
+  );
+  const filtered = raw.filter((b) => {
+    const minHW = Math.min(b.w, b.h);
+    const ar = b.h > 0 ? b.w / b.h : 0;
+    return (
+      minHW >= minSide &&
+      ar >= Math.max(0.1, FaceBlurConstants.PREFILTER_AR_MIN) &&
+      ar <=
+        Math.max(
+          FaceBlurConstants.PREFILTER_AR_MIN + 0.1,
+          FaceBlurConstants.PREFILTER_AR_MAX
+        )
+    );
+  });
+  // Fuse highly-overlapping candidates (multi-stride duplicates)
+  const fused = fuseClusters(
+    filtered,
+    Math.min(0.9, Math.max(0.3, FaceBlurConstants.NMS_IOU - 0.25)),
+    Math.min(0.8, Math.max(0.1, FaceBlurConstants.NMS_CENTER)),
+    300
+  );
+  // Aggressive NMS as final cleanup
+  const finalBoxes = nms(
+    fused,
+    Math.min(0.95, Math.max(0.4, FaceBlurConstants.NMS_IOU)),
+    Math.min(0.99, Math.max(0.5, FaceBlurConstants.NMS_CONTAIN)),
+    Math.min(0.8, Math.max(0.1, FaceBlurConstants.NMS_CENTER))
+  );
+  const sliced = finalBoxes.slice(
+    0,
+    Math.max(1, FaceBlurConstants.MAX_DETECTED_FACES)
+  );
+  if (__DEV__ && sliced.length === 0) {
+    console.log(
+      "[face-detect] No boxes after NMS — consider lowering threshold or relaxing filters",
+      {
+        threshold,
+        NMS_IOU: FaceBlurConstants.NMS_IOU,
+        NMS_CONTAIN: FaceBlurConstants.NMS_CONTAIN,
+        NMS_CENTER: FaceBlurConstants.NMS_CENTER,
+      }
+    );
+  }
+  return sliced;
 }
 
 /** Letterbox RGBA ImageData -> [1,3,S,S] float32 [0,1] + mapping info */
@@ -245,7 +322,7 @@ function asFloat32(t: ort.Tensor): Float32Array {
  * Decode Ultralytics-style YOLO head and un-letterbox back to original pixels.
  * Supports shapes: [1,N,E], [1,E,N], or [N,E]. E>=5 (cx,cy,w,h,conf,...)
  */
-function decodeYoloOutput(
+export function decodeYoloOutput(
   out: ort.Tensor,
   info: LetterboxInfo,
   origW: number,
@@ -407,15 +484,50 @@ function decodeYoloOutput(
             }
             if (conf < threshold) continue;
 
-            const cx = (sigmoid(tx) * 2 - 0.5 + x) * stride;
-            const cy = (sigmoid(ty) * 2 - 0.5 + y) * stride;
-            const w = (sigmoid(tw) * 2) ** 2 * stride;
-            const h = (sigmoid(th) * 2) ** 2 * stride;
+            // Heuristic: some exports emit normalized global cx,cy,w,h in [0,1]
+            // Detect that pattern and decode accordingly to reduce duplicate boxes.
+            const inRange = (v: number, lo = -0.05, hi = 1.25) =>
+              v >= lo && v <= hi;
+            const normishCount =
+              (inRange(tx) ? 1 : 0) +
+              (inRange(ty) ? 1 : 0) +
+              (inRange(tw, -0.05, 1.6) ? 1 : 0) +
+              (inRange(th, -0.05, 1.6) ? 1 : 0);
 
-            const x0 = (cx - w / 2 - padX) / scale;
-            const y0 = (cy - h / 2 - padY) / scale;
-            const x1 = (cx + w / 2 - padX) / scale;
-            const y1 = (cy + h / 2 - padY) / scale;
+            let x0: number, y0: number, x1: number, y1: number;
+            if (
+              E === 5 &&
+              (FaceBlurConstants.FORCE_CENTER_NORM || normishCount >= 3)
+            ) {
+              // Treat as normalized global center-size
+              const cxg = tx * target;
+              const cyg = ty * target;
+              const wg = tw * target;
+              const hg = th * target;
+              x0 = (cxg - wg / 2 - padX) / scale;
+              y0 = (cyg - hg / 2 - padY) / scale;
+              x1 = (cxg + wg / 2 - padX) / scale;
+              y1 = (cyg + hg / 2 - padY) / scale;
+              if (__DEV__) {
+                // Log once per grid decode opportunity when we take the normalized path
+                if ((x === 0 && y === 0) || Math.random() < 0.002) {
+                  console.log(
+                    `[face-detect] center-size branch using normalized-xywh heuristic (order=${order}, N=${N}, E=${E})`
+                  );
+                }
+              }
+            } else {
+              // Default Ultralytics grid decode
+              const cx = (sigmoid(tx) * 2 - 0.5 + x) * stride;
+              const cy = (sigmoid(ty) * 2 - 0.5 + y) * stride;
+              const w = (sigmoid(tw) * 2) ** 2 * stride;
+              const h = (sigmoid(th) * 2) ** 2 * stride;
+
+              x0 = (cx - w / 2 - padX) / scale;
+              y0 = (cy - h / 2 - padY) / scale;
+              x1 = (cx + w / 2 - padX) / scale;
+              y1 = (cy + h / 2 - padY) / scale;
+            }
 
             const bx0 = clamp(x0, 0, origW);
             const by0 = clamp(y0, 0, origH);
@@ -517,8 +629,13 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
 
-/** Greedy NMS */
-function nms(boxes: FaceBox[], iouThresh: number): FaceBox[] {
+/** Greedy NMS with optional containment suppression. */
+function nms(
+  boxes: FaceBox[],
+  iouThresh: number,
+  containThresh: number = 0.9,
+  centerDistRatio: number = 0.35
+): FaceBox[] {
   const sorted = [...boxes].sort((a, b) => b.score - a.score);
   const keep: FaceBox[] = [];
   while (sorted.length > 0) {
@@ -527,7 +644,14 @@ function nms(boxes: FaceBox[], iouThresh: number): FaceBox[] {
     for (let j = sorted.length - 1; j >= 0; j--) {
       const cand = sorted[j];
       if (!cand) continue;
-      if (iou(curr, cand) >= iouThresh) sorted.splice(j, 1);
+      const ov = iou(curr, cand);
+      if (
+        ov >= iouThresh ||
+        containsMostly(curr, cand, containThresh) ||
+        containsMostly(cand, curr, containThresh) ||
+        centersClose(curr, cand, centerDistRatio)
+      )
+        sorted.splice(j, 1);
     }
   }
   return keep;
@@ -545,6 +669,115 @@ function iou(a: FaceBox, b: FaceBox): number {
   return uni > 0 ? inter / uni : 0;
 }
 
+/** Returns true if b is mostly contained in a (intersection covers containThresh of b's area). */
+function containsMostly(
+  a: FaceBox,
+  b: FaceBox,
+  containThresh: number
+): boolean {
+  const x0 = Math.max(a.x, b.x);
+  const y0 = Math.max(a.y, b.y);
+  const x1 = Math.min(a.x + a.w, b.x + b.w);
+  const y1 = Math.min(a.y + a.h, b.y + b.h);
+  const w = Math.max(0, x1 - x0);
+  const h = Math.max(0, y1 - y0);
+  const inter = w * h;
+  const areaB = b.w * b.h;
+  return areaB > 0 ? inter / areaB >= containThresh : false;
+}
+
 function sigmoid(x: number): number {
   return 1 / (1 + Math.exp(-x));
+}
+
+function centersClose(a: FaceBox, b: FaceBox, ratio: number): boolean {
+  const ax = a.x + a.w / 2;
+  const ay = a.y + a.h / 2;
+  const bx = b.x + b.w / 2;
+  const by = b.y + b.h / 2;
+  const dx = ax - bx;
+  const dy = ay - by;
+  const dist = Math.hypot(dx, dy);
+  const scale = Math.max(1, Math.min(a.w, a.h, b.w, b.h));
+  return dist / scale <= ratio;
+}
+
+function flipImageDataHorizontal(src: ImageData): ImageData {
+  const { width: w, height: h } = src;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("2D context unavailable (flip)");
+  const s = document.createElement("canvas");
+  s.width = w;
+  s.height = h;
+  const sctx = s.getContext("2d");
+  if (!sctx) throw new Error("2D context unavailable (flip-src)");
+  sctx.putImageData(src, 0, 0);
+  ctx.translate(w, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(s, 0, 0);
+  return ctx.getImageData(0, 0, w, h);
+}
+
+function fuseClusters(
+  boxes: FaceBox[],
+  iouThresh: number,
+  centerRatio: number,
+  limit: number = 300
+): FaceBox[] {
+  const src = [...boxes]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, Math.max(1, limit));
+  const fused: FaceBox[] = [];
+  const used = new Array<boolean>(src.length).fill(false);
+  for (let i = 0; i < src.length; i++) {
+    if (used[i]!) continue;
+    const seed = src[i]!;
+    const cluster: { b: FaceBox; w: number }[] = [{ b: seed, w: seed.score }];
+    used[i] = true;
+    for (let j = i + 1; j < src.length; j++) {
+      if (used[j]!) continue;
+      const cand = src[j]!;
+      if (
+        iou(seed, cand) >= iouThresh ||
+        centersClose(seed, cand, centerRatio)
+      ) {
+        cluster.push({ b: cand, w: cand.score });
+        used[j] = true;
+      }
+    }
+    if (cluster.length === 1) {
+      fused.push(seed);
+    } else {
+      // Weighted average by score
+      let sw = 0,
+        sx = 0,
+        sy = 0,
+        swd = 0,
+        shd = 0,
+        best = seed;
+      for (const { b, w } of cluster) {
+        sw += w;
+        sx += (b.x + b.w / 2) * w;
+        sy += (b.y + b.h / 2) * w;
+        swd += b.w * w;
+        shd += b.h * w;
+        if (b.score > best.score) best = b;
+      }
+      const cx = sx / Math.max(1e-6, sw);
+      const cy = sy / Math.max(1e-6, sw);
+      const ww = swd / Math.max(1e-6, sw);
+      const hh = shd / Math.max(1e-6, sw);
+      fused.push({
+        x: cx - ww / 2,
+        y: cy - hh / 2,
+        w: ww,
+        h: hh,
+        score: best.score,
+      });
+    }
+  }
+  return fused;
 }

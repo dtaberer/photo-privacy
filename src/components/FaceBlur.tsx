@@ -9,7 +9,6 @@ import {
 import {
   clamp,
   cssToCanvasRect,
-  adjustUp,
   blurPatchWithFeather,
   isFaceApiNS,
 } from "./utils/face-blur-utils";
@@ -67,6 +66,10 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         img.naturalHeight === 0
       )
         return;
+      // Yield a frame so the busy spinner can render before heavy work
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve())
+      );
       const t0 = performance.now();
       facesCache = [];
       // Initial pass uses constant density; interactive slider updates happen via redraw()
@@ -113,7 +116,8 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
             const ry = clamp(Math.round(r0.y - r0.h * padRatio), 0, H);
             const rw = clamp(Math.round(r0.w * (1 + 2 * padRatio)), 1, W - rx);
             const rh = clamp(Math.round(r0.h * (1 + 2 * padRatio)), 1, H - ry);
-            const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
+            // Use symmetric padding box without vertical shift to align blur to face
+            const r = newFaceBox(rx, ry, rw, rh);
 
             if (ctx) {
               blurPatchWithFeather(
@@ -184,7 +188,28 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
           const ry = clamp(Math.round(base.y - base.h * padRatio), 0, H);
           const rw = clamp(Math.round(base.w * (1 + 2 * padRatio)), 1, W - rx);
           const rh = clamp(Math.round(base.h * (1 + 2 * padRatio)), 1, H - ry);
-          const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
+          // Use symmetric padding box without vertical shift to align blur to face
+          const ryShift = clamp(
+            Math.round(ry - rh * FaceBlurConstants.VERTICAL_SHIFT),
+            0,
+            H - 1
+          );
+          const rhShift = clamp(
+            Math.round(rh + rh * FaceBlurConstants.VERTICAL_SHIFT),
+            1,
+            H - ryShift
+          );
+          const ox =
+            (FaceBlurConstants.OFFSET_X | 0) +
+            Math.round(rw * (FaceBlurConstants.OFFSET_FX ?? 0));
+          const oy =
+            (FaceBlurConstants.OFFSET_Y | 0) +
+            Math.round(rhShift * (FaceBlurConstants.OFFSET_FY ?? 0));
+          const fx = clamp(rx + ox, 0, Math.max(0, W - 1));
+          const fy = clamp(ryShift + oy, 0, Math.max(0, H - 1));
+          const fw = clamp(rw, 1, W - fx);
+          const fh = clamp(rhShift, 1, H - fy);
+          const r = newFaceBox(fx, fy, fw, fh);
 
           if (ctx) {
             blurPatchWithFeather(
@@ -311,7 +336,28 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         const ry = clamp(Math.round(base.y - base.h * padRatio), 0, H);
         const rw = clamp(Math.round(base.w * (1 + 2 * padRatio)), 1, W - rx);
         const rh = clamp(Math.round(base.h * (1 + 2 * padRatio)), 1, H - ry);
-        const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
+        // Use symmetric padding box without vertical shift to align blur to face
+        const ryShift = clamp(
+          Math.round(ry - rh * FaceBlurConstants.VERTICAL_SHIFT),
+          0,
+          H - 1
+        );
+        const rhShift = clamp(
+          Math.round(rh + rh * FaceBlurConstants.VERTICAL_SHIFT),
+          1,
+          H - ryShift
+        );
+        const ox =
+          (FaceBlurConstants.OFFSET_X | 0) +
+          Math.round(rw * (FaceBlurConstants.OFFSET_FX ?? 0));
+        const oy =
+          (FaceBlurConstants.OFFSET_Y | 0) +
+          Math.round(rhShift * (FaceBlurConstants.OFFSET_FY ?? 0));
+        const fx = clamp(rx + ox, 0, Math.max(0, W - 1));
+        const fy = clamp(ryShift + oy, 0, Math.max(0, H - 1));
+        const fw = clamp(rw, 1, W - fx);
+        const fh = clamp(rhShift, 1, H - fy);
+        const r = newFaceBox(fx, fy, fw, fh);
 
         if (ctx) {
           blurPatchWithFeather(
@@ -373,7 +419,28 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
         const ry = clamp(Math.round(base.y - base.h * padRatio), 0, H);
         const rw = clamp(Math.round(base.w * (1 + 2 * padRatio)), 1, W - rx);
         const rh = clamp(Math.round(base.h * (1 + 2 * padRatio)), 1, H - ry);
-        const r = adjustUp(newFaceBox(rx, ry, rw, rh), W, H, 0.12);
+        // Use symmetric padding box without vertical shift to align blur to face
+        const ryShift = clamp(
+          Math.round(ry - rh * FaceBlurConstants.VERTICAL_SHIFT),
+          0,
+          H - 1
+        );
+        const rhShift = clamp(
+          Math.round(rh + rh * FaceBlurConstants.VERTICAL_SHIFT),
+          1,
+          H - ryShift
+        );
+        const ox =
+          (FaceBlurConstants.OFFSET_X | 0) +
+          Math.round(rw * (FaceBlurConstants.OFFSET_FX ?? 0));
+        const oy =
+          (FaceBlurConstants.OFFSET_Y | 0) +
+          Math.round(rhShift * (FaceBlurConstants.OFFSET_FY ?? 0));
+        const fx = clamp(rx + ox, 0, Math.max(0, W - 1));
+        const fy = clamp(ryShift + oy, 0, Math.max(0, H - 1));
+        const fw = clamp(rw, 1, W - fx);
+        const fh = clamp(rhShift, 1, H - fy);
+        const r = newFaceBox(fx, fy, fw, fh);
 
         blurPatchWithFeather(
           ctx,

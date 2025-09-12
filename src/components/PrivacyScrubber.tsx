@@ -159,6 +159,11 @@ export function PrivacyScrubber() {
 
     try {
       setBusy(true);
+      // Allow React to commit busy=true and paint spinner before we block
+      await Promise.resolve();
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve())
+      );
       await plateRef.current?.run();
       void plateRedactorRef.current?.prefillFromDetections(
         plateRef.current?.getDetections?.() ?? []
