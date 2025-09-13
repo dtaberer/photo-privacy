@@ -44,7 +44,7 @@ interface FaceBlurProps {
   };
 }
 
-  export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
+export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
   ({ imgRef, canvasRef, opts }, ref) => {
     const FD = (
       globalThis as unknown as {
@@ -114,6 +114,82 @@ interface FaceBlurProps {
         } catch {
           facesCache = [];
         }
+
+        // Draw and report metrics for FaceDetector path
+        try {
+          const ctx = canvas.getContext("2d");
+          const filtered = facesCache.filter(
+            (base) => (base.score ?? 1) >= conf
+          );
+          for (const base of filtered) {
+            const W = canvas.width,
+              H = canvas.height;
+            const minSide = Math.min(base.w, base.h);
+            const p =
+              minSide <= FaceBlurConstants.PAD_SMALL_SIDE
+                ? FaceBlurConstants.PAD_RATIO_AT_SMALL
+                : minSide >= FaceBlurConstants.PAD_LARGE_SIDE
+                ? FaceBlurConstants.PAD_RATIO_AT_LARGE
+                : padRatio;
+            const rx = clamp(Math.round(base.x - base.w * p), 0, W);
+            const ry = clamp(Math.round(base.y - base.h * p), 0, H);
+            const rw = clamp(Math.round(base.w * (1 + 2 * p)), 1, W - rx);
+            const rh = clamp(Math.round(base.h * (1 + 2 * p)), 1, H - ry);
+            const ryShift = clamp(
+              Math.round(ry - rh * FaceBlurConstants.VERTICAL_SHIFT),
+              0,
+              H - 1
+            );
+            const rhShift = clamp(
+              Math.round(rh + rh * FaceBlurConstants.VERTICAL_SHIFT),
+              1,
+              H - ryShift
+            );
+            const ox =
+              (FaceBlurConstants.OFFSET_X | 0) +
+              Math.round(rw * (FaceBlurConstants.OFFSET_FX ?? 0));
+            const oy =
+              (FaceBlurConstants.OFFSET_Y | 0) +
+              Math.round(rhShift * (FaceBlurConstants.OFFSET_FY ?? 0));
+            const fx = clamp(rx + ox, 0, Math.max(0, W - 1));
+            const fy = clamp(ryShift + oy, 0, Math.max(0, H - 1));
+            const fw = clamp(rw, 1, W - fx);
+            const fh = clamp(rhShift, 1, H - fy);
+            const r = newFaceBox(fx, fy, fw, fh);
+
+            if (ctx) {
+              blurPatchWithFeather(
+                ctx,
+                img,
+                r.x,
+                r.y,
+                r.w,
+                r.h,
+                blur,
+                FaceBlurConstants.FEATHER_PX
+              );
+            }
+          }
+        } catch {
+          /* ignore draw errors in tests */
+        }
+
+        const t3 = performance.now();
+        const uiConf = clamp(latestConfRef.current ?? 0.6, 0.01, 0.99);
+        const filteredCount = facesCache.filter(
+          (b) => (b.score ?? 1) >= uiConf
+        ).length;
+        opts.setPerfReport({
+          count: filteredCount,
+          total: t3 - t0,
+          timings: {
+            preprocess: t1 - t0,
+            run: t2 - t1,
+            post: t3 - t2,
+            total: t3 - t0,
+          },
+        });
+        return;
       }
 
       try {
@@ -149,8 +225,9 @@ interface FaceBlurProps {
         const t3 = performance.now();
         // Report count based on current UI threshold, not raw detections
         const uiConf = clamp(latestConfRef.current ?? 0.6, 0.01, 0.99);
-        const filteredCount = facesCache.filter((b) => (b.score ?? 1) >= uiConf)
-          .length;
+        const filteredCount = facesCache.filter(
+          (b) => (b.score ?? 1) >= uiConf
+        ).length;
         opts.setPerfReport({
           count: filteredCount,
           total: t3 - t0,
@@ -309,8 +386,9 @@ interface FaceBlurProps {
       const t3 = performance.now();
       // Report count based on current UI threshold, not the constant
       const uiConf = clamp(latestConfRef.current ?? 0.6, 0.01, 0.99);
-      const filteredCount = facesCache.filter((b) => (b.score ?? 1) >= uiConf)
-        .length;
+      const filteredCount = facesCache.filter(
+        (b) => (b.score ?? 1) >= uiConf
+      ).length;
       opts.setPerfReport({
         count: filteredCount,
         total: t3 - t0,
@@ -348,7 +426,6 @@ interface FaceBlurProps {
       // Cap blur to avoid cases where very large radii visually collapse or seem to "un-blur"
       const blur = Math.min(30, Math.max(1, Math.round(blurStrength)));
       const conf = clamp(confThresh ?? 0.6, 0.01, 0.99);
-      const t0 = performance.now();
       const filtered = facesCache.filter((b) => (b.score ?? 1) >= conf);
       for (const base of filtered) {
         const W = canvas.width,
