@@ -150,6 +150,21 @@ export function PrivacyScrubber() {
     faceFeather,
   ]);
 
+  // Keep face counter in sync with the Filter slider without re-running detection
+  useEffect(() => {
+    if (!facesOn) return;
+    const handle = faceRef.current;
+    if (!handle) return;
+    try {
+      const count = handle.getFilteredCount?.(faceConf);
+      if (typeof count === "number") {
+        setPerfFaces((prev) => ({ ...prev, count }));
+      }
+    } catch {
+      // ignore
+    }
+  }, [facesOn, faceConf, setPerfFaces]);
+
   const onRefreshHandler = useCallback(async () => {
     // Hide Face tooltip while processing runs
     const img = imgRef?.current;
@@ -158,8 +173,12 @@ export function PrivacyScrubber() {
     if (!cvs || !img) return;
 
     try {
-      setCanvasVisible(false);
       setBusy(true);
+      // Allow React to commit busy=true and paint spinner before we block
+      await Promise.resolve();
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve())
+      );
       await plateRef.current?.run();
       void plateRedactorRef.current?.prefillFromDetections(
         plateRef.current?.getDetections?.() ?? []

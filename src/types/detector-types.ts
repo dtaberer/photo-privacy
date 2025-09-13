@@ -45,6 +45,8 @@ export interface BlurHandler<TBox = Box> {
   redraw: () => void | Promise<void>;
   getDetections: () => TBox[];
   reset: () => void;
+  /** Optional: return count of current detections meeting a confidence threshold. */
+  getFilteredCount?: (confThresh: number) => number;
 }
 
 /** Timing breakdown for one detection cycle (ms). */
