@@ -15,6 +15,7 @@ export interface FaceBlurConstants {
   PAD_RATIO: number; // usually 0.0 or 0.1
   FEATHER_PX: number; // usually 1 or 2
   MAX_DETECTED_FACES: number; // safety limit
+  FAST_MODE: boolean; // if true, use faster but less accurate model
   MODEL_SIZE: number; // model input size (width and height)
   MODELS_URL: string; // base URL for face-api models
   MODEL_URL: string; // full URL for ONNX face detection model
@@ -32,6 +33,11 @@ export interface FaceBlurConstants {
   OFFSET_Y: number; // pixel offset to nudge blur vertically (positive = down)
   OFFSET_FX: number; // fraction of width to offset horizontally (e.g., -0.03 for left)
   OFFSET_FY: number; // fraction of height to offset vertically (e.g., -0.03 for up)
+  // Adaptive padding for different face sizes
+  PAD_RATIO_AT_SMALL: number; // pad ratio when face min side <= PAD_SMALL_SIDE
+  PAD_RATIO_AT_LARGE: number; // pad ratio when face min side >= PAD_LARGE_SIDE
+  PAD_SMALL_SIDE: number; // px threshold for "small" faces
+  PAD_LARGE_SIDE: number; // px threshold for "large" faces
 }
 
 export interface LicensePlateBlurConstants {
@@ -54,29 +60,34 @@ export interface PrivacyScrubberConstants {
 // Used in FaceBlur.tsx and LicensePlateBlur.tsx
 export const FaceBlurConstants: FaceBlurConstants = {
   BLUR_DENSITY: 40,
-  CONFIDENCE_THRESHOLD: 0.65,
+  CONFIDENCE_THRESHOLD: 0.25,
   RUN_FACE_DETECTION: true,
-  IOU_THRESHOLD: 0.35,
+  IOU_THRESHOLD: 0.2,
   PAD_RATIO: 0.12,
   FEATHER_PX: 1,
   MAX_DETECTED_FACES: 50,
+  FAST_MODE: false,
   MODEL_SIZE: 416,
   MODELS_URL: `${basePath}models/face-api`,
   MODEL_URL: `${basePath}models/face/yolov11n-face.onnx`,
   // ONNX post-process defaults (tuned to reduce duplicates)
-  NMS_IOU: 0.6,
-  NMS_CONTAIN: 0.8,
+  NMS_IOU: 6.8,
+  NMS_CONTAIN: 6.8,
   NMS_CENTER: 0.55,
   PREFILTER_MIN_SIDE_RATIO: 0.015,
   PREFILTER_AR_MIN: 0.5,
   PREFILTER_AR_MAX: 2.0,
   TTA_FLIP: false,
-  VERTICAL_SHIFT: 0.0,
+  VERTICAL_SHIFT: 0.2,
   FORCE_CENTER_NORM: false,
   OFFSET_X: -12,
   OFFSET_Y: -12,
-  OFFSET_FX: -0.08,
+  OFFSET_FX: -0.18,
   OFFSET_FY: -0.08,
+  PAD_RATIO_AT_SMALL: 0.18,
+  PAD_RATIO_AT_LARGE: 0.06,
+  PAD_SMALL_SIDE: 140,
+  PAD_LARGE_SIDE: 420,
 };
 
 export const LicensePlateBlurConstants: LicensePlateBlurConstants = {

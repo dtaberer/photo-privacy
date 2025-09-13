@@ -150,6 +150,21 @@ export function PrivacyScrubber() {
     faceFeather,
   ]);
 
+  // Keep face counter in sync with the Filter slider without re-running detection
+  useEffect(() => {
+    if (!facesOn) return;
+    const handle = faceRef.current;
+    if (!handle) return;
+    try {
+      const count = handle.getFilteredCount?.(faceConf);
+      if (typeof count === "number") {
+        setPerfFaces((prev) => ({ ...prev, count }));
+      }
+    } catch {
+      // ignore
+    }
+  }, [facesOn, faceConf, setPerfFaces]);
+
   const onRefreshHandler = useCallback(async () => {
     // Hide Face tooltip while processing runs
     const img = imgRef?.current;

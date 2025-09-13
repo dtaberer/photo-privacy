@@ -139,7 +139,10 @@ export function blurPatchWithFeather(
 ) {
   const W = ctx.canvas.width,
     H = ctx.canvas.height;
-  const pad = Math.ceil(Math.max(0, blurPx) * 1.5 + Math.max(0, featherPx) + 4);
+  // Use a generous margin so the blur kernel never samples transparent edges,
+  // which can make the ellipse appear to "fade" at higher blur radii.
+  // Empirically, ~3x blur radius + feather + small safety works well.
+  const pad = Math.ceil(Math.max(0, blurPx) * 3.0 + Math.max(0, featherPx) + 8);
   const sx = clamp(Math.floor(x - pad), 0, W);
   const sy = clamp(Math.floor(y - pad), 0, H);
   const ex = clamp(Math.ceil(x + w + pad), 0, W);
@@ -154,17 +157,43 @@ export function blurPatchWithFeather(
   src.height = sh;
   const sctx = src.getContext("2d");
   if (!sctx) return;
+  // When close to edges, ensure we only sample inside the source image.
   sctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-  // blur the patch
+  // blur the patch (use multi-pass for large radii to avoid backend artifacts)
   const blurred = document.createElement("canvas");
   blurred.width = sw;
   blurred.height = sh;
   const bctx = blurred.getContext("2d");
   if (!bctx) return;
-  bctx.filter = `blur(${Math.max(0, Math.round(blurPx))}px)`;
-  bctx.drawImage(src, 0, 0);
-  bctx.filter = "none";
+  const total = Math.max(0, Math.round(blurPx));
+  if (total <= 0) {
+    bctx.drawImage(src, 0, 0);
+  } else {
+    // Empirically, very large kernels can behave oddly on some drivers.
+    // Split into smaller passes and re-apply to the accumulated result.
+    const perPass = 20; // px per pass
+    const passes = Math.max(1, Math.ceil(total / perPass));
+    const step = Math.max(1, Math.round(total / passes));
+    // First pass from source
+    bctx.filter = `blur(${step}px)`;
+    bctx.drawImage(src, 0, 0);
+    // Subsequent passes from the blurred buffer itself (avoid self-source draw)
+    if (passes > 1) {
+      const tmp = document.createElement("canvas");
+      tmp.width = sw;
+      tmp.height = sh;
+      const tctx = tmp.getContext("2d");
+      if (tctx) {
+        for (let i = 1; i < passes; i++) {
+          tctx.clearRect(0, 0, sw, sh);
+          tctx.drawImage(blurred, 0, 0);
+          bctx.drawImage(tmp, 0, 0);
+        }
+      }
+    }
+    bctx.filter = "none";
+  }
 
   // build an ellipse mask with optional feather
   const mask = document.createElement("canvas");

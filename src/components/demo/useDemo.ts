@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import demoImageSrc from "../../assets/demo1.jpg";
 import demoImage2Src from "../../assets/demo2.jpg";
 export const demoImage = demoImageSrc;
@@ -137,6 +137,38 @@ export function useDemo({
     setOrigName,
     setPreviewUrl,
   ]);
+
+  // When Demo is triggered in production, the image is loaded asynchronously.
+  // Auto-run detection as soon as the image element reports ready.
+  useEffect(() => {
+    if (!demoMode) return;
+    if (!demoPendingRef.current) return;
+
+    let raf = 0;
+    let tries = 0;
+    const tick = () => {
+      const el = imgRef.current;
+      if (el && el.complete && el.naturalWidth > 0) {
+        setDemoStepsArray((prev) => {
+          const newArray = [...prev];
+          newArray[StepsEnum.Scrub] = StepStates.Active;
+          return newArray;
+        });
+        runDetection();
+        demoPendingRef.current = false;
+        return;
+      }
+      if (tries++ < 90) {
+        // ~1.5s max wait at 60fps
+        raf = requestAnimationFrame(tick);
+      } else {
+        // give up to avoid infinite loop; user can click Scrub manually
+        demoPendingRef.current = false;
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [demoMode, previewUrl, imgRef, runDetection]);
 
   const onDemoStepNext = useCallback(() => {
     setDemoStepsArray((prev) => {
