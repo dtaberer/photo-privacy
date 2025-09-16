@@ -1,6 +1,6 @@
 import * as ort from "onnxruntime-web";
 import { createOrtSession } from "@/ort-setup";
-import { FaceBlurConstants } from "@/components/constants";
+import { FaceBlurConstants } from "@/config/constants";
 
 type MaybeViteImportMeta = ImportMeta & { env?: { DEV?: boolean } };
 const __DEV__ =

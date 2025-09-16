@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { FaceBlurConstants } from "@/components/constants";
+import { FaceBlurConstants } from "@/config/constants";
 
 interface FaceApiCompatNS {
   nets: { tinyFaceDetector: { loadFromUri: (base: string) => Promise<void> } };

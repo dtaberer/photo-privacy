@@ -20,7 +20,7 @@ import type {
   BlurHandler,
 } from "@/types/detector-types";
 import type { Tensor } from "onnxruntime-web";
-import { LicensePlateBlurConstants } from "./constants";
+import { LicensePlateBlurConstants } from "@/config/constants";
 
 let plateSession: ort.InferenceSession | null = null;
 let plateInputName = "";

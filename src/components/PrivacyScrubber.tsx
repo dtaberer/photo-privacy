@@ -21,7 +21,7 @@ import {
   IMAGE_SIZE,
   LicensePlateBlurConstants,
   USE_MANUAL_REDACTOR,
-} from "./constants";
+} from "@/config/constants";
 import { Box, Size, BlurHandler } from "@/types/detector-types";
 
 export function PrivacyScrubber() {
