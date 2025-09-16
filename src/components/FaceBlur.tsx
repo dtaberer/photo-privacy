@@ -221,7 +221,7 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
             )
           );
 
-        redraw();
+        redraw(0.64);
         const t3 = performance.now();
         // Report count based on current UI threshold, not raw detections
         const uiConf = clamp(latestConfRef.current ?? 0.6, 0.01, 0.99);
@@ -405,79 +405,81 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
     // Destructure opts to stable, typed locals for hook deps
     const { blurStrength, confThresh, featherPx } = opts;
 
-    const redraw = useCallback(async () => {
-      const img = imgRef.current;
-      const canvas = canvasRef.current;
-      const padRatio = FaceBlurConstants.PAD_RATIO;
+    const redraw = useCallback(
+      async (conf: number = confThresh) => {
+        const img = imgRef.current;
+        const canvas = canvasRef.current;
+        const padRatio = FaceBlurConstants.PAD_RATIO;
 
-      // Guard against redraw before image loads (e.g., when previewUrl changes)
-      if (
-        !img ||
-        !canvas ||
-        !img.complete ||
-        img.naturalWidth === 0 ||
-        img.naturalHeight === 0
-      ) {
-        return;
-      }
-      const ctx = canvas.getContext("2d");
+        // Guard against redraw before image loads (e.g., when previewUrl changes)
+        if (
+          !img ||
+          !canvas ||
+          !img.complete ||
+          img.naturalWidth === 0 ||
+          img.naturalHeight === 0
+        ) {
+          return;
+        }
+        const ctx = canvas.getContext("2d");
 
-      if (!ctx) return;
-      // Cap blur to avoid cases where very large radii visually collapse or seem to "un-blur"
-      const blur = Math.min(30, Math.max(1, Math.round(blurStrength)));
-      const conf = clamp(confThresh ?? 0.6, 0.01, 0.99);
-      const filtered = facesCache.filter((b) => (b.score ?? 1) >= conf);
-      for (const base of filtered) {
-        const W = canvas.width,
-          H = canvas.height;
-        const minSide = Math.min(base.w, base.h);
-        const p =
-          minSide <= FaceBlurConstants.PAD_SMALL_SIDE
-            ? FaceBlurConstants.PAD_RATIO_AT_SMALL
-            : minSide >= FaceBlurConstants.PAD_LARGE_SIDE
-            ? FaceBlurConstants.PAD_RATIO_AT_LARGE
-            : padRatio;
-        const rx = clamp(Math.round(base.x - base.w * p), 0, W);
-        const ry = clamp(Math.round(base.y - base.h * p), 0, H);
-        const rw = clamp(Math.round(base.w * (1 + 2 * p)), 1, W - rx);
-        const rh = clamp(Math.round(base.h * (1 + 2 * p)), 1, H - ry);
-        // Use symmetric padding box without vertical shift to align blur to face
-        const ryShift = clamp(
-          Math.round(ry - rh * FaceBlurConstants.VERTICAL_SHIFT),
-          0,
-          H - 1
-        );
-        const rhShift = clamp(
-          Math.round(rh + rh * FaceBlurConstants.VERTICAL_SHIFT),
-          1,
-          H - ryShift
-        );
-        const ox =
-          (FaceBlurConstants.OFFSET_X | 0) +
-          Math.round(rw * (FaceBlurConstants.OFFSET_FX ?? 0));
-        const oy =
-          (FaceBlurConstants.OFFSET_Y | 0) +
-          Math.round(rhShift * (FaceBlurConstants.OFFSET_FY ?? 0));
-        const fx = clamp(rx + ox, 0, Math.max(0, W - 1));
-        const fy = clamp(ryShift + oy, 0, Math.max(0, H - 1));
-        const fw = clamp(rw, 1, W - fx);
-        const fh = clamp(rhShift, 1, H - fy);
-        const r = newFaceBox(fx, fy, fw, fh);
+        if (!ctx) return;
+        // Cap blur to avoid cases where very large radii visually collapse or seem to "un-blur"
+        const blur = Math.min(30, Math.max(1, Math.round(blurStrength)));
+        const filtered = facesCache.filter((b) => (b.score ?? 1) >= conf);
+        for (const base of filtered) {
+          const W = canvas.width,
+            H = canvas.height;
+          const minSide = Math.min(base.w, base.h);
+          const p =
+            minSide <= FaceBlurConstants.PAD_SMALL_SIDE
+              ? FaceBlurConstants.PAD_RATIO_AT_SMALL
+              : minSide >= FaceBlurConstants.PAD_LARGE_SIDE
+              ? FaceBlurConstants.PAD_RATIO_AT_LARGE
+              : padRatio;
+          const rx = clamp(Math.round(base.x - base.w * p), 0, W);
+          const ry = clamp(Math.round(base.y - base.h * p), 0, H);
+          const rw = clamp(Math.round(base.w * (1 + 2 * p)), 1, W - rx);
+          const rh = clamp(Math.round(base.h * (1 + 2 * p)), 1, H - ry);
+          // Use symmetric padding box without vertical shift to align blur to face
+          const ryShift = clamp(
+            Math.round(ry - rh * FaceBlurConstants.VERTICAL_SHIFT),
+            0,
+            H - 1
+          );
+          const rhShift = clamp(
+            Math.round(rh + rh * FaceBlurConstants.VERTICAL_SHIFT),
+            1,
+            H - ryShift
+          );
+          const ox =
+            (FaceBlurConstants.OFFSET_X | 0) +
+            Math.round(rw * (FaceBlurConstants.OFFSET_FX ?? 0));
+          const oy =
+            (FaceBlurConstants.OFFSET_Y | 0) +
+            Math.round(rhShift * (FaceBlurConstants.OFFSET_FY ?? 0));
+          const fx = clamp(rx + ox, 0, Math.max(0, W - 1));
+          const fy = clamp(ryShift + oy, 0, Math.max(0, H - 1));
+          const fw = clamp(rw, 1, W - fx);
+          const fh = clamp(rhShift, 1, H - fy);
+          const r = newFaceBox(fx, fy, fw, fh);
 
-        blurPatchWithFeather(
-          ctx,
-          img,
-          r.x,
-          r.y,
-          r.w,
-          r.h,
-          blur,
-          featherPx ?? 0
-        );
-      }
-      // Skip perf report updates during interactive redraw to avoid jank
-      // (perf is reported by the detection run path instead)
-    }, [imgRef, canvasRef, blurStrength, confThresh, featherPx]);
+          blurPatchWithFeather(
+            ctx,
+            img,
+            r.x,
+            r.y,
+            r.w,
+            r.h,
+            blur,
+            featherPx ?? 0
+          );
+        }
+        // Skip perf report updates during interactive redraw to avoid jank
+        // (perf is reported by the detection run path instead)
+      },
+      [imgRef, canvasRef, blurStrength, confThresh, featherPx]
+    );
 
     useImperativeHandle(
       ref,

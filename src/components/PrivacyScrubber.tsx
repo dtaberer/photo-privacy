@@ -165,6 +165,21 @@ export function PrivacyScrubber() {
     }
   }, [facesOn, faceConf, setPerfFaces]);
 
+  // Keep plate counter in sync with the Filter slider without re-running detection
+  useEffect(() => {
+    if (!platesOn) return;
+    const handle = plateRef.current;
+    if (!handle) return;
+    try {
+      const count = handle.getFilteredCount?.(plateConf);
+      if (typeof count === "number") {
+        setPerfPlates((prev) => ({ ...prev, count }));
+      }
+    } catch {
+      // ignore
+    }
+  }, [platesOn, plateConf, setPerfPlates]);
+
   const onRefreshHandler = useCallback(async () => {
     // Hide Face tooltip while processing runs
     const img = imgRef?.current;

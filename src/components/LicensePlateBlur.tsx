@@ -174,6 +174,8 @@ export const LicensePlateBlur = forwardRef<BlurHandler, LicensePlateBlurProps>(
         redraw,
         getDetections: () =>
           boxes.map((b) => ({ x: b.x, y: b.y, w: b.w, h: b.h } as Box)),
+        getFilteredCount: (conf: number) =>
+          filterByMinConf<BoxWithConf>(boxes, conf).length,
         reset: () => {
           boxes = [];
         },
