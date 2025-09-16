@@ -60,9 +60,9 @@ export interface PrivacyScrubberConstants {
 // Used in FaceBlur.tsx and LicensePlateBlur.tsx
 export const FaceBlurConstants: FaceBlurConstants = {
   BLUR_DENSITY: 40,
-  CONFIDENCE_THRESHOLD: 0.25,
+  CONFIDENCE_THRESHOLD: 0.35,
   RUN_FACE_DETECTION: true,
-  IOU_THRESHOLD: 0.2,
+  IOU_THRESHOLD: 0.3,
   PAD_RATIO: 0.12,
   FEATHER_PX: 1,
   MAX_DETECTED_FACES: 50,
@@ -71,8 +71,8 @@ export const FaceBlurConstants: FaceBlurConstants = {
   MODELS_URL: `${basePath}models/face-api`,
   MODEL_URL: `${basePath}models/face/yolov11n-face.onnx`,
   // ONNX post-process defaults (tuned to reduce duplicates)
-  NMS_IOU: 6.8,
-  NMS_CONTAIN: 6.8,
+  NMS_IOU: 0.4,
+  NMS_CONTAIN: 0.4,
   NMS_CENTER: 0.55,
   PREFILTER_MIN_SIDE_RATIO: 0.015,
   PREFILTER_AR_MIN: 0.5,
