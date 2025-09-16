@@ -6,7 +6,7 @@
 import React from "react";
 import { render, act } from "@testing-library/react";
 import FaceBlur from "../components/FaceBlur";
-import { FaceBlurConstants } from "../components/constants";
+import { FaceBlurConstants } from "@/config/constants";
 import type {
   BlurHandler,
   Box,

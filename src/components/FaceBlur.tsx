@@ -6,7 +6,7 @@ import {
   useRef,
   useEffect,
 } from "react";
-import { FaceBlurConstants } from "./constants";
+import { FaceBlurConstants } from "@/config/constants";
 import type { BlurHandler, PerformanceReport } from "@/types/detector-types";
 import {
   newFaceBox,
