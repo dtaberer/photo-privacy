@@ -163,9 +163,9 @@ function ControlPanel({
               step={1}
               value={Math.round(confVal * 100)}
               disabled={busy}
-              onChange={(e) =>
-                setThreshVal(Number(e.currentTarget.value) / 100)
-              }
+              onChange={(e) => {
+                setThreshVal(Number(e.currentTarget.value) / 100);
+              }}
               className="form-range themed-range"
               ref={confRef as React.RefObject<HTMLInputElement>}
               style={{
