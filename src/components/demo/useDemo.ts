@@ -1,8 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import demoImageSrc from "../../assets/demo1.jpg";
-import demoImage2Src from "../../assets/demo2.jpg";
 export const demoImage = demoImageSrc;
-export const demoImage2 = demoImage2Src;
 
 export const enum StepStates {
   Inactive,

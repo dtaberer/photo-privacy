@@ -62,7 +62,7 @@ export const FaceBlurConstants: FaceBlurConstants = {
   BLUR_DENSITY: 40,
   CONFIDENCE_THRESHOLD: 0.35,
   RUN_FACE_DETECTION: true,
-  IOU_THRESHOLD: 0.3,
+  IOU_THRESHOLD: 0.4,
   PAD_RATIO: 0.12,
   FEATHER_PX: 1,
   MAX_DETECTED_FACES: 50,
@@ -71,7 +71,7 @@ export const FaceBlurConstants: FaceBlurConstants = {
   MODELS_URL: `${basePath}models/face-api`,
   MODEL_URL: `${basePath}models/face/yolov11n-face.onnx`,
   // ONNX post-process defaults (tuned to reduce duplicates)
-  NMS_IOU: 0.4,
+  NMS_IOU: 0.6,
   NMS_CONTAIN: 0.4,
   NMS_CENTER: 0.55,
   PREFILTER_MIN_SIDE_RATIO: 0.015,
@@ -80,14 +80,14 @@ export const FaceBlurConstants: FaceBlurConstants = {
   TTA_FLIP: false,
   VERTICAL_SHIFT: 0.2,
   FORCE_CENTER_NORM: false,
-  OFFSET_X: -12,
+  OFFSET_X: -9,
   OFFSET_Y: -12,
-  OFFSET_FX: -0.18,
+  OFFSET_FX: -0.14,
   OFFSET_FY: -0.08,
-  PAD_RATIO_AT_SMALL: 0.18,
-  PAD_RATIO_AT_LARGE: 0.06,
-  PAD_SMALL_SIDE: 140,
-  PAD_LARGE_SIDE: 420,
+  PAD_RATIO_AT_SMALL: 0.16,
+  PAD_RATIO_AT_LARGE: 0.04,
+  PAD_SMALL_SIDE: 120,
+  PAD_LARGE_SIDE: 20,
 };
 
 export const LicensePlateBlurConstants: LicensePlateBlurConstants = {
@@ -114,25 +114,4 @@ export const PERFORMANCE_REPORT_ZEROS = {
   },
 };
 
-export interface DemoSteps {
-  [index: number]: string;
-}
-
-export const DemoSteps: DemoSteps = [
-  "After loading your image, click the Scrub Image button to start the redaction process. \
-  This normally takes around 8-10 seconds to complete detection.",
-
-  "Select the 'Blur Opacity' to adjust the density and obscurity level of the blurred region. \
-  Try it!",
-
-  "The Filter control changes the level of sensitivity of detection and is driven by confidence thresholds. \
-  It can drastically cut down the noise levels, but may also miss some distant or obscured subjects. \
-  Try it!",
-
-  "The Feather control adjusts the softness of the edges of the redacted areas. \
-  Increasing the feathering can help blend the redacted areas more naturally into the background. \
-  Try it!",
-
-  "When you are ready to download your redacted image, click the Download button. \
-  Your browser will prompt you to save the image file to your device.",
-];
+// Demo copy now lives in useDemo.ts as StepText; keep config focused on tuning knobs
