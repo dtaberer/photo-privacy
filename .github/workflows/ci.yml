@@ -1,14 +1,16 @@
+# .github/workflows/ci.yml
 name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,8 +18,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
       - name: Install deps
         run: npm ci
@@ -28,9 +30,27 @@ jobs:
       - name: Typecheck
         run: npm run typecheck --silent
 
-      - name: Test
-        run: npm test --silent
+      # Run tests and produce coverage locally
+      - name: Test with coverage
+        run: npm test -- --coverage
 
-      - name: Build
-        run: npm run build --silent
+      # Upload coverage to Codecov (after tests)
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          # Keep non-blocking: code review requested avoiding hard CI failures on transient upload issues.
+          fail_ci_if_error: false
+          verbose: true
+          # Later you can gate failures only on main branch by templating this input.
+          # Example:
+          # fail_ci_if_error: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
+          # Add flags/slug if you want more granular Codecov dashboards.
 
+      # Ensure the production bundle still builds (catches missing imports/assets)
+      - name: Build (Vite)
+        run: npm run build
+
+      # Optional: verify ORT sidecar/file integrity after build
+      - name: Verify ORT distribution
+        run: npm run build:verify

@@ -68,6 +68,11 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       latestConfRef.current = opts.confThresh;
     }, [opts.confThresh]);
 
+    const latestBlurRef = useRef(opts.blurStrength);
+    useEffect(() => {
+      latestBlurRef.current = opts.blurStrength;
+    }, [opts.blurStrength]);
+
     const run = useCallback(async () => {
       const img = imgRef.current;
       const canvas = canvasRef.current;
@@ -86,7 +91,12 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const t0 = performance.now();
       facesCache = [];
       // Initial pass uses constant density (capped to avoid platform-specific blur artifacts)
-      const blur = Math.min(FaceBlurConstants.BLUR_DENSITY, 30);
+      const desiredBlur = latestBlurRef.current ?? FaceBlurConstants.BLUR_DENSITY;
+      const blur = clamp(
+        Math.round(desiredBlur),
+        1,
+        FaceBlurConstants.MAX_BLUR_PX
+      );
       const conf = clamp(FaceBlurConstants.CONFIDENCE_THRESHOLD, 0.01, 0.99);
       const padRatio = FaceBlurConstants.PAD_RATIO;
 
@@ -425,7 +435,11 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
 
         if (!ctx) return;
         // Cap blur to avoid cases where very large radii visually collapse or seem to "un-blur"
-        const blur = Math.min(30, Math.max(1, Math.round(blurStrength)));
+        const blur = clamp(
+          Math.round(blurStrength ?? FaceBlurConstants.BLUR_DENSITY),
+          1,
+          FaceBlurConstants.MAX_BLUR_PX
+        );
         const filtered = facesCache.filter((b) => (b.score ?? 1) >= conf);
         for (const base of filtered) {
           const W = canvas.width,
