@@ -72,7 +72,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           verbose: false
-        # Omit token for public repositories (tokenless upload); set secrets.CODECOV_TOKEN for private repos if needed.
+        # The Codecov token is now always provided via secrets.CODECOV_TOKEN. Ensure this secret is set for both public and private repositories.
       # Build production bundle
       - name: Build (Vite)
         run: npm run build --silent
