@@ -137,6 +137,25 @@ Regenerate coverage: `npm run coverage:generate`
 
 Coverage badges are generated automatically in CI (see workflow steps: Generate coverage badges). Locally you can refresh them with: `npm run coverage:badge`.
 
+### Coverage Ramp Strategy
+
+Current effective source coverage sits near 36% (statements/lines). The project enforces a local baseline gate (Vitest thresholds) slightly below that to
+prevent regressions. Codecov gates are intentionally set just above baseline (project 36%, patch 40%) and will be increased in staged increments:
+
+| Milestone Project ≥ | Set project target | Set patch target |
+| ------------------- | ------------------ | ---------------- |
+| 40%                 | 40%                | 45%              |
+| 45%                 | 45%                | 50%              |
+| 50%                 | 50%                | 55%              |
+| 55%                 | 55%                | 60%              |
+| 60%                 | 60%                | 65%              |
+| 65%                 | 65%                | 70%              |
+| 70%                 | 70%                | 75%              |
+| 75%                 | 75%                | 80%              |
+| 80%                 | 80%                | 85%              |
+
+This keeps PR feedback actionable while steadily raising expectations.
+
 Feel free to trim or expand this section as coverage strategy evolves.
 
 ## License
