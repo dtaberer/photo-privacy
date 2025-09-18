@@ -23,6 +23,7 @@ import {
   USE_MANUAL_REDACTOR,
 } from "@/config/constants";
 import { Box, Size, BlurHandler } from "@/types/detector-types";
+import useDebouncedValue from "@/lib/useDebouncedValue";
 
 export function PrivacyScrubber() {
   const [platesOn, setPlatesOn] = useState<boolean>(
@@ -56,6 +57,13 @@ export function PrivacyScrubber() {
     PERFORMANCE_REPORT_ZEROS
   );
   const [modelSize] = useState<number>(LicensePlateBlurConstants.MODEL_SIZE);
+
+  const debPlateBlur = useDebouncedValue(plateBlur, 140);
+  const debFaceBlur = useDebouncedValue(faceBlur, 140);
+  const debPlateConf = useDebouncedValue(plateConf, 140);
+  const debFaceConf = useDebouncedValue(faceConf, 140);
+  const debPlateFeather = useDebouncedValue(plateFeather, 140);
+  const debFaceFeather = useDebouncedValue(faceFeather, 140);
 
   const [imgSize, setImgSize] = useState<Size>(IMAGE_SIZE);
   const [busy, setBusy] = useState<boolean>(false);
@@ -142,12 +150,12 @@ export function PrivacyScrubber() {
     previewUrl,
     platesOn,
     facesOn,
-    plateBlur,
-    plateConf,
-    plateFeather,
-    faceBlur,
-    faceConf,
-    faceFeather,
+    debPlateBlur,
+    debPlateConf,
+    debPlateFeather,
+    debFaceBlur,
+    debFaceConf,
+    debFaceFeather,
   ]);
 
   // Keep face counter in sync with the Filter slider without re-running detection
@@ -156,14 +164,14 @@ export function PrivacyScrubber() {
     const handle = faceRef.current;
     if (!handle) return;
     try {
-      const count = handle.getFilteredCount?.(faceConf);
+      const count = handle.getFilteredCount?.(debFaceConf);
       if (typeof count === "number") {
         setPerfFaces((prev) => ({ ...prev, count }));
       }
     } catch {
       // ignore
     }
-  }, [facesOn, faceConf, setPerfFaces]);
+  }, [facesOn, debFaceConf, setPerfFaces]);
 
   // Keep plate counter in sync with the Filter slider without re-running detection
   useEffect(() => {
@@ -171,14 +179,14 @@ export function PrivacyScrubber() {
     const handle = plateRef.current;
     if (!handle) return;
     try {
-      const count = handle.getFilteredCount?.(plateConf);
+      const count = handle.getFilteredCount?.(debPlateConf);
       if (typeof count === "number") {
         setPerfPlates((prev) => ({ ...prev, count }));
       }
     } catch {
       // ignore
     }
-  }, [platesOn, plateConf, setPerfPlates]);
+  }, [platesOn, debPlateConf, setPerfPlates]);
 
   const onRefreshHandler = useCallback(async () => {
     // Hide Face tooltip while processing runs

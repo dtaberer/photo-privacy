@@ -19,6 +19,7 @@ export interface FaceBlurConstants {
   MODEL_SIZE: number; // model input size (width and height)
   MODELS_URL: string; // base URL for face-api models
   MODEL_URL: string; // full URL for ONNX face detection model
+  MAX_BLUR_PX: number; // cap to prevent extreme radii artifacts
   // ONNX post-process tuning (center-size and DFL paths)
   NMS_IOU: number; // IoU threshold for suppression
   NMS_CONTAIN: number; // containment ratio to drop nested boxes
@@ -70,6 +71,7 @@ export const FaceBlurConstants: FaceBlurConstants = {
   MODEL_SIZE: 416,
   MODELS_URL: `${basePath}models/face-api`,
   MODEL_URL: `${basePath}models/face/yolov11n-face.onnx`,
+  MAX_BLUR_PX: 80,
   // ONNX post-process defaults (tuned to reduce duplicates)
   NMS_IOU: 0.6,
   NMS_CONTAIN: 0.4,
@@ -84,10 +86,10 @@ export const FaceBlurConstants: FaceBlurConstants = {
   OFFSET_Y: -12,
   OFFSET_FX: -0.14,
   OFFSET_FY: -0.08,
-  PAD_RATIO_AT_SMALL: 0.16,
-  PAD_RATIO_AT_LARGE: 0.04,
-  PAD_SMALL_SIDE: 120,
-  PAD_LARGE_SIDE: 20,
+  PAD_RATIO_AT_SMALL: 0.18,
+  PAD_RATIO_AT_LARGE: 0.05,
+  PAD_SMALL_SIDE: 140,
+  PAD_LARGE_SIDE: 420,
 };
 
 export const LicensePlateBlurConstants: LicensePlateBlurConstants = {

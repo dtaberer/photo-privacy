@@ -55,42 +55,22 @@ npm run typecheck   # TypeScript
 
 ## Features
 
-- On‑device detection: no data leaves your machine
-- License plates and faces with adjustable blur, feather, and confidence
-- Paste, drag‑drop, and file picker
-- Performance badges and timings
-- Try‑Demo flow with a local sample image
-- Accessible controls, keyboard‑friendly sliders, screen‑reader labels
-- Thorough tests (Vitest + Testing Library)
-
 ## 3) Technologies / Libraries
-
-- React 19 + Vite + TypeScript
-- onnxruntime‑web for plates; FaceDetector API or face‑api.js fallback
-- React‑Bootstrap for layout and controls
-- Vitest + @testing‑library for tests
 
 ## 4) How to Use
 
-- Load a photo:
-  - Drag & drop into the right panel, or
-  - Click “Drag & Drop” to choose a file, or
-  - Paste an image from the clipboard (Ctrl/Cmd+V)
-- Try the Demo: click the “Try the Demo” overlay in the preview to auto‑run detection and see tips
-- Adjust sliders:
-  - Blur Opacity: change blur intensity
-  - Feather: soften the edges (keeps full coverage; feathers outward)
-  - Filter: adjust sensitivity/threshold to include/exclude detections
-- Download: click “Download” to save the composited, redacted image
+- Drag & drop into the right panel, or
+- Click “Drag & Drop” to choose a file, or
+- Paste an image from the clipboard (Ctrl/Cmd+V)
+- Blur Opacity: change blur intensity
+- Feather: soften the edges (keeps full coverage; feathers outward)
+- Filter: adjust sensitivity/threshold to include/exclude detections
 
 ## Deploy Options
 
 ### GitHub Pages (no credentials needed)
 
 This repo includes two workflows:
-
-- `.github/workflows/ci.yml` — lint, typecheck, test, build
-- `.github/workflows/deploy-pages.yml` — builds and deploys `dist/` to Pages
 
 Steps:
 
@@ -110,16 +90,7 @@ git push
 
 ### Vercel / Netlify
 
-- Vercel: import the repo, framework = Vite, build = `npm run build`, output = `dist`.
-- Netlify: build command = `npm run build`, publish directory = `dist`.
-
 ## Portfolio / Case Study (suggested outline)
-
-- The problem: Easy, private image redaction without uploads
-- Constraints: on‑device only, small bundle, fast perceived performance
-- Solution: SIMD + 1‑thread fallback; onnxruntime‑web; accessible UI; robust tests
-- Results: timings, lighthouse scores, coverage summary
-- Lessons: perf trade‑offs, model sizing, UX decisions
 
 ## Tests
 
@@ -127,33 +98,46 @@ The test suite (Vitest + Testing Library) exercises every stage of the redaction
 
 **Input & bootstrapping**
 
-- `src/__tests__/FileLoader.interaction.spec.tsx` – paste, drag-and-drop, and native file input events all surface a `File` to the pipeline; drop/paste edge-cases are stubbed in JSDOM.
-- `src/__tests__/Preview.initial.spec.tsx` – the empty-state preview card renders with the correct sizing scaffolding before an image loads.
-- `src/__tests__/Preview.layout.spec.tsx` – once an image URL exists, we ensure the `<img>`/`<canvas>` stack is mounted and ready for detection output.
-
 **Controls & surface area**
-
-- `src/__tests__/ActionControls.spec.tsx` – Scrub/Download buttons call through to their handlers and respect the busy state.
-- `src/__tests__/ControlPanel.spec.tsx` – sliders convert UI input into the expected blur/confidence/feather values and call their state setters.
-- `src/__tests__/SliderControl.test.tsx` – keyboard navigation, label formatting, and min/max bounds of the shared slider component.
 
 **Detectors & pipeline glue**
 
-- `src/__tests__/FaceBlur.spec.tsx` – mounts the face blur worker with mocked FaceDetector/face-api paths, asserting the exposed `BlurHandler` methods, redraw behaviour, and detection results.
-- `src/__tests__/LicensePlateBlur.spec.tsx` – ONNX runtime is mocked so we can validate session setup, `run`, and `redraw` without loading real models.
-- `src/__tests__/PrivacyScrubber.detect.spec.tsx` – full integration: uploading a photo, firing detection, toggling face/plate switches, and ensuring re-detection only happens when the UI expects it.
-- `src/__tests__/refresh.calls.spec.tsx` – regression coverage that repeated “Refresh” clicks only invoke the detectors the correct number of times.
-
 **Infrastructure**
-
-- `src/__tests__/SetupTests.ts` configures the test DOM (canvas mocks, environment guards) so the rest of the suite can run without unsafe globals.
 
 Run the suite with `npm test` (use `npm run test:watch` for red-green TDD). Lint and type gates live under `npm run lint` and `npm run typecheck`.
 
 **Coverage & badges**
 
-- Generate coverage locally with `npm run coverage:generate` (requires installing `@vitest/coverage-v8` once: `npm i -D @vitest/coverage-v8`).
-- Refresh the JSON badge endpoints with `npm run coverage:badge`; the files live under `docs/badges/` and are read by the Shields.io badges above. For forks, update the badge URLs to match your GitHub repo path.
+## Recent Coverage Improvements
+
+Focused utility suite added (face & plate blur helpers) to raise function coverage and lock in geometry, filtering, and parsing edge cases.
+
+What was added:
+
+- `face-blur-utils.ts` tests: clamp/grow math, CSS→canvas rect normalization, upward adjustment logic, feature‑flag guard (`isFaceApiNS`), and a smoke path for the feathered blur routine.
+- `license-plate-blur-utils.ts` tests: IoU + NMS selection, strength→blur scaling, letterbox preprocessing dimensions, multiple YOLO output layout branches in `parseYolo`, confidence filtering, tensor row mapping helpers.
+
+Impact (approximate deltas):
+
+- Functions: 37.87% → 45.91%
+- Branches: 63.47% → 66.80%
+- Targeted utils function coverage now ~58–70% (previously near zero for many helpers).
+
+Why overall coverage didn’t climb higher: large detector components (`FaceBlur.tsx`, `LicensePlateBlur.tsx`) and runtime glue (`face-detect.ts`) remain untested; they contain many small exported functions or inline logic that inflate the denominator.
+
+Suggested next targets:
+
+1. Add tests around `PrivacyScrubber` re-detection triggers (ensure sliders do not force detection; toggles do).
+2. Introduce a hook (e.g. `useFaceDetections`) to isolate face detection post‑processing for direct unit tests.
+3. Add a simple test for `download-canvas.ts` (link creation & cleanup) for quick function gains.
+4. Extract cluster fusion / NMS logic from `face-detect.ts` into a pure helper module and test it.
+5. Exclude vendored / build artifacts (docs/, public/lib/, ort runtime copies) from coverage if you want more representative app metrics.
+
+Regenerate coverage: `npm run coverage:generate`
+
+Update badges after changes: `npm run coverage:badge`
+
+Feel free to trim or expand this section as coverage strategy evolves.
 
 ## License
 
