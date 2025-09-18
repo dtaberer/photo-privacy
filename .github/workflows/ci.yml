@@ -11,7 +11,11 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     permissions:
+<<<<<<< HEAD
       contents: write # needed to push updated badge JSON to main
+=======
+      contents: write  # needed to push updated badge JSON to main
+>>>>>>> 0eef10f (test(coverage): introduce thresholds, Codecov config, auto-commit badges on main)
 
     steps:
       - name: Checkout
