@@ -15,7 +15,7 @@ export default defineConfig({
         "src/**/index.ts", // small barrel files not meaningful for coverage gate
       ],
       thresholds: {
-  statements: 35, // baseline current ~35.85 -> prevent regressions; ramp upward later
+        statements: 35, // baseline current ~35.85 -> prevent regressions; ramp upward later
         lines: 35,
         branches: 30,
         functions: 35,
