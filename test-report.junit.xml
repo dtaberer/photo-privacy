@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="30" failures="0" errors="0" time="1.894581262">
+    <testsuite name="src/__tests__/ActionControls.spec.tsx" timestamp="2025-09-18T16:28:21.845Z" hostname="DESKTOP-CNFLQFV" tests="1" failures="0" errors="0" skipped="0" time="0.15799428">
+        <testcase classname="src/__tests__/ActionControls.spec.tsx" name="ActionControls &gt; fires callbacks on click" time="0.154172062">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/ControlPanel.spec.tsx" timestamp="2025-09-18T16:28:21.855Z" hostname="DESKTOP-CNFLQFV" tests="1" failures="0" errors="0" skipped="0" time="0.299935155">
+        <testcase classname="src/__tests__/ControlPanel.spec.tsx" name="ControlPanel &gt; renders and updates slider values" time="0.2955956">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/FaceBlur.spec.tsx" timestamp="2025-09-18T16:28:21.866Z" hostname="DESKTOP-CNFLQFV" tests="2" failures="0" errors="0" skipped="0" time="0.066143058">
+        <testcase classname="src/__tests__/FaceBlur.spec.tsx" name="FaceBlur exposes BlurHandler and runs with no detections" time="0.049467241">
+        </testcase>
+        <testcase classname="src/__tests__/FaceBlur.spec.tsx" name="FaceBlur returns detections when FaceDetector finds some" time="0.013561374">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/FileLoader.interaction.spec.tsx" timestamp="2025-09-18T16:28:21.885Z" hostname="DESKTOP-CNFLQFV" tests="2" failures="0" errors="0" skipped="0" time="0.174685365">
+        <testcase classname="src/__tests__/FileLoader.interaction.spec.tsx" name="FileLoader interactions &gt; handles paste of an image file" time="0.111372442">
+        </testcase>
+        <testcase classname="src/__tests__/FileLoader.interaction.spec.tsx" name="FileLoader interactions &gt; handles drop of a file and click selection" time="0.049005795">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/LicensePlateBlur.spec.tsx" timestamp="2025-09-18T16:28:21.901Z" hostname="DESKTOP-CNFLQFV" tests="1" failures="0" errors="0" skipped="0" time="0.036772229">
+        <testcase classname="src/__tests__/LicensePlateBlur.spec.tsx" name="LicensePlateBlur &gt; renders and exposes run/redraw" time="0.033621986">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/Preview.initial.spec.tsx" timestamp="2025-09-18T16:28:21.911Z" hostname="DESKTOP-CNFLQFV" tests="1" failures="0" errors="0" skipped="0" time="0.090832756">
+        <testcase classname="src/__tests__/Preview.initial.spec.tsx" name="Preview initial sizing &gt; applies initial classes and heights before image load" time="0.087177818">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/Preview.layout.spec.tsx" timestamp="2025-09-18T16:28:21.926Z" hostname="DESKTOP-CNFLQFV" tests="1" failures="0" errors="0" skipped="0" time="0.141020941">
+        <testcase classname="src/__tests__/Preview.layout.spec.tsx" name="Preview layout &gt; renders image and canvas; sizing is handled by parent on load" time="0.137531059">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/PrivacyScrubber.detect.spec.tsx" timestamp="2025-09-18T16:28:21.941Z" hostname="DESKTOP-CNFLQFV" tests="1" failures="0" errors="0" skipped="0" time="0.441047863">
+        <testcase classname="src/__tests__/PrivacyScrubber.detect.spec.tsx" name="PrivacyScrubber detection triggers &gt; detects on image load; blur slider changes do NOT trigger detection; toggles do" time="0.43798446">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/SliderControl.test.tsx" timestamp="2025-09-18T16:28:21.952Z" hostname="DESKTOP-CNFLQFV" tests="1" failures="0" errors="0" skipped="0" time="0.004974781">
+        <testcase classname="src/__tests__/SliderControl.test.tsx" name="SliderControl (placeholder) &gt; exists" time="0.002086993">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/face-blur-utils.test.ts" timestamp="2025-09-18T16:28:21.970Z" hostname="DESKTOP-CNFLQFV" tests="8" failures="0" errors="0" skipped="0" time="0.035981191">
+        <testcase classname="src/__tests__/face-blur-utils.test.ts" name="face-blur-utils primitives &gt; clamp bounds values inclusive" time="0.003549965">
+        </testcase>
+        <testcase classname="src/__tests__/face-blur-utils.test.ts" name="face-blur-utils primitives &gt; grow keeps box inside image" time="0.001843084">
+        </testcase>
+        <testcase classname="src/__tests__/face-blur-utils.test.ts" name="face-blur-utils primitives &gt; cssToCanvasRect maps css -&gt; canvas coords with scaling" time="0.005617735">
+        </testcase>
+        <testcase classname="src/__tests__/face-blur-utils.test.ts" name="face-blur-utils primitives &gt; cssToCanvasRect returns raw when client rect 0 size (detached element)" time="0.001776045">
+        </testcase>
+        <testcase classname="src/__tests__/face-blur-utils.test.ts" name="face-blur-utils primitives &gt; adjustUp shifts box upward with padding ratio" time="0.000770657">
+        </testcase>
+        <testcase classname="src/__tests__/face-blur-utils.test.ts" name="face-blur-utils primitives &gt; isFaceApiNS guards expected shape" time="0.000948976">
+        </testcase>
+        <testcase classname="src/__tests__/face-blur-utils.test.ts" name="blurPatchWithFeather &gt; executes without feather" time="0.010433999">
+        </testcase>
+        <testcase classname="src/__tests__/face-blur-utils.test.ts" name="blurPatchWithFeather &gt; executes with feather and large blur" time="0.006524401">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/license-plate-blur-utils.test.ts" timestamp="2025-09-18T16:28:22.018Z" hostname="DESKTOP-CNFLQFV" tests="10" failures="0" errors="0" skipped="0" time="0.027485907">
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="geometry + filtering &gt; iou returns 0 for no overlap and 1 for identical" time="0.00213394">
+        </testcase>
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="geometry + filtering &gt; nms suppresses overlapping lower-confidence boxes" time="0.00066237">
+        </testcase>
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="geometry + filtering &gt; strengthToBlur buckets correctly" time="0.000883193">
+        </testcase>
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="geometry + filtering &gt; filterByMinConf parses numeric strings" time="0.000549158">
+        </testcase>
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="letterbox + parseYolo variations &gt; letterbox produces expected square output &amp; scale" time="0.013163947">
+        </testcase>
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="letterbox + parseYolo variations &gt; parseYolo supports [1,C,N] shape (C first)" time="0.00127335">
+        </testcase>
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="letterbox + parseYolo variations &gt; parseYolo supports [N,K] variant (R,K) path" time="0.00064933">
+        </testcase>
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="letterbox + parseYolo variations &gt; parseYolo gracefully ignores NaNs &amp; low conf" time="0.000718204">
+        </testcase>
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="toRows + get2D tensor helpers &gt; toRows returns same data when layout already [1,N,M] aligned" time="0.001915339">
+        </testcase>
+        <testcase classname="src/__tests__/license-plate-blur-utils.test.ts" name="toRows + get2D tensor helpers &gt; get2D rejects non-float32 data" time="0.002206098">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/refresh.calls.spec.tsx" timestamp="2025-09-18T16:28:22.067Z" hostname="DESKTOP-CNFLQFV" tests="1" failures="0" errors="0" skipped="0" time="0.417707736">
+        <testcase classname="src/__tests__/refresh.calls.spec.tsx" name="PrivacyScrubber refresh flow &gt; calls plate then face helpers after image load and (if present) refresh" time="0.415196003">
+        </testcase>
+    </testsuite>
+</testsuites>
