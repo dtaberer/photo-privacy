@@ -38,7 +38,19 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} # Set this secret in your repo settings (Codecov project token)
           files: ./coverage/lcov.info
-          fail_ci_if_error: true
+          # Keep non-blocking: code review requested avoiding hard CI failures on transient upload issues.
+          fail_ci_if_error: false
           verbose: true
+          # Later you can gate failures only on main branch by templating this input.
+          # Example:
+          # fail_ci_if_error: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
+          # Add flags/slug if you want more granular Codecov dashboards.
+
+      # Ensure the production bundle still builds (catches missing imports/assets)
+      - name: Build (Vite)
+        run: npm run build
+
+      # Optional: verify ORT sidecar/file integrity after build
+      - name: Verify ORT distribution
+        run: npm run build:verify
