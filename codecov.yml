@@ -36,5 +36,4 @@ coverage:
 ignore:
   - "docs/**"
   - "public/**"
-  - "common/lib/**"
   - "**/node_modules/**"
