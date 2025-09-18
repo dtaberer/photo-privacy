@@ -36,7 +36,7 @@ describe("geometry + filtering", () => {
       0.3
     );
     expect(kept.length).toBe(2);
-    expect(kept[0].conf).toBe(0.9);
+    expect(kept[0]?.conf).toBe(0.9);
   });
 
   it("strengthToBlur buckets correctly", () => {
@@ -93,17 +93,25 @@ describe("letterbox + parseYolo variations", () => {
       // We'll append into channel-major arrays later
       tmp.push({ cx, cy, w, h, conf, cls });
     }
-    const tmp: any[] = [];
+    interface Candidate {
+      cx: number;
+      cy: number;
+      w: number;
+      h: number;
+      conf: number;
+      cls: number;
+    }
+    const tmp: Candidate[] = [];
     pushCandidate(50, 50, 20, 10, 0.9, 0.9);
     pushCandidate(30, 30, 5, 5, 0.3, 0.8);
     // Build channel-major arrays
     for (const channel of [
-      (i: number) => tmp[i].cx as number,
-      (i: number) => tmp[i].cy as number,
-      (i: number) => tmp[i].w as number,
-      (i: number) => tmp[i].h as number,
-      (i: number) => tmp[i].conf as number,
-      (i: number) => tmp[i].cls as number,
+      (i: number) => tmp[i]!.cx,
+      (i: number) => tmp[i]!.cy,
+      (i: number) => tmp[i]!.w,
+      (i: number) => tmp[i]!.h,
+      (i: number) => tmp[i]!.conf,
+      (i: number) => tmp[i]!.cls,
     ]) {
       for (let i = 0; i < N; i++) data.push(channel(i));
     }
@@ -180,7 +188,10 @@ describe("toRows + get2D tensor helpers", () => {
   });
 
   it("get2D rejects non-float32 data", () => {
-    const bad = { dims: [1, 2], data: new Int32Array([1, 2]) } as any;
+    const bad = {
+      dims: [1, 2],
+      data: new Int32Array([1, 2]),
+    } as unknown as Tensor;
     expect(() => get2D(bad)).toThrow();
   });
 });
