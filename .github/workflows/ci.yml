@@ -69,6 +69,7 @@ jobs:
         with:
           files: coverage/lcov.info
           flags: unit
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           verbose: false
         # Omit token for public repositories (tokenless upload); set secrets.CODECOV_TOKEN for private repos if needed.
