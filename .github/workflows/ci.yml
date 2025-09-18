@@ -36,12 +36,14 @@ jobs:
 
       # Upload coverage (tokenless public mode)
       - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v4
         with:
-          files: ./coverage/lcov.info
+          files: coverage/lcov.info
+          flags: unit
           fail_ci_if_error: false
-          verbose: true
-
+          verbose: false
+        # Omit token for public repositories (tokenless upload); set secrets.CODECOV_TOKEN for private repos if needed.
       # Build production bundle
       - name: Build (Vite)
         run: npm run build --silent
