@@ -38,6 +38,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          # For Vitest + coverage-v8, either of these usually exists; pick the one you generate:
-          files: ./coverage/lcov.info,./coverage/coverage-final.json
+          token: ${{ secrets.CODECOV_TOKEN }} # Set this secret in your repo settings (Codecov project token)
+          files: ./coverage/lcov.info
           fail_ci_if_error: true
+          verbose: true
