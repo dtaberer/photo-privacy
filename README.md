@@ -135,7 +135,7 @@ Suggested next targets:
 
 Regenerate coverage: `npm run coverage:generate`
 
-Update badges after changes: `npm run coverage:badge`
+Coverage badges are generated automatically in CI (see workflow steps: Generate coverage badges). Locally you can refresh them with: `npm run coverage:badge`.
 
 Feel free to trim or expand this section as coverage strategy evolves.
 

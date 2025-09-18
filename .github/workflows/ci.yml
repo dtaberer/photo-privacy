@@ -34,6 +34,18 @@ jobs:
       - name: Test with coverage
         run: npm test -- --coverage
 
+      # Generate coverage badge JSON files (outputs to docs/badges)
+      - name: Generate coverage badges
+        run: node scripts/update-coverage-badges.mjs
+
+      # Upload badge JSON as an artifact for PR inspection (optional)
+      - name: Upload coverage badge artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-badges
+          path: docs/badges/*.json
+
       # Upload coverage (tokenless public mode)
       - name: Upload coverage to Codecov
         if: ${{ !cancelled() }}
