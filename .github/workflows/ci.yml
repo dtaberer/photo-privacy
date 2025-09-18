@@ -11,7 +11,7 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # needed to push updated badge JSON to main
+      contents: write # needed to push updated badge JSON to main
 
     steps:
       - name: Checkout
