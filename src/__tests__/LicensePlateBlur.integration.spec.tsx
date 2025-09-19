@@ -60,7 +60,6 @@ const fetchMock = vi.fn().mockResolvedValue({
   arrayBuffer: async () => new ArrayBuffer(16 * 1024),
 });
 
-// (Removed unused ImageMock helper)
 
 let originalRAF: typeof requestAnimationFrame;
 let originalFetch: typeof fetch;
