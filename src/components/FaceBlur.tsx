@@ -33,7 +33,7 @@ type FaceApiCompatNS = typeof import("face-api.js");
 let facesCache: FaceBox[] = [];
 
 interface FaceBlurProps {
-  // Allow refs whose current can be null initially
+  // Refs' .current will be null during initial render before DOM elements are assigned
   imgRef: RefObject<HTMLImageElement | null>;
   canvasRef: RefObject<HTMLCanvasElement | null>;
   opts: {
