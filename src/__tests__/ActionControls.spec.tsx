@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import ActionControls from "../components/ActionControls";
+import ActionControls from "@/components/ActionControls";
 import { StepStates, StepsEnum } from "@/components/demo/useDemo";
 
 describe("ActionControls", () => {
