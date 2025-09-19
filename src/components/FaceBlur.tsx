@@ -91,7 +91,8 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const t0 = performance.now();
       facesCache = [];
       // Initial pass uses constant density (capped to avoid platform-specific blur artifacts)
-      const desiredBlur = latestBlurRef.current ?? FaceBlurConstants.BLUR_DENSITY;
+      const desiredBlur =
+        latestBlurRef.current ?? FaceBlurConstants.BLUR_DENSITY;
       const blur = clamp(
         Math.round(desiredBlur),
         1,

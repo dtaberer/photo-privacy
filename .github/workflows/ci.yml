@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # needed to push updated badge JSON to main
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
