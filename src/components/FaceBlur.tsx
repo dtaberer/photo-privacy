@@ -33,8 +33,8 @@ type FaceApiCompatNS = typeof import("face-api.js");
 let facesCache: FaceBox[] = [];
 
 interface FaceBlurProps {
-  imgRef: RefObject<HTMLImageElement | null>;
-  canvasRef: RefObject<HTMLCanvasElement | null>;
+  imgRef: RefObject<HTMLImageElement>;
+  canvasRef: RefObject<HTMLCanvasElement>;
   opts: {
     modelSize: number;
     confThresh: number; // 0..1
