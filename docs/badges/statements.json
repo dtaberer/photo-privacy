@@ -1,6 +1,4 @@
 {
-  "schemaVersion": 1,
-  "label": "statements",
-  "message": "81%",
-  "color": "yellow"
+  // This file should be generated automatically by a coverage badge script in CI.
+  // Do not edit manually. See scripts/generate-badges.js for details.
 }
