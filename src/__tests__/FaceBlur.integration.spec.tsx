@@ -105,7 +105,7 @@ describe("FaceBlur component (real implementation)", () => {
     expect(imageArg).toBeTruthy();
     expect(imageArg?.data).toBeInstanceOf(Uint8ClampedArray);
 
-    // Only high-confidence detection should remain after redraw cut-off (0.64)
+    // Only high-confidence detections are blurred after redraw cut-off (0.64); full detections array is retained for reporting
     expect(blurPatchMock).toHaveBeenCalledTimes(1);
     const blurArgs = blurPatchMock.mock.calls[0] ?? [];
     expect(blurArgs[2]).toBeGreaterThanOrEqual(0); // x
