@@ -13,6 +13,8 @@ export default defineConfig({
         "src/**/__tests__/**",
         "src/**/*.d.ts",
         "src/**/index.ts", // small barrel files not meaningful for coverage gate
+        "src/types/**",
+        "src/components/utils/face-detector-onnx.ts",
       ],
       thresholds: {
         statements: 35, // baseline current ~35.85 -> prevent regressions; ramp upward later

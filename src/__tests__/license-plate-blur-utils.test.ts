@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   iou,
   nms,
@@ -8,6 +8,9 @@ import {
   filterByMinConf,
   toRows,
   get2D,
+  firstValue,
+  getFloat32Data,
+  blurRegion,
 } from "@/components/utils/license-plate-blur-utils";
 import { Tensor } from "onnxruntime-web";
 
@@ -193,5 +196,52 @@ describe("toRows + get2D tensor helpers", () => {
       data: new Int32Array([1, 2]),
     } as unknown as Tensor;
     expect(() => get2D(bad)).toThrow();
+  });
+
+  it("firstValue picks the first output", () => {
+    expect(firstValue({ out0: 123, out1: 456 })).toBe(123);
+  });
+
+  it("getFloat32Data returns the underlying array", () => {
+    const tensor = new Tensor("float32", new Float32Array([1, 2]), [1, 2]);
+    const out = getFloat32Data(tensor as unknown as Tensor);
+    expect(out).toBeInstanceOf(Float32Array);
+    expect(out[0]).toBe(1);
+  });
+
+  it("blurRegion draws using offscreen canvas", () => {
+    const targetCtx = {
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D;
+
+    const drawImageMock = vi.fn();
+    const offscreenCtx = {
+      filter: "none",
+      drawImage: drawImageMock,
+      globalCompositeOperation: "source-over",
+    } as unknown as CanvasRenderingContext2D;
+
+    const originalGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement,
+      contextId: unknown,
+      _options?: unknown
+    ) {
+      if (contextId !== "2d") {
+        return originalGetContext.call(
+          this,
+          contextId as "webgl2",
+          _options as never
+        );
+      }
+      return offscreenCtx as unknown as CanvasRenderingContext2D;
+    } as unknown as typeof HTMLCanvasElement.prototype.getContext;
+
+    const srcCanvas = document.createElement("canvas");
+    blurRegion(targetCtx, srcCanvas, { x: 0, y: 0, w: 10, h: 10 }, 5);
+
+    expect(drawImageMock).toHaveBeenCalled();
+    expect(targetCtx.drawImage).toHaveBeenCalled();
+    HTMLCanvasElement.prototype.getContext = originalGetContext;
   });
 });

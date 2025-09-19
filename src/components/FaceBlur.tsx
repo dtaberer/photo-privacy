@@ -33,8 +33,9 @@ type FaceApiCompatNS = typeof import("face-api.js");
 let facesCache: FaceBox[] = [];
 
 interface FaceBlurProps {
-  imgRef: RefObject<HTMLImageElement>;
-  canvasRef: RefObject<HTMLCanvasElement>;
+  // Allow refs whose current can be null initially
+  imgRef: RefObject<HTMLImageElement | null>;
+  canvasRef: RefObject<HTMLCanvasElement | null>;
   opts: {
     modelSize: number;
     confThresh: number; // 0..1
@@ -91,7 +92,8 @@ export const FaceBlur = forwardRef<BlurHandler, FaceBlurProps>(
       const t0 = performance.now();
       facesCache = [];
       // Initial pass uses constant density (capped to avoid platform-specific blur artifacts)
-      const desiredBlur = latestBlurRef.current ?? FaceBlurConstants.BLUR_DENSITY;
+      const desiredBlur =
+        latestBlurRef.current ?? FaceBlurConstants.BLUR_DENSITY;
       const blur = clamp(
         Math.round(desiredBlur),
         1,
