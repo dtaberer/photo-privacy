@@ -9,9 +9,7 @@ describe("downloadCanvas", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    createUrlSpy = vi
-      .spyOn(URL, "createObjectURL" as any)
-      .mockReturnValue("blob:mock");
+    createUrlSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock");
     if (typeof URL.revokeObjectURL === "function") {
       const spy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
       revokeUrlSpy = spy as unknown as ReturnType<typeof vi.fn>;

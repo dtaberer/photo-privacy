@@ -69,12 +69,12 @@ beforeEach(() => {
   originalGetContext = HTMLCanvasElement.prototype.getContext;
   HTMLCanvasElement.prototype.getContext = function (
     this: HTMLCanvasElement,
-    contextId: any,
-    _options?: any
+    contextId: string,
+    options?: CanvasRenderingContext2DSettings
   ) {
     // Only intercept 2d contexts; defer all other context ids to original implementation preserving overload expectations.
     if (contextId !== "2d") {
-      return originalGetContext.call(this, contextId as never, _options);
+      return originalGetContext.call(this, contextId as never, options as never);
     }
     if (!ctxMap.has(this)) {
       ctxMap.set(this, createMockContext(this));
