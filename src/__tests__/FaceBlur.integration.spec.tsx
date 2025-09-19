@@ -131,6 +131,7 @@ describe("FaceBlur component (real implementation)", () => {
       }
     }
 
+    // The full detections array is retained (should have length 2), but only high-confidence detections are blurred.
     expect(handleRef.current?.getDetections()).toHaveLength(2);
     const handle = handleRef.current;
     expect(handle).toBeDefined();
