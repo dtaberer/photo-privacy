@@ -61,12 +61,8 @@ describe("FaceBlur component (real implementation)", () => {
     canvas.width = 800;
     canvas.height = 600;
 
-    const imgRef = {
-      current: img,
-    } as React.MutableRefObject<HTMLImageElement | null>;
-    const canvasRef = {
-      current: canvas,
-    } as React.MutableRefObject<HTMLCanvasElement | null>;
+    const imgRef = { current: img } as React.RefObject<HTMLImageElement>;
+    const canvasRef = { current: canvas } as React.RefObject<HTMLCanvasElement>;
     const setPerfReport: React.Dispatch<
       React.SetStateAction<PerformanceReport>
     > = vi.fn();
@@ -179,12 +175,8 @@ describe("FaceBlur component (real implementation)", () => {
     canvas.width = 640;
     canvas.height = 480;
 
-    const imgRef = {
-      current: img,
-    } as React.MutableRefObject<HTMLImageElement | null>;
-    const canvasRef = {
-      current: canvas,
-    } as React.MutableRefObject<HTMLCanvasElement | null>;
+    const imgRef = { current: img } as React.RefObject<HTMLImageElement>;
+    const canvasRef = { current: canvas } as React.RefObject<HTMLCanvasElement>;
     const setPerfReport: React.Dispatch<
       React.SetStateAction<PerformanceReport>
     > = vi.fn();
