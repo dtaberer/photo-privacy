@@ -5,8 +5,8 @@
 [![Functions](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/badges/functions.json)](docs/badges/functions.json)
 [![Lines](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/dtaberer/photo-privacy/main/docs/badges/lines.json)](docs/badges/lines.json)
 
-AI Engine which identifies faces and license plates and automatically applies redaction. 
-Fast, privacy‑first redaction for faces and license plates — runs entirely in your browser. No uploads, no servers, no tracking. Paste, drag‑drop, or pick a photo; tune blur and feather; download the redacted result.
+AI Engine which identifies faces and license plates and then automatically redacts those regions. 
+Fast and secure, it runs entirely in your browser. No uploads, no servers, no tracking. Paste, drag‑drop, or pick a photo; tune blur and feather; download the redacted result.
 
 ## Live Demo
 
